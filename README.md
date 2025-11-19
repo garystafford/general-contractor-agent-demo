@@ -4,6 +4,8 @@ A multi-agent orchestration system demonstrating construction project management
 
 **Built with [Strands Agents](https://strandsagents.com/latest/) framework and AWS Bedrock.**
 
+> **👉 New to this project?** Start with [QUICKSTART.md](QUICKSTART.md) or [SUMMARY.md](SUMMARY.md) for a quick overview!
+
 ## Overview
 
 This system models a construction project where a **General Contractor** agent orchestrates multiple specialized trade agents (Architect, Carpenter, Electrician, Plumber, Mason, Painter, HVAC, and Roofer). Each agent has specialized tools and expertise, and the General Contractor manages task dependencies, sequencing, and resource allocation.
@@ -40,6 +42,23 @@ This system models a construction project where a **General Contractor** agent o
 
 - **Task Manager** (dependencies & sequencing)
 
+## 🚀 Quick Start
+
+**Want to see the agents in action immediately?**
+
+```bash
+# Run the demo (no AWS required!)
+uv run python test_shed_demo.py
+```
+
+This shows simulated agent reasoning and tool calling for a complete shed construction project!
+
+**For detailed guides:**
+
+- [QUICKSTART.md](QUICKSTART.md) - Start here!
+- [TESTING.md](TESTING.md) - Complete testing guide
+- [EXECUTION_GUIDE.md](EXECUTION_GUIDE.md) - Execution mode details
+
 ## Project Structure
 
 ```text
@@ -47,7 +66,6 @@ general-contractor-agent-demo/
 ├── backend/
 │   ├── agents/
 │   │   ├── __init__.py
-│   │   ├── base_agent.py           # Base agent class
 │   │   ├── general_contractor.py   # Orchestration agent
 │   │   ├── architect.py            # Design agent
 │   │   ├── carpenter.py            # Carpentry agent
@@ -72,10 +90,17 @@ general-contractor-agent-demo/
 │   ├── __init__.py
 │   └── config.py                   # Configuration settings
 ├── main.py                         # Application entry point
+├── test_agent.py                   # Single agent test
+├── test_shed_demo.py              # Demo with simulated output ⭐
+├── test_shed_detailed.py          # Detailed planning & execution
+├── test_shed_project.py           # Full project orchestration
 ├── pyproject.toml                  # Project dependencies
 ├── .env                            # Environment configuration
 ├── .env.example                    # Environment variables template
-└── README.md                       # This file
+├── README.md                       # This file
+├── QUICKSTART.md                   # Quick start guide ⭐
+├── TESTING.md                      # Testing documentation
+└── EXECUTION_GUIDE.md              # Execution mode guide
 ```
 
 ## Getting Started
@@ -110,7 +135,13 @@ general-contractor-agent-demo/
 3. **Install dependencies**:
 
    ```bash
+   # Install production dependencies
    uv sync
+
+   # Or install with dev dependencies for linting/formatting
+   uv sync --extra dev
+
+   # Activate virtual environment
    source .venv/bin/activate
    ```
 
@@ -154,18 +185,65 @@ For detailed instructions, see [AWS Bedrock Model Access Documentation](https://
 
 ### Testing the Setup
 
-Before running the full application, you can test a single agent:
+This project includes several test scripts to help you understand and verify the system:
+
+#### 1. Demo Mode (No AWS Required) ⭐ RECOMMENDED
 
 ```bash
-# Test the Carpenter agent with AWS Bedrock
+# Run the shed construction demo with simulated agent output
+uv run python test_shed_demo.py
+```
+
+This shows exactly what the execution mode looks like with:
+
+- Real-time agent reasoning
+- Tool calls with inputs
+- Tool execution results
+- Task-by-task progress
+
+**Perfect for seeing how the system works without AWS setup!**
+
+#### 2. Planning Mode (No AWS Required)
+
+```bash
+# See the complete task breakdown and dependencies
+uv run python test_shed_detailed.py
+```
+
+Shows:
+
+- All 10 tasks for building a shed
+- Task dependencies and phases
+- Materials and requirements
+- Agent workload distribution
+
+#### 3. Single Agent Test (AWS Required)
+
+```bash
+# Test a single agent with AWS Bedrock
 uv run python test_agent.py
 ```
 
-This will verify that:
+Verifies:
 
 - AWS credentials are configured correctly
 - Bedrock access is working
-- The Strands Agents framework is properly set up
+- Strands Agents framework is properly set up
+
+#### 4. Full Execution Mode (AWS Required)
+
+```bash
+# Execute with real Claude AI agents
+uv run python test_shed_detailed.py execute
+```
+
+Shows live streaming of:
+
+- Real Claude AI agent reasoning
+- Actual tool calls and results
+- Complete project execution (5-10 minutes)
+
+**See [QUICKSTART.md](QUICKSTART.md) for detailed instructions and [TESTING.md](TESTING.md) for comprehensive testing documentation.**
 
 ### Running the Application
 
@@ -444,7 +522,9 @@ LOG_LEVEL=INFO
 
 The project uses uv for dependency management. All dependencies are defined in `pyproject.toml`:
 
-- **strands-agents**: Multi-agent framework for building AI systems (includes Claude API client as transitive dependency)
+**Production Dependencies:**
+
+- **strands-agents**: Multi-agent framework for building AI systems
 - **boto3**: AWS SDK for Python (Bedrock integration)
 - **fastapi**: Web framework
 - **uvicorn**: ASGI server
@@ -453,62 +533,21 @@ The project uses uv for dependency management. All dependencies are defined in `
 - **python-dotenv**: Environment variable loading
 - **httpx**: HTTP client
 
-### Adding New Agents
+**Dev Dependencies (optional):**
 
-To add a new specialized agent using Strands Agents framework:
+- **black**: Code formatter (100 char line length)
+- **autoflake**: Removes unused imports and variables
+- **isort**: Import sorting (black-compatible)
+- **flake8**: Style guide enforcement (PEP 8)
+- **mypy**: Static type checking
+- **pylint**: Code analysis and linting
+- **types-boto3**: Type stubs for boto3
 
-1. Create a new file in `backend/agents/` (e.g., `new_agent.py`)
-2. Define Pydantic models for tool inputs
-3. Create tools using the `@tool` decorator
-4. Create an agent factory function
+Install dev dependencies:
 
-Example:
-
-```python
-from strands import Agent, tool
-from strands.models import BedrockModel
-from pydantic import BaseModel, Field
-from backend.config import settings
-
-# Tool Input Model
-class PerformTaskInput(BaseModel):
-    """Input for performing a task."""
-    task_name: str = Field(description="Name of the task")
-    complexity: int = Field(description="Task complexity (1-10)")
-
-# Tool Implementation
-@tool
-def perform_task(input: PerformTaskInput) -> dict:
-    """Perform a specific task."""
-    return {
-        "status": "completed",
-        "task": input.task_name,
-        "complexity": input.complexity,
-        "details": f"Completed {input.task_name} with complexity {input.complexity}"
-    }
-
-# Agent Factory
-def create_new_agent() -> Agent:
-    """Create and configure the New agent with AWS Bedrock."""
-    model = BedrockModel(
-        model_id=settings.default_model,
-        region=settings.aws_region,
-        aws_access_key_id=settings.aws_access_key_id,
-        aws_secret_access_key=settings.aws_secret_access_key,
-        aws_profile=settings.aws_profile,
-    )
-
-    agent = Agent(
-        name="NewAgent",
-        model=model,
-        instructions="You are an expert agent...",
-        tools=[perform_task],
-    )
-
-    return agent
+```bash
+uv sync --extra dev
 ```
-
-Then add the new agent to `backend/agents/__init__.py` in the `initialize_all_agents()` function.
 
 ### Task Sequencing
 
@@ -563,9 +602,173 @@ This project demonstrates key concepts in multi-agent AI systems:
 - Multi-project support
 - Real-time WebSocket updates
 
-## Troubleshooting
+## Development
 
-### Common Issues
+### Code Quality Tools
+
+The project includes comprehensive linting and formatting tools configured in [pyproject.toml](pyproject.toml).
+
+#### Install Dev Dependencies
+
+```bash
+# Install all development tools
+uv sync --extra dev
+```
+
+**Included Tools:**
+
+- **black** - Code formatter (100 char line length)
+- **autoflake** - Removes unused imports and variables
+- **isort** - Import sorting (black-compatible)
+- **flake8** - Style guide enforcement (PEP 8)
+- **mypy** - Static type checking
+- **pylint** - Code analysis and linting
+- **types-boto3** - Type stubs for boto3
+
+#### Format Code
+
+```bash
+# Format all Python files
+black .
+
+# Sort imports
+isort .
+
+# Remove unused imports
+autoflake --in-place --recursive .
+```
+
+#### Lint Code
+
+```bash
+# Check style with flake8
+flake8 backend/ test_*.py
+
+# Type check with mypy
+mypy backend/
+
+# Full analysis with pylint
+pylint backend/
+```
+
+#### Run All at Once
+
+```bash
+# Format, sort, and lint
+black . && isort . && autoflake --in-place --recursive . && flake8 .
+```
+
+#### Tool Configuration
+
+All tools are pre-configured in [pyproject.toml](pyproject.toml):
+
+- **Line length**: 100 characters (all tools)
+- **Python version**: 3.13
+- **Black profile**: isort uses black-compatible settings
+- **Mypy**: Ignores missing imports (for external packages)
+- **Pylint**: Disabled overly strict rules (docstrings, name conventions)
+
+#### VS Code Integration
+
+Add to `.vscode/settings.json`:
+
+```json
+{
+  "python.formatting.provider": "black",
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": true,
+  "python.linting.flake8Enabled": true,
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": true
+  }
+}
+```
+
+### Project Type Extensions
+
+The TaskManager supports multiple project types. To add a new project type:
+
+1. **Add a task generation method** in [backend/orchestration/task_manager.py](backend/orchestration/task_manager.py):
+
+   ```python
+   def _create_deck_construction_tasks(self, **kwargs) -> List[Task]:
+       """Create tasks for building a deck."""
+       return [
+           Task("1", "Architect", "Design deck plans", [], "planning"),
+           Task("2", "Mason", "Pour concrete footings", ["1"], "foundation"),
+           # ... more tasks
+       ]
+   ```
+
+2. **Register the project type** in `create_project_tasks()`:
+
+   ```python
+   elif project_type == "deck_construction":
+       tasks = self._create_deck_construction_tasks(**kwargs)
+   ```
+
+3. **Create a test script** to demonstrate the new project type
+
+**Current Project Types:**
+
+- `kitchen_remodel` - Kitchen renovation
+- `bathroom_remodel` - Bathroom renovation
+- `new_construction` - New building construction
+- `addition` - Home addition
+- `shed_construction` - Storage shed (demo)
+
+### Adding New Agents
+
+To add a new specialized agent:
+
+1. **Create agent file** in `backend/agents/` (e.g., `landscaper.py`)
+2. **Define tools** using `@tool` decorator
+3. **Create agent factory function** with `system_prompt` and tools
+4. **Register in** `backend/agents/__init__.py`
+5. **Add to GeneralContractor** agent pool
+6. **Create tasks** that use the new agent
+
+Example agent structure:
+
+```python
+from strands import Agent, tool
+from strands.models import BedrockModel
+from backend.config import settings
+import boto3
+
+@tool
+def plant_trees(input: PlantTreesInput) -> dict:
+    """Plant trees in the yard."""
+    return {"status": "success", "details": f"Planted {input.tree_count} trees"}
+
+def create_landscaper_agent() -> Agent:
+    """Create the Landscaper agent."""
+    # Create boto session
+    session_kwargs = {"region_name": settings.aws_region}
+    if settings.aws_profile:
+        session_kwargs["profile_name"] = settings.aws_profile
+    # ... configure credentials
+
+    boto_session = boto3.Session(**session_kwargs)
+
+    # Create model
+    model = BedrockModel(
+        model_id=settings.default_model,
+        boto_session=boto_session,
+    )
+
+    # Create agent with system_prompt and tools
+    return Agent(
+        model=model,
+        system_prompt="You are an expert Landscaper...",
+        tools=[plant_trees],
+    )
+```
+
+## Common Issues & Troubleshooting
+
+### Setup Issues
 
 **Issue**: `Module 'backend' not found`
 
@@ -594,6 +797,38 @@ This project demonstrates key concepts in multi-agent AI systems:
 
 - **Solution**: Check logs for errors, verify AWS credentials are valid and Bedrock access is enabled
 
+## Example: Shed Construction Project
+
+The included test scripts demonstrate building a 10×12 ft storage shed through the orchestration of 6 specialized agents:
+
+**Project Specifications:**
+
+- Dimensions: 10 ft × 12 ft × 8 ft (height)
+- Foundation: Concrete slab (120 sq ft)
+- Structure: Wood frame with asphalt shingle roof
+- Features: 1 entry door, 1 window, electrical (1 outlet + 1 light)
+- Finish: Exterior paint
+
+**Task Flow (10 tasks across 6 phases):**
+
+1. **Planning**: Architect designs shed plans
+2. **Foundation**: Mason pours concrete slab
+3. **Framing**: Carpenter frames walls and roof trusses
+4. **Rough-in**: Roofer installs roofing, Electrician wires electrical
+5. **Finishing**: Carpenter installs siding/door/window, Painter finishes exterior
+6. **Final Inspection**: Carpenter performs walkthrough
+
+**Agents Involved:**
+
+- Architect (1 task)
+- Mason (1 task)
+- Carpenter (5 tasks)
+- Roofer (1 task)
+- Electrician (1 task)
+- Painter (1 task)
+
+Run `uv run python test_shed_demo.py` to see this in action!
+
 ## License
 
 This project is for educational and training purposes.
@@ -609,6 +844,14 @@ This is a training workshop project. Feedback and suggestions are welcome!
 - Inspired by real-world construction project management
 - Designed to demonstrate multi-agent AI orchestration patterns
 
+## Documentation
+
+- **[SUMMARY.md](SUMMARY.md)** - Project overview and quick reference ⭐
+- **[QUICKSTART.md](QUICKSTART.md)** - Quick start guide and test script overview
+- **[TESTING.md](TESTING.md)** - Comprehensive testing documentation
+- **[EXECUTION_GUIDE.md](EXECUTION_GUIDE.md)** - Detailed execution mode guide
+- **API Documentation** - <http://localhost:8000/docs> (when server is running)
+
 ---
 
-For questions or issues, please refer to the API documentation at http://localhost:8000/docs
+For questions or issues, please open an issue on the GitHub repository.
