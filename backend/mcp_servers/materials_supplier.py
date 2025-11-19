@@ -231,9 +231,7 @@ class BuildingMaterialsSupplier:
     def get_catalog(self, category: str = None) -> Dict[str, Any]:
         """Get catalog of available materials, optionally filtered by category."""
         if category:
-            catalog = {
-                k: v for k, v in self.inventory.items() if v["category"] == category
-            }
+            catalog = {k: v for k, v in self.inventory.items() if v["category"] == category}
         else:
             catalog = self.inventory
 

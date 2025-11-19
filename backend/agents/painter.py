@@ -35,9 +35,7 @@ class RemoveOldPaintInput(BaseModel):
     """Input for removing old paint."""
 
     area_sq_ft: float = Field(description="Area to strip in square feet")
-    method: str = Field(
-        description="Removal method (scraping, chemical stripper, heat gun)"
-    )
+    method: str = Field(description="Removal method (scraping, chemical stripper, heat gun)")
 
 
 class RefinishCabinetsInput(BaseModel):

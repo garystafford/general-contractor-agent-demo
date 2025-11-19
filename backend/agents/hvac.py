@@ -35,9 +35,7 @@ class InstallDuctworkInput(BaseModel):
 class InstallThermostatInput(BaseModel):
     """Input for installing thermostat."""
 
-    thermostat_type: str = Field(
-        description="Type of thermostat (basic, programmable, smart)"
-    )
+    thermostat_type: str = Field(description="Type of thermostat (basic, programmable, smart)")
     zone_count: int = Field(description="Number of zones")
 
 

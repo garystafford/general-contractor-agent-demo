@@ -5,7 +5,7 @@
 The easiest way to see the detailed agent output:
 
 ```bash
-uv run python test_shed_demo.py
+uv run test_shed_demo.py
 ```
 
 This shows **simulated agent reasoning and tool calling** that looks exactly like what the real execution will show!
@@ -16,7 +16,7 @@ This shows **simulated agent reasoning and tool calling** that looks exactly lik
 
 ### 1. **Demo Mode** ⭐ RECOMMENDED FIRST
 ```bash
-uv run python test_shed_demo.py
+uv run test_shed_demo.py
 ```
 - ✅ No AWS required
 - Shows detailed agent reasoning
@@ -26,7 +26,7 @@ uv run python test_shed_demo.py
 
 ### 2. **Planning Mode**
 ```bash
-uv run python test_shed_detailed.py
+uv run test_shed_detailed.py
 ```
 - ✅ No AWS required
 - Shows complete task breakdown
@@ -35,7 +35,7 @@ uv run python test_shed_detailed.py
 
 ### 3. **Real AI Execution** 🤖
 ```bash
-uv run python test_shed_detailed.py execute
+uv run test_shed_detailed.py execute
 ```
 - ⚠️ Requires valid AWS Bedrock credentials
 - ⚠️ Requires correct model ID in `.env`
@@ -76,7 +76,7 @@ DEFAULT_MODEL=us.anthropic.claude-sonnet-4-5-v1:0
 
 Before running the full project:
 ```bash
-uv run python test_agent.py
+uv run test_agent.py
 ```
 
 If this works, you're ready for the full execution!
@@ -143,11 +143,11 @@ A: Update `DEFAULT_MODEL` in `.env` with the correct ID from AWS Console.
 
 ## 🚀 Next Steps
 
-1. **Run the demo** → `uv run python test_shed_demo.py`
-2. **See the project plan** → `uv run python test_shed_detailed.py`
+1. **Run the demo** → `uv run test_shed_demo.py`
+2. **See the project plan** → `uv run test_shed_detailed.py`
 3. **Configure AWS** → Edit `.env` with your credentials
-4. **Test single agent** → `uv run python test_agent.py`
-5. **Run full execution** → `uv run python test_shed_detailed.py execute`
+4. **Test single agent** → `uv run test_agent.py`
+5. **Run full execution** → `uv run test_shed_detailed.py execute`
 
 ---
 

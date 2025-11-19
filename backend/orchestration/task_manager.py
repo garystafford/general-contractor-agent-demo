@@ -487,12 +487,8 @@ class TaskManager:
         total_tasks = len(self.tasks)
         completed = len(self.completed_tasks)
         failed = len(self.failed_tasks)
-        in_progress = len(
-            [t for t in self.tasks.values() if t.status == TaskStatus.IN_PROGRESS]
-        )
-        pending = len(
-            [t for t in self.tasks.values() if t.status == TaskStatus.PENDING]
-        )
+        in_progress = len([t for t in self.tasks.values() if t.status == TaskStatus.IN_PROGRESS])
+        pending = len([t for t in self.tasks.values() if t.status == TaskStatus.PENDING])
 
         return {
             "total_tasks": total_tasks,
@@ -500,9 +496,7 @@ class TaskManager:
             "failed": failed,
             "in_progress": in_progress,
             "pending": pending,
-            "completion_percentage": (
-                (completed / total_tasks * 100) if total_tasks > 0 else 0
-            ),
+            "completion_percentage": ((completed / total_tasks * 100) if total_tasks > 0 else 0),
         }
 
     def get_all_tasks(self) -> List[Task]:

@@ -10,14 +10,14 @@ The **detailed shed construction test** (`test_shed_detailed.py`) demonstrates m
 
 ### Planning Mode (No AWS Required)
 ```bash
-uv run python test_shed_detailed.py
+uv run test_shed_detailed.py
 ```
 
 Shows complete task breakdown, dependencies, and project statistics.
 
 ### Execution Mode (Requires AWS Bedrock)
 ```bash
-uv run python test_shed_detailed.py execute
+uv run test_shed_detailed.py execute
 ```
 
 Executes all 10 tasks with AI agents, showing real-time:

@@ -128,9 +128,7 @@ class PermittingService:
             "message": f"Inspection scheduled for {scheduled_date}",
         }
 
-    def get_required_permits(
-        self, project_type: str, work_items: List[str]
-    ) -> Dict[str, Any]:
+    def get_required_permits(self, project_type: str, work_items: List[str]) -> Dict[str, Any]:
         """
         Determine what permits are required for a project.
 

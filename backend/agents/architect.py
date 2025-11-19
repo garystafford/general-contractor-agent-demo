@@ -30,17 +30,13 @@ class DesignKitchenLayoutInput(BaseModel):
 
     length: float = Field(description="Kitchen length in feet")
     width: float = Field(description="Kitchen width in feet")
-    style: str = Field(
-        description="Kitchen style (modern, traditional, transitional, farmhouse)"
-    )
+    style: str = Field(description="Kitchen style (modern, traditional, transitional, farmhouse)")
 
 
 class DesignBathroomLayoutInput(BaseModel):
     """Input for designing bathroom layout."""
 
-    fixture_count: int = Field(
-        description="Number of fixtures (toilet, sink, shower/tub)"
-    )
+    fixture_count: int = Field(description="Number of fixtures (toilet, sink, shower/tub)")
 
 
 class CreateStructuralPlanInput(BaseModel):

@@ -32,9 +32,7 @@ class BuildCabinetsInput(BaseModel):
     """Input for building cabinets."""
 
     cabinet_count: int = Field(description="Number of cabinet units to build")
-    cabinet_type: str = Field(
-        description="Type of cabinets (kitchen, bathroom, storage)"
-    )
+    cabinet_type: str = Field(description="Type of cabinets (kitchen, bathroom, storage)")
     linear_feet: float = Field(description="Total linear feet of cabinetry")
 
 
@@ -59,12 +57,8 @@ class BuildStairsInput(BaseModel):
     """Input for building stairs."""
 
     step_count: int = Field(description="Number of steps")
-    rise: float = Field(
-        description="Height of each rise in inches (typically 7-8 inches)"
-    )
-    run: float = Field(
-        description="Depth of each tread in inches (typically 10-11 inches)"
-    )
+    rise: float = Field(description="Height of each rise in inches (typically 7-8 inches)")
+    run: float = Field(description="Depth of each tread in inches (typically 10-11 inches)")
 
 
 # Tool Implementations

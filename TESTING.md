@@ -10,7 +10,7 @@ Tests a single agent (Carpenter) with a simple task.
 
 ```bash
 # Run the test
-uv run python test_agent.py
+uv run test_agent.py
 ```
 
 **Status**: ⚠️ Requires valid AWS Bedrock model ID in `.env`
@@ -25,10 +25,10 @@ Two modes:
 
 ```bash
 # Planning mode (no AI execution)
-uv run python test_shed_project.py
+uv run test_shed_project.py
 
 # Full execution mode (requires AWS)
-uv run python test_shed_project.py full
+uv run test_shed_project.py full
 ```
 
 ---
@@ -43,10 +43,10 @@ The most comprehensive test showing:
 
 ```bash
 # Planning mode (no AWS required)
-uv run python test_shed_detailed.py
+uv run test_shed_detailed.py
 
 # Execution mode with real-time output
-uv run python test_shed_detailed.py execute
+uv run test_shed_detailed.py execute
 ```
 
 **Execution Mode Features**:

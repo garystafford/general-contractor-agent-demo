@@ -25,7 +25,7 @@ cd general-contractor-agent-demo
 uv sync
 
 # Run the demo (no AWS required!)
-uv run python test_shed_demo.py
+uv run test_shed_demo.py
 ```
 
 This shows simulated agent reasoning and tool calling for a complete shed construction project!
@@ -225,10 +225,10 @@ You can explore the system without AWS credentials:
 
 ```bash
 # Demo with simulated output
-uv run python test_shed_demo.py
+uv run test_shed_demo.py
 
 # Planning mode
-uv run python test_shed_detailed.py
+uv run test_shed_detailed.py
 ```
 
 ---
@@ -256,13 +256,13 @@ Per task:
 
 ### Level 1: No AWS Setup
 ```bash
-uv run python test_shed_demo.py
+uv run test_shed_demo.py
 ```
 See simulated agent output with detailed reasoning.
 
 ### Level 2: Planning & Structure
 ```bash
-uv run python test_shed_detailed.py
+uv run test_shed_detailed.py
 ```
 Understand task dependencies and project flow.
 
@@ -273,7 +273,7 @@ Understand task dependencies and project flow.
 
 ### Level 4: Full Execution
 ```bash
-uv run python test_shed_detailed.py execute
+uv run test_shed_detailed.py execute
 ```
 Watch real Claude AI agents build the shed!
 
@@ -303,4 +303,4 @@ Educational and training purposes.
 
 ---
 
-**Ready to get started?** Run `uv run python test_shed_demo.py` now!
+**Ready to get started?** Run `uv run test_shed_demo.py` now!

@@ -13,9 +13,7 @@ class InstallSinkInput(BaseModel):
     """Input for installing sink."""
 
     sink_type: str = Field(description="Type of sink (kitchen, bathroom, utility)")
-    faucet_type: str = Field(
-        description="Type of faucet (single-handle, double-handle, touchless)"
-    )
+    faucet_type: str = Field(description="Type of faucet (single-handle, double-handle, touchless)")
 
 
 class InstallToiletInput(BaseModel):
@@ -47,9 +45,7 @@ class InstallWaterHeaterInput(BaseModel):
     """Input for installing water heater."""
 
     capacity_gallons: int = Field(description="Water heater capacity in gallons")
-    heater_type: str = Field(
-        description="Type of water heater (tank, tankless, hybrid)"
-    )
+    heater_type: str = Field(description="Type of water heater (tank, tankless, hybrid)")
 
 
 # Tool Implementations

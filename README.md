@@ -48,7 +48,7 @@ This system models a construction project where a **General Contractor** agent o
 
 ```bash
 # Run the demo (no AWS required!)
-uv run python test_shed_demo.py
+uv run test_shed_demo.py
 ```
 
 This shows simulated agent reasoning and tool calling for a complete shed construction project!
@@ -191,7 +191,7 @@ This project includes several test scripts to help you understand and verify the
 
 ```bash
 # Run the shed construction demo with simulated agent output
-uv run python test_shed_demo.py
+uv run test_shed_demo.py
 ```
 
 This shows exactly what the execution mode looks like with:
@@ -207,7 +207,7 @@ This shows exactly what the execution mode looks like with:
 
 ```bash
 # See the complete task breakdown and dependencies
-uv run python test_shed_detailed.py
+uv run test_shed_detailed.py
 ```
 
 Shows:
@@ -221,7 +221,7 @@ Shows:
 
 ```bash
 # Test a single agent with AWS Bedrock
-uv run python test_agent.py
+uv run test_agent.py
 ```
 
 Verifies:
@@ -234,7 +234,7 @@ Verifies:
 
 ```bash
 # Execute with real Claude AI agents
-uv run python test_shed_detailed.py execute
+uv run test_shed_detailed.py execute
 ```
 
 Shows live streaming of:
@@ -251,7 +251,7 @@ Shows live streaming of:
 
 ```bash
 # Using uv
-uv run python main.py
+uv run main.py
 
 # Or activate the virtual environment first
 source .venv/bin/activate
@@ -827,7 +827,7 @@ The included test scripts demonstrate building a 10×12 ft storage shed through 
 - Electrician (1 task)
 - Painter (1 task)
 
-Run `uv run python test_shed_demo.py` to see this in action!
+Run `uv run test_shed_demo.py` to see this in action!
 
 ## License
 

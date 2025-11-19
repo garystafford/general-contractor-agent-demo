@@ -13,9 +13,7 @@ class InstallShinglesInput(BaseModel):
     """Input for installing shingles."""
 
     area_sq_ft: float = Field(description="Area to cover in square feet")
-    shingle_type: str = Field(
-        description="Type of shingles (asphalt, architectural, metal, tile)"
-    )
+    shingle_type: str = Field(description="Type of shingles (asphalt, architectural, metal, tile)")
 
 
 class RepairLeakInput(BaseModel):
@@ -29,9 +27,7 @@ class InstallFlashingInput(BaseModel):
     """Input for installing flashing."""
 
     linear_feet: float = Field(description="Length of flashing in feet")
-    flashing_type: str = Field(
-        description="Type of flashing (valley, chimney, vent, eave)"
-    )
+    flashing_type: str = Field(description="Type of flashing (valley, chimney, vent, eave)")
 
 
 class InstallUnderlaymentInput(BaseModel):

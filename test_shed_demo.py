@@ -342,9 +342,7 @@ async def test_shed_demo():
         task_description="Final walkthrough and cleanup",
         agent_name="Carpenter",
         phase="final_inspection",
-        requirements={
-            "checklist": ["doors close properly", "roof is sealed", "paint is dry"]
-        },
+        requirements={"checklist": ["doors close properly", "roof is sealed", "paint is dry"]},
         materials=[],
         tools_to_use={
             "reasoning": [

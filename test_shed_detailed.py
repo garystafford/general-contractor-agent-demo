@@ -153,13 +153,9 @@ Please complete this task using your specialized tools."""
                 if text_parts:
                     print(f"📝 Agent Reasoning: {' '.join(text_parts)}")
                 if tool_calls:
-                    print(
-                        f"🔧 Tools Used: {', '.join([t['name'] for t in tool_calls])}"
-                    )
+                    print(f"🔧 Tools Used: {', '.join([t['name'] for t in tool_calls])}")
                 if tool_results:
-                    print(
-                        f"✓ Results: {len(tool_results)} tool(s) executed successfully"
-                    )
+                    print(f"✓ Results: {len(tool_results)} tool(s) executed successfully")
 
                 # Mark as completed
                 task_result = {
@@ -298,9 +294,7 @@ async def test_detailed_shed_planning():
                     print(f"   Materials:    {', '.join(task.materials)}")
 
                 if task.requirements:
-                    req_str = ", ".join(
-                        [f"{k}={v}" for k, v in task.requirements.items()]
-                    )
+                    req_str = ", ".join([f"{k}={v}" for k, v in task.requirements.items()])
                     print(f"   Requirements: {req_str}")
 
                 print()
@@ -339,9 +333,7 @@ async def test_detailed_shed_planning():
         agent_workload[task.agent] = agent_workload.get(task.agent, 0) + 1
 
     print("   Tasks per Agent:")
-    for agent, count in sorted(
-        agent_workload.items(), key=lambda x: x[1], reverse=True
-    ):
+    for agent, count in sorted(agent_workload.items(), key=lambda x: x[1], reverse=True):
         bar = "█" * count
         print(f"   {agent:15} {bar} {count}")
 
