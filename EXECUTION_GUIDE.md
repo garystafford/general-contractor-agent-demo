@@ -9,6 +9,7 @@ The **detailed shed construction test** (`test_shed_detailed.py`) demonstrates m
 ## Quick Start
 
 ### Planning Mode (No AWS Required)
+
 ```bash
 uv run test_shed_detailed.py
 ```
@@ -16,11 +17,13 @@ uv run test_shed_detailed.py
 Shows complete task breakdown, dependencies, and project statistics.
 
 ### Execution Mode (Requires AWS Bedrock)
+
 ```bash
 uv run test_shed_detailed.py execute
 ```
 
 Executes all 10 tasks with AI agents, showing real-time:
+
 - 💭 Agent reasoning and thinking
 - 🔧 Tool calls with parameters
 - ✓ Tool execution results
@@ -31,6 +34,7 @@ Executes all 10 tasks with AI agents, showing real-time:
 ## What You'll See in Execution Mode
 
 ### 1. Task Header
+
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ TASK #1: Design shed plans (10x12 ft)
@@ -47,6 +51,7 @@ Executes all 10 tasks with AI agents, showing real-time:
 ```
 
 ### 2. Real-Time Agent Reasoning
+
 ```
 🤖 Agent is thinking and using tools...
 --------------------------------------------------------------------------------
@@ -56,6 +61,7 @@ Executes all 10 tasks with AI agents, showing real-time:
 ```
 
 ### 3. Tool Calls
+
 ```
 🔧 Calling tool: create_floor_plan
    Input: {
@@ -71,6 +77,7 @@ Executes all 10 tasks with AI agents, showing real-time:
 ```
 
 ### 4. Task Completion
+
 ```
 ✅ TASK COMPLETED
 --------------------------------------------------------------------------------
@@ -97,6 +104,7 @@ Task 10 → Carpenter final walkthrough
 ```
 
 ### 6. Final Summary
+
 ```
 ================================================================================
 📊 PROJECT COMPLETION SUMMARY
@@ -111,23 +119,28 @@ Task 10 → Carpenter final walkthrough
 ## Key Features
 
 ### Real-Time Streaming
+
 - Uses Strands `stream_async()` for live output
 - Shows agent reasoning as it happens
 - Displays tool calls before execution
 - Shows results immediately after completion
 
 ### Task Dependencies
+
 - Automatically waits for prerequisite tasks
 - Executes tasks in correct sequence
 - Handles parallel execution when possible
 
 ### Error Handling
+
 - Catches and displays errors gracefully
 - Marks failed tasks in task manager
 - Continues with remaining tasks when possible
 
 ### Detailed Logging
+
 Each task shows:
+
 - **Requirements**: Technical specifications
 - **Materials**: Needed supplies
 - **Agent Reasoning**: Claude's thinking process
@@ -260,6 +273,7 @@ elif event_type == "custom_event":
 ## Performance
 
 ### Expected Execution Time
+
 - **Planning Mode**: < 1 second
 - **Execution Mode**: 5-10 minutes total
   - Each task: 30-60 seconds
@@ -267,6 +281,7 @@ elif event_type == "custom_event":
   - Network latency affects streaming speed
 
 ### Cost Considerations
+
 - Uses Claude Sonnet 4.5 on AWS Bedrock
 - Cost depends on your AWS pricing
 - Typical cost per full execution: ~$0.10-0.50
@@ -278,16 +293,19 @@ elif event_type == "custom_event":
 ## Troubleshooting
 
 ### Streaming Stops or Hangs
+
 - Check AWS network connectivity
 - Verify model ID is correct
 - Ensure AWS credentials haven't expired
 
 ### No Output After "Agent is thinking..."
+
 - Model may be taking time to respond
 - Wait 30-60 seconds
 - Check AWS Bedrock console for errors
 
 ### Tool Calls Fail
+
 - Agent tools are simulated (return mock data)
 - Tools always succeed in this demo
 - Real implementation would call actual services
@@ -317,6 +335,7 @@ elif event_type == "custom_event":
 ## Support
 
 If you encounter issues:
+
 1. Check [TESTING.md](TESTING.md) for configuration help
 2. Verify AWS Bedrock model access
 3. Review error messages carefully

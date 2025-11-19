@@ -20,6 +20,7 @@ uv run test_agent.py
 ### 2. Shed Project Planning (`test_shed_project.py`)
 
 Two modes:
+
 - **Simple Planning** (default): Shows task breakdown without execution
 - **Full Execution**: Executes all tasks with AI agents
 
@@ -36,6 +37,7 @@ uv run test_shed_project.py full
 ### 3. Detailed Shed Construction (`test_shed_detailed.py`) ⭐ RECOMMENDED
 
 The most comprehensive test showing:
+
 - Complete task breakdown
 - Real-time agent reasoning
 - Tool calls and results
@@ -50,6 +52,7 @@ uv run test_shed_detailed.py execute
 ```
 
 **Execution Mode Features**:
+
 - 🤖 Real-time streaming of agent reasoning
 - 🔧 Live tool call visualization
 - ✓ Tool execution results
@@ -72,6 +75,7 @@ The TaskManager supports these project types:
 ## Shed Construction Project Details
 
 **Specifications**:
+
 - Dimensions: 10 ft × 12 ft × 8 ft (height)
 - Foundation: Concrete slab (120 sq ft)
 - Structure: Wood frame
@@ -84,6 +88,7 @@ The TaskManager supports these project types:
 **Task Breakdown**: 10 tasks across 6 phases
 
 **Agents Involved**:
+
 1. Architect - Design plans
 2. Mason - Pour foundation
 3. Carpenter - Frame walls, roof, siding, doors/windows (5 tasks)
@@ -102,6 +107,7 @@ Before running execution mode, configure your AWS Bedrock credentials:
 ### Option 1: Using AWS Access Keys
 
 Edit `.env`:
+
 ```bash
 AWS_ACCESS_KEY_ID=your_key
 AWS_SECRET_ACCESS_KEY=your_secret
@@ -114,6 +120,7 @@ DEFAULT_MODEL=us.anthropic.claude-sonnet-4-5-v1:0
 ### Option 2: Using AWS Profile
 
 Edit `.env`:
+
 ```bash
 AWS_PROFILE=default
 AWS_REGION=us-east-1
@@ -184,6 +191,7 @@ When running with execution mode, you'll see:
 ### Planning Mode Works but Execution Fails
 
 **Solution**: This is likely an AWS configuration issue. Verify:
+
 1. AWS credentials are valid
 2. You have access to AWS Bedrock in the specified region
 3. Claude model is enabled in your AWS Bedrock account
@@ -210,6 +218,7 @@ To add a new project type:
 3. Create a test script to demonstrate the new project type
 
 Example:
+
 ```python
 def _create_deck_construction_tasks(self, **kwargs) -> List[Task]:
     """Create tasks for building a deck."""

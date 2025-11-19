@@ -17,18 +17,18 @@ class Settings(BaseSettings):
     aws_profile: Optional[str] = None
 
     # Model configuration (Bedrock model IDs)
-    # Use regional inference profile format (e.g., us.anthropic.claude-sonnet-4-5-v1:0)
-    default_model: str = "us.anthropic.claude-sonnet-4-5-v1:0"
+    # Use regional inference profile format (e.g., us.anthropic.claude-sonnet-4-5-20250929-v1:0)
+    default_model: str = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
 
     # API configuration
     api_host: str = "0.0.0.0"
     api_port: int = 8000
 
-    # MCP Server configuration
+    # MCP Server configuration (reserved for future use)
     materials_mcp_url: Optional[str] = None
     permitting_mcp_url: Optional[str] = None
 
-    # Project settings
+    # Project settings (reserved for future use)
     max_parallel_tasks: int = 3
     task_timeout_seconds: int = 300
 

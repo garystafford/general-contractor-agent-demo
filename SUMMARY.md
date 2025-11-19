@@ -37,19 +37,23 @@ This shows simulated agent reasoning and tool calling for a complete shed constr
 ### Core Components
 
 1. **8 Specialized Agents** - Each with domain-specific tools
+
    - Architect, Carpenter, Electrician, Plumber, Mason, Painter, HVAC, Roofer
 
 2. **General Contractor Agent** - Orchestrates all specialized agents
+
    - Task dependency management
    - Phase-based sequencing
    - Resource coordination
 
 3. **Task Manager** - Handles project workflow
+
    - Dependency tracking
    - Phase ordering
    - Status management
 
 4. **MCP Services** - Support services
+
    - Materials supplier
    - Permitting system
 
@@ -60,13 +64,13 @@ This shows simulated agent reasoning and tool calling for a complete shed constr
 
 ### Test Scripts
 
-| Script | AWS Required? | Description |
-|--------|---------------|-------------|
-| `test_shed_demo.py` | ❌ No | Simulated agent output (demo) ⭐ |
-| `test_shed_detailed.py` | ❌ No | Planning mode (task breakdown) |
-| `test_shed_detailed.py execute` | ✅ Yes | Real AI execution |
-| `test_agent.py` | ✅ Yes | Single agent test |
-| `test_shed_project.py` | ❌ No | Simple planning test |
+| Script                          | AWS Required? | Description                      |
+| ------------------------------- | ------------- | -------------------------------- |
+| `test_shed_demo.py`             | ❌ No         | Simulated agent output (demo) ⭐ |
+| `test_shed_detailed.py`         | ❌ No         | Planning mode (task breakdown)   |
+| `test_shed_detailed.py execute` | ✅ Yes        | Real AI execution                |
+| `test_agent.py`                 | ✅ Yes        | Single agent test                |
+| `test_shed_project.py`          | ❌ No         | Simple planning test             |
 
 ### Documentation
 
@@ -82,6 +86,7 @@ This shows simulated agent reasoning and tool calling for a complete shed constr
 The test scripts demonstrate building a **10×12 ft storage shed** using 6 specialized agents:
 
 ### Project Specs
+
 - **Size**: 10 ft × 12 ft × 8 ft (height)
 - **Foundation**: Concrete slab (120 sq ft)
 - **Structure**: Wood frame, asphalt shingle roof
@@ -104,6 +109,7 @@ Task 10 → Carpenter: Final walkthrough
 ```
 
 ### Agent Workload
+
 - **Carpenter**: 5 tasks (framing, roof, siding, door/window, final)
 - **Architect**: 1 task (design)
 - **Mason**: 1 task (foundation)
@@ -116,21 +122,25 @@ Task 10 → Carpenter: Final walkthrough
 ## 💡 Key Features
 
 ### Multi-Agent Orchestration
+
 - Central coordinator delegates tasks to specialized agents
 - Agents have domain-specific tools and expertise
 - Automatic task sequencing based on dependencies
 
 ### Real-Time Streaming
+
 - Live agent reasoning display
 - Tool calls shown in real-time
 - Results streamed as they complete
 
 ### Task Management
+
 - Dependency tracking (Task 2 waits for Task 1, etc.)
 - Phase-based execution (Planning → Foundation → Framing → etc.)
 - Parallel execution when dependencies allow
 
 ### Project Types Supported
+
 1. `kitchen_remodel` - Kitchen renovation
 2. `bathroom_remodel` - Bathroom renovation
 3. `new_construction` - New building
@@ -236,16 +246,19 @@ uv run test_shed_detailed.py
 ## 📈 Performance
 
 ### Demo Mode
+
 - **Duration**: 30 seconds
 - **Cost**: Free (simulated)
 - **Output**: Realistic agent interactions
 
 ### Execution Mode (with AWS)
+
 - **Duration**: 5-10 minutes (10 tasks)
 - **Cost**: ~$0.10-0.50 per full project
 - **Output**: Real Claude AI reasoning
 
 Per task:
+
 - Input tokens: ~2,000
 - Output tokens: ~500-1,000
 - Duration: 30-60 seconds
@@ -255,26 +268,33 @@ Per task:
 ## 🚦 Getting Started Roadmap
 
 ### Level 1: No AWS Setup
+
 ```bash
 uv run test_shed_demo.py
 ```
+
 See simulated agent output with detailed reasoning.
 
 ### Level 2: Planning & Structure
+
 ```bash
 uv run test_shed_detailed.py
 ```
+
 Understand task dependencies and project flow.
 
 ### Level 3: AWS Configuration
+
 1. Set up AWS Bedrock
 2. Configure `.env`
 3. Test single agent
 
 ### Level 4: Full Execution
+
 ```bash
 uv run test_shed_detailed.py execute
 ```
+
 Watch real Claude AI agents build the shed!
 
 ---

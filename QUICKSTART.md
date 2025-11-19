@@ -15,9 +15,11 @@ This shows **simulated agent reasoning and tool calling** that looks exactly lik
 ## 📊 Available Test Scripts
 
 ### 1. **Demo Mode** ⭐ RECOMMENDED FIRST
+
 ```bash
 uv run test_shed_demo.py
 ```
+
 - ✅ No AWS required
 - Shows detailed agent reasoning
 - Shows tool calls with inputs/outputs
@@ -25,18 +27,22 @@ uv run test_shed_demo.py
 - **Run this first to see what to expect!**
 
 ### 2. **Planning Mode**
+
 ```bash
 uv run test_shed_detailed.py
 ```
+
 - ✅ No AWS required
 - Shows complete task breakdown
 - Shows dependencies and phases
 - Good for understanding the project structure
 
 ### 3. **Real AI Execution** 🤖
+
 ```bash
 uv run test_shed_detailed.py execute
 ```
+
 - ⚠️ Requires valid AWS Bedrock credentials
 - ⚠️ Requires correct model ID in `.env`
 - Real Claude AI agents execute tasks
@@ -59,6 +65,7 @@ uv run test_shed_detailed.py execute
 ### Step 2: Update .env
 
 Edit `.env`:
+
 ```bash
 # Uncomment and fill in your credentials
 AWS_ACCESS_KEY_ID=your_key_here
@@ -75,6 +82,7 @@ DEFAULT_MODEL=us.anthropic.claude-sonnet-4-5-v1:0
 ### Step 3: Test Single Agent First
 
 Before running the full project:
+
 ```bash
 uv run test_agent.py
 ```
@@ -85,18 +93,19 @@ If this works, you're ready for the full execution!
 
 ## 📖 What Each Script Does
 
-| Script | AWS Required? | Shows Agent Reasoning? | Duration |
-|--------|---------------|------------------------|----------|
-| `test_shed_demo.py` | ❌ No | ✅ Yes (simulated) | 30 sec |
-| `test_shed_detailed.py` | ❌ No | ❌ No | < 1 sec |
-| `test_shed_detailed.py execute` | ✅ Yes | ✅ Yes (REAL AI!) | 5-10 min |
-| `test_agent.py` | ✅ Yes | ✅ Yes | 30 sec |
+| Script                          | AWS Required? | Shows Agent Reasoning? | Duration |
+| ------------------------------- | ------------- | ---------------------- | -------- |
+| `test_shed_demo.py`             | ❌ No         | ✅ Yes (simulated)     | 30 sec   |
+| `test_shed_detailed.py`         | ❌ No         | ❌ No                  | < 1 sec  |
+| `test_shed_detailed.py execute` | ✅ Yes        | ✅ Yes (REAL AI!)      | 5-10 min |
+| `test_agent.py`                 | ✅ Yes        | ✅ Yes                 | 30 sec   |
 
 ---
 
 ## 🎬 Expected Output
 
 ### Demo Mode Output:
+
 ```
 ┌──────────────────────────────────────────────────────┐
 │ TASK #3: Frame walls and install door/window openings
