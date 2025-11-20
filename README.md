@@ -4,7 +4,7 @@ A multi-agent orchestration system demonstrating construction project management
 
 **Built with [Strands Agents](https://strandsagents.com/latest/) framework and AWS Bedrock.**
 
-> **👉 New to this project?** Start with [QUICKSTART.md](QUICKSTART.md) or [SUMMARY.md](SUMMARY.md) for a quick overview!
+> **👉 New to this project?** Start with [QUICKSTART.md](docs/QUICKSTART.md) or [SUMMARY.md](docs/SUMMARY.md) for a quick overview!
 
 ## Overview
 
@@ -21,6 +21,47 @@ This system models a construction project where a **General Contractor** agent o
 - **Real-time Status Tracking**: Monitor agent status, task progress, and project completion
 
 ## Architecture
+
+```mermaid
+---
+config:
+  layout: elk
+  theme: neo
+  look: neo
+---
+flowchart TB
+ subgraph subGraph0["Client Layer"]
+        API["FastAPI REST API"]
+  end
+ subgraph subGraph1["Orchestration Layer"]
+        GC["General Contractor Agent<br>Orchestrator"]
+        TM["Task Manager<br>Dependencies &amp; Sequencing"]
+  end
+ subgraph subGraph2["Specialized Trade Agents"]
+        ARCH["Architect Agent<br>Design &amp; Planning"]
+        CARP["Carpenter Agent<br>Framing &amp; Finishing"]
+        ELEC["Electrician Agent<br>Wiring &amp; Fixtures"]
+        PLUMB["Plumber Agent<br>Pipes &amp; Fixtures"]
+        MASON["Mason Agent<br>Concrete &amp; Masonry"]
+        PAINT["Painter Agent<br>Painting &amp; Finishing"]
+        HVAC["HVAC Agent<br>Heating &amp; Cooling"]
+        ROOF["Roofer Agent<br>Roofing &amp; Gutters"]
+  end
+ subgraph subGraph3["External Services (MCP)"]
+        MCP1["Materials Supplier<br>MCP Server<br>━━━━━━━━━━<br>• check_availability<br>• order_materials<br>• get_catalog<br>• get_order"]
+        MCP2["Permitting Service<br>MCP Server<br>━━━━━━━━━━<br>• apply_for_permit<br>• check_permit_status<br>• schedule_inspection<br>• get_required_permits"]
+  end
+    API --> GC
+    GC --> TM & ARCH & CARP & ELEC & PLUMB & MASON & PAINT & HVAC & ROOF
+    GC -. MCP Client<br>stdi .-> MCP1 & MCP2
+    style API fill:#FF9800,stroke:#333,stroke-width:2px,color:#fff
+    style GC fill:#4CAF50,stroke:#333,stroke-width:3px,color:#fff
+    style TM fill:#2196F3,stroke:#333,stroke-width:2px,color:#fff
+    style MCP1 fill:#9C27B0,stroke:#333,stroke-width:2px,color:#fff
+    style MCP2 fill:#9C27B0,stroke:#333,stroke-width:2px,color:#fff
+```
+
+### Component Overview
 
 - **General Contractor (Orchestrator)**
 
@@ -102,16 +143,16 @@ This architecture demonstrates:
 
 ```bash
 # Run the demo (no AWS required!)
-uv run test_shed_demo.py
+uv run tests/test_shed_demo.py
 ```
 
 This shows simulated agent reasoning and tool calling for a complete shed construction project!
 
 **For detailed guides:**
 
-- [QUICKSTART.md](QUICKSTART.md) - Start here!
-- [TESTING.md](TESTING.md) - Complete testing guide
-- [EXECUTION_GUIDE.md](EXECUTION_GUIDE.md) - Execution mode details
+- [QUICKSTART.md](docs/QUICKSTART.md) - Start here!
+- [TESTING.md](docs/TESTING.md) - Complete testing guide
+- [EXECUTION_GUIDE.md](docs/EXECUTION_GUIDE.md) - Execution mode details
 
 ## Project Structure
 
@@ -143,20 +184,23 @@ general-contractor-agent-demo/
 │   │   └── __init__.py
 │   ├── __init__.py
 │   └── config.py                   # Configuration settings
+├── tests/
+│   ├── test_agent.py               # Single agent test
+│   ├── test_shed_demo.py          # Demo with simulated output ⭐
+│   ├── test_shed_detailed.py      # Detailed planning & execution
+│   ├── test_shed_project.py       # Full project orchestration
+│   └── test_mcp_integration.py    # MCP integration tests ⭐
+├── docs/
+│   ├── QUICKSTART.md               # Quick start guide ⭐
+│   ├── TESTING.md                  # Testing documentation
+│   ├── EXECUTION_GUIDE.md          # Execution mode guide
+│   └── SUMMARY.md                  # Project overview
 ├── main.py                         # Application entry point
 ├── start.py                        # Startup script (MCP + API) ⭐
-├── test_agent.py                   # Single agent test
-├── test_shed_demo.py              # Demo with simulated output ⭐
-├── test_shed_detailed.py          # Detailed planning & execution
-├── test_shed_project.py           # Full project orchestration
-├── test_mcp_integration.py        # MCP integration tests ⭐
 ├── pyproject.toml                  # Project dependencies
 ├── .env                            # Environment configuration
 ├── .env.example                    # Environment variables template
-├── README.md                       # This file
-├── QUICKSTART.md                   # Quick start guide ⭐
-├── TESTING.md                      # Testing documentation
-└── EXECUTION_GUIDE.md              # Execution mode guide
+└── README.md                       # This file
 ```
 
 ## Getting Started
@@ -247,7 +291,7 @@ This project includes several test scripts to help you understand and verify the
 
 ```bash
 # Run the shed construction demo with simulated agent output
-uv run test_shed_demo.py
+uv run tests/test_shed_demo.py
 ```
 
 This shows exactly what the execution mode looks like with:
@@ -263,7 +307,7 @@ This shows exactly what the execution mode looks like with:
 
 ```bash
 # See the complete task breakdown and dependencies
-uv run test_shed_detailed.py
+uv run tests/test_shed_detailed.py
 ```
 
 Shows:
@@ -277,7 +321,7 @@ Shows:
 
 ```bash
 # Test a single agent with AWS Bedrock
-uv run test_agent.py
+uv run tests/test_agent.py
 ```
 
 Verifies:
@@ -290,7 +334,7 @@ Verifies:
 
 ```bash
 # Execute with real Claude AI agents
-uv run test_shed_detailed.py execute
+uv run tests/test_shed_detailed.py execute
 ```
 
 Shows live streaming of:
@@ -299,7 +343,7 @@ Shows live streaming of:
 - Actual tool calls and results
 - Complete project execution (5-10 minutes)
 
-**See [QUICKSTART.md](QUICKSTART.md) for detailed instructions and [TESTING.md](TESTING.md) for comprehensive testing documentation.**
+**See [QUICKSTART.md](docs/QUICKSTART.md) for detailed instructions and [TESTING.md](docs/TESTING.md) for comprehensive testing documentation.**
 
 ### Running the Application
 
@@ -344,7 +388,7 @@ Test the MCP servers and their integration with the General Contractor:
 
 ```bash
 # Run comprehensive MCP integration tests
-python test_mcp_integration.py
+python tests/test_mcp_integration.py
 ```
 
 This tests:
@@ -735,7 +779,7 @@ autoflake --in-place --recursive .
 
 ```bash
 # Check style with flake8
-flake8 backend/ test_*.py
+flake8 backend/ tests/
 
 # Type check with mypy
 mypy backend/
@@ -920,7 +964,7 @@ The included test scripts demonstrate building a 10×12 ft storage shed through 
 - Electrician (1 task)
 - Painter (1 task)
 
-Run `uv run test_shed_demo.py` to see this in action!
+Run `uv run tests/test_shed_demo.py` to see this in action!
 
 ## License
 
@@ -939,10 +983,10 @@ This is a training workshop project. Feedback and suggestions are welcome!
 
 ## Documentation
 
-- **[SUMMARY.md](SUMMARY.md)** - Project overview and quick reference ⭐
-- **[QUICKSTART.md](QUICKSTART.md)** - Quick start guide and test script overview
-- **[TESTING.md](TESTING.md)** - Comprehensive testing documentation
-- **[EXECUTION_GUIDE.md](EXECUTION_GUIDE.md)** - Detailed execution mode guide
+- **[SUMMARY.md](docs/SUMMARY.md)** - Project overview and quick reference ⭐
+- **[QUICKSTART.md](docs/QUICKSTART.md)** - Quick start guide and test script overview
+- **[TESTING.md](docs/TESTING.md)** - Comprehensive testing documentation
+- **[EXECUTION_GUIDE.md](docs/EXECUTION_GUIDE.md)** - Detailed execution mode guide
 - **API Documentation** - <http://localhost:8000/docs> (when server is running)
 
 ---
