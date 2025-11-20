@@ -7,6 +7,13 @@ agents (Architect, Carpenter, Electrician, etc.) to complete a shed construction
 
 import asyncio
 import json
+import sys
+from pathlib import Path
+
+# Add project root to path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 from backend.agents.general_contractor import GeneralContractorAgent
 
 

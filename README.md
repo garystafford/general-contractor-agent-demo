@@ -987,6 +987,8 @@ This is a training workshop project. Feedback and suggestions are welcome!
 - **[QUICKSTART.md](docs/QUICKSTART.md)** - Quick start guide and test script overview
 - **[TESTING.md](docs/TESTING.md)** - Comprehensive testing documentation
 - **[EXECUTION_GUIDE.md](docs/EXECUTION_GUIDE.md)** - Detailed execution mode guide
+- **[LOOP_PROTECTION.md](docs/LOOP_PROTECTION.md)** - Agent loop detection and prevention mechanisms
+- **[CURRENT_LIMITATIONS.md](docs/CURRENT_LIMITATIONS.md)** - Known limitations and workarounds ⚠️
 - **API Documentation** - <http://localhost:8000/docs> (when server is running)
 
 ---

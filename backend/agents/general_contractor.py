@@ -381,12 +381,30 @@ Description: {task.description}
 Requirements: {task.requirements}
 Materials needed: {task.materials}
 
-Please complete this task using your specialized tools."""
+Complete this task using your specialized tools. Call each tool once and provide a summary when done."""
 
         try:
             # Execute task with Strands agent using invoke_async
+            # Add timeout protection to prevent infinite loops
             logger.info(f"Delegating task {task.task_id} to {agent_name}")
-            result = await agent.invoke_async(task_prompt)
+
+            # Set a timeout of 5 minutes per task
+            timeout_seconds = settings.task_timeout_seconds if hasattr(settings, 'task_timeout_seconds') else 300
+
+            try:
+                result = await asyncio.wait_for(
+                    agent.invoke_async(task_prompt),
+                    timeout=timeout_seconds
+                )
+            except asyncio.TimeoutError:
+                error_msg = f"Task {task.task_id} timed out after {timeout_seconds} seconds (possible infinite loop)"
+                logger.error(error_msg)
+                self.task_manager.mark_failed(task.task_id, error_msg)
+                return {
+                    "status": "error",
+                    "task_id": task.task_id,
+                    "error": error_msg,
+                }
 
             # Format result for task manager
             task_result = {

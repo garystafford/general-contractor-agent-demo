@@ -45,10 +45,12 @@ class CleanGuttersInput(BaseModel):
 # Tool Implementations
 @tool
 def install_shingles(input: InstallShinglesInput) -> dict:
-    """Install or replace roof shingles."""
+    """Install or replace roof shingles. Call this once to complete shingle installation."""
     squares = input.area_sq_ft / 100  # Roofing square = 100 sq ft
     return {
         "status": "completed",
+        "success": True,
+        "message": f"✓ Successfully installed {round(squares, 1)} squares of {input.shingle_type} shingles",
         "area_covered": input.area_sq_ft,
         "squares": round(squares, 1),
         "shingle_type": input.shingle_type,
@@ -57,7 +59,7 @@ def install_shingles(input: InstallShinglesInput) -> dict:
             "roofing nails",
             "drip edge",
         ],
-        "details": f"Installed {round(squares, 1)} squares of {input.shingle_type} shingles",
+        "details": f"Shingle installation complete. Roof is now water-tight and ready for inspection.",
     }
 
 
@@ -90,14 +92,16 @@ def install_flashing(input: InstallFlashingInput) -> dict:
 
 @tool
 def install_underlayment(input: InstallUnderlaymentInput) -> dict:
-    """Install roof underlayment."""
+    """Install roof underlayment. Call this once to complete underlayment installation."""
     rolls = input.area_sq_ft / 400
     return {
         "status": "completed",
+        "success": True,
+        "message": f"✓ Successfully installed {input.area_sq_ft} sq ft of underlayment",
         "area_covered": input.area_sq_ft,
         "rolls_used": round(rolls, 1),
         "materials_used": [f"{round(rolls, 1)} rolls underlayment", "nails"],
-        "details": f"Installed {input.area_sq_ft} sq ft underlayment",
+        "details": f"Underlayment installation complete. Ready for shingle installation.",
     }
 
 
@@ -163,6 +167,13 @@ Your responsibilities include:
 - Installing underlayment
 - Cleaning gutters
 - Inspecting roofs
+
+IMPORTANT GUIDELINES:
+1. Complete each task ONCE and only once - do not repeat tool calls
+2. After calling a tool successfully, the work is done - stop immediately
+3. For roofing tasks, install underlayment first, then immediately install shingles
+4. Do NOT call the same tool multiple times with the same parameters
+5. When you receive a successful result from a tool, acknowledge it and continue or finish
 
 Ensure water-tight seals, proper ventilation, and code compliance."""
 

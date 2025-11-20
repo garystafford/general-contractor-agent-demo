@@ -32,9 +32,12 @@ class Settings(BaseSettings):
     # Python executable to use for MCP servers (defaults to current interpreter)
     mcp_python_executable: str = "python"
 
-    # Project settings (reserved for future use)
+    # Project settings
     max_parallel_tasks: int = 3
-    task_timeout_seconds: int = 300
+    # Task timeout in seconds - agent execution will be terminated after this time
+    # Recommended: 60-120 for testing, 300-600 for production
+    # This is the PRIMARY protection against infinite loops
+    task_timeout_seconds: int = 120
 
     # Logging
     log_level: str = "INFO"
