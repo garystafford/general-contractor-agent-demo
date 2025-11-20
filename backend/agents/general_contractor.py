@@ -14,8 +14,14 @@ from backend.agents import (
     create_hvac_agent,
     create_roofer_agent,
 )
+from backend.config import settings
+from mcp import StdioServerParameters
+from mcp.client.stdio import stdio_client
+from strands.tools.mcp import MCPClient
 import asyncio
 import logging
+import sys
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -48,11 +54,191 @@ class GeneralContractorAgent:
             "Roofer": create_roofer_agent(),
         }
 
+        # Initialize MCP clients for external services
+        self.mcp_clients: Dict[str, Optional[MCPClient]] = {
+            "materials": None,
+            "permitting": None,
+        }
+        self._mcp_initialized = False
+
         # Project state
         self.current_project: Optional[Dict[str, Any]] = None
         self.project_phase = "idle"  # idle, planning, in_progress, completed
 
         logger.info("General Contractor initialized with 8 specialized Strands agents")
+
+    async def initialize_mcp_clients(self) -> None:
+        """Initialize MCP client connections to external services."""
+        if self._mcp_initialized:
+            return
+
+        try:
+            # Get the project root directory
+            project_root = Path.cwd()
+
+            # Use the same Python executable that's running this process
+            python_exe = sys.executable
+
+            logger.info(f"Initializing MCP clients using Python: {python_exe}")
+            logger.info(f"Project root: {project_root}")
+
+            # Initialize Materials Supplier MCP client
+            materials_path = project_root / settings.materials_mcp_path
+            logger.info(f"Materials MCP server path: {materials_path}")
+
+            materials_server_params = StdioServerParameters(
+                command=python_exe,
+                args=[str(materials_path)],
+                env=None,
+            )
+            # Create a callable that returns the stdio transport
+            materials_transport = lambda: stdio_client(materials_server_params)
+            materials_client = MCPClient(materials_transport)
+            logger.info("Starting Materials Supplier MCP client...")
+            materials_client.start()  # Note: start() is NOT async
+            self.mcp_clients["materials"] = materials_client
+            logger.info("✓ Materials Supplier MCP client initialized")
+
+            # Initialize Permitting Service MCP client
+            permitting_path = project_root / settings.permitting_mcp_path
+            logger.info(f"Permitting MCP server path: {permitting_path}")
+
+            permitting_server_params = StdioServerParameters(
+                command=python_exe,
+                args=[str(permitting_path)],
+                env=None,
+            )
+            # Create a callable that returns the stdio transport
+            permitting_transport = lambda: stdio_client(permitting_server_params)
+            permitting_client = MCPClient(permitting_transport)
+            logger.info("Starting Permitting Service MCP client...")
+            permitting_client.start()  # Note: start() is NOT async
+            self.mcp_clients["permitting"] = permitting_client
+            logger.info("✓ Permitting Service MCP client initialized")
+
+            self._mcp_initialized = True
+            logger.info("✓ All MCP clients initialized successfully")
+
+        except Exception as e:
+            logger.error(f"❌ Error initializing MCP clients: {e}", exc_info=True)
+            raise
+
+    async def close_mcp_clients(self) -> None:
+        """Close MCP client connections."""
+        for name, client in self.mcp_clients.items():
+            if client:
+                try:
+                    # MCPClient uses context manager protocol, just clear the reference
+                    # The client will clean up when garbage collected
+                    self.mcp_clients[name] = None
+                    logger.info(f"{name} MCP client closed")
+                except Exception as e:
+                    logger.error(f"Error closing {name} MCP client: {e}")
+
+        self._mcp_initialized = False
+
+    async def call_mcp_tool(self, service: str, tool_name: str, arguments: Dict[str, Any]) -> Any:
+        """
+        Call a tool on an MCP service.
+
+        Args:
+            service: Name of the MCP service ('materials' or 'permitting')
+            tool_name: Name of the tool to call
+            arguments: Arguments to pass to the tool
+
+        Returns:
+            Tool result
+        """
+        if not self._mcp_initialized:
+            await self.initialize_mcp_clients()
+
+        client = self.mcp_clients.get(service)
+        if not client:
+            raise ValueError(f"MCP service '{service}' not found")
+
+        try:
+            # Generate a unique tool use ID
+            import uuid
+            import json
+            tool_use_id = f"{tool_name}_{uuid.uuid4().hex[:8]}"
+
+            # Call the tool with proper signature: (tool_use_id, name, arguments)
+            mcp_result = await client.call_tool_async(tool_use_id, tool_name, arguments)
+
+            # Extract the actual result from MCP response
+            # MCPToolResult can be dict or object with: status, toolUseId, content (list of TextContent)
+            if isinstance(mcp_result, dict):
+                # Dict format
+                if 'content' in mcp_result and mcp_result['content']:
+                    text_content = mcp_result['content'][0]['text']
+                    result = eval(text_content)
+                    return result
+            elif hasattr(mcp_result, 'content') and mcp_result.content:
+                # Object format
+                text_content = mcp_result.content[0].text
+                result = eval(text_content)
+                return result
+
+            logger.error(f"Unexpected MCP result format: {mcp_result}")
+            return mcp_result
+        except Exception as e:
+            logger.error(f"Error calling MCP tool {service}.{tool_name}: {e}")
+            raise
+
+    async def check_materials_availability(self, material_ids: List[str]) -> Dict[str, Any]:
+        """Check availability of materials via MCP."""
+        return await self.call_mcp_tool(
+            "materials", "check_availability", {"material_ids": material_ids}
+        )
+
+    async def order_materials(self, orders: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Order materials via MCP."""
+        return await self.call_mcp_tool("materials", "order_materials", {"orders": orders})
+
+    async def get_materials_catalog(self, category: Optional[str] = None) -> Dict[str, Any]:
+        """Get materials catalog via MCP."""
+        args = {"category": category} if category else {}
+        return await self.call_mcp_tool("materials", "get_catalog", args)
+
+    async def apply_for_permit(
+        self, permit_type: str, project_address: str, project_description: str, applicant: str
+    ) -> Dict[str, Any]:
+        """Apply for a construction permit via MCP."""
+        return await self.call_mcp_tool(
+            "permitting",
+            "apply_for_permit",
+            {
+                "permit_type": permit_type,
+                "project_address": project_address,
+                "project_description": project_description,
+                "applicant": applicant,
+            },
+        )
+
+    async def check_permit_status(self, permit_id: str) -> Dict[str, Any]:
+        """Check permit status via MCP."""
+        return await self.call_mcp_tool(
+            "permitting", "check_permit_status", {"permit_id": permit_id}
+        )
+
+    async def schedule_inspection(
+        self, permit_id: str, inspection_type: str, requested_date: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Schedule an inspection via MCP."""
+        args = {"permit_id": permit_id, "inspection_type": inspection_type}
+        if requested_date:
+            args["requested_date"] = requested_date
+        return await self.call_mcp_tool("permitting", "schedule_inspection", args)
+
+    async def get_required_permits(
+        self, project_type: str, work_items: List[str]
+    ) -> Dict[str, Any]:
+        """Get required permits for a project via MCP."""
+        return await self.call_mcp_tool(
+            "permitting",
+            "get_required_permits",
+            {"project_type": project_type, "work_items": work_items},
+        )
 
     async def start_project(
         self, project_description: str, project_type: str, **kwargs
@@ -318,8 +504,11 @@ Please complete this task using your specialized tools."""
         """Get all tasks."""
         return self.task_manager.get_all_tasks()
 
-    def reset(self) -> None:
+    async def reset(self) -> None:
         """Reset the contractor for a new project."""
+        # Close MCP clients
+        await self.close_mcp_clients()
+
         self.task_manager.clear()
         self.current_project = None
         self.project_phase = "idle"

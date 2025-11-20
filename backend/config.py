@@ -24,9 +24,13 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
 
-    # MCP Server configuration (reserved for future use)
-    materials_mcp_url: Optional[str] = None
-    permitting_mcp_url: Optional[str] = None
+    # MCP Server configuration
+    # Paths to MCP server Python scripts (for stdio communication)
+    materials_mcp_path: str = "backend/mcp_servers/materials_supplier.py"
+    permitting_mcp_path: str = "backend/mcp_servers/permitting.py"
+
+    # Python executable to use for MCP servers (defaults to current interpreter)
+    mcp_python_executable: str = "python"
 
     # Project settings (reserved for future use)
     max_parallel_tasks: int = 3

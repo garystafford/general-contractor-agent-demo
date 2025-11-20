@@ -1,11 +1,51 @@
 """
-Building Materials Supplier service (simplified MCP implementation).
+Building Materials Supplier MCP Server.
+
+This MCP server provides tools for managing building materials inventory,
+checking availability, ordering materials, and retrieving catalog information.
 """
 
-from typing import Dict, List, Any
+import asyncio
 import logging
+from typing import Any, Dict, List, Optional
+
+from mcp.server import Server
+from mcp.types import Tool, TextContent
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
+
+
+# Pydantic models for input validation
+class CheckAvailabilityInput(BaseModel):
+    """Input for checking material availability."""
+
+    material_ids: List[str] = Field(..., description="List of material IDs to check")
+
+
+class OrderItem(BaseModel):
+    """Single order item."""
+
+    material_id: str = Field(..., description="Material ID to order")
+    quantity: int = Field(..., gt=0, description="Quantity to order (must be positive)")
+
+
+class OrderMaterialsInput(BaseModel):
+    """Input for ordering materials."""
+
+    orders: List[OrderItem] = Field(..., description="List of materials to order")
+
+
+class GetCatalogInput(BaseModel):
+    """Input for getting materials catalog."""
+
+    category: Optional[str] = Field(None, description="Category to filter by (optional)")
+
+
+class GetOrderInput(BaseModel):
+    """Input for retrieving order details."""
+
+    order_id: str = Field(..., description="Order ID to retrieve")
 
 
 class BuildingMaterialsSupplier:
@@ -247,5 +287,141 @@ class BuildingMaterialsSupplier:
             return {"error": "Order not found"}
 
 
-# Global instance
-materials_supplier = BuildingMaterialsSupplier()
+# Initialize the supplier service
+supplier = BuildingMaterialsSupplier()
+
+# Create MCP server
+server = Server("building-materials-supplier")
+
+
+@server.list_tools()
+async def list_tools() -> list[Tool]:
+    """List available tools."""
+    return [
+        Tool(
+            name="check_availability",
+            description="Check availability, pricing, and stock levels for building materials",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "material_ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of material IDs to check (e.g., '2x4_studs', "
+                        "'plywood_sheets', 'electrical_wire')",
+                    }
+                },
+                "required": ["material_ids"],
+            },
+        ),
+        Tool(
+            name="order_materials",
+            description="Place an order for building materials. Returns order confirmation with "
+            "total cost and estimated delivery",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "orders": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "material_id": {
+                                    "type": "string",
+                                    "description": "Material ID to order",
+                                },
+                                "quantity": {
+                                    "type": "integer",
+                                    "description": "Quantity to order",
+                                    "minimum": 1,
+                                },
+                            },
+                            "required": ["material_id", "quantity"],
+                        },
+                        "description": "List of materials to order with quantities",
+                    }
+                },
+                "required": ["orders"],
+            },
+        ),
+        Tool(
+            name="get_catalog",
+            description="Retrieve the materials catalog, optionally filtered by category. "
+            "Categories include: lumber, electrical, plumbing, masonry, paint, hvac, roofing",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "description": "Optional category to filter by (lumber, electrical, "
+                        "plumbing, masonry, paint, hvac, roofing)",
+                    }
+                },
+            },
+        ),
+        Tool(
+            name="get_order",
+            description="Retrieve details of a previous order by order ID",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "order_id": {
+                        "type": "string",
+                        "description": "Order ID to retrieve (e.g., 'ORDER_1')",
+                    }
+                },
+                "required": ["order_id"],
+            },
+        ),
+    ]
+
+
+@server.call_tool()
+async def call_tool(name: str, arguments: dict) -> list[TextContent]:
+    """Handle tool calls."""
+    try:
+        if name == "check_availability":
+            validated_input = CheckAvailabilityInput(**arguments)
+            result = supplier.check_availability(validated_input.material_ids)
+            return [TextContent(type="text", text=str(result))]
+
+        elif name == "order_materials":
+            validated_input = OrderMaterialsInput(**arguments)
+            orders_dict = [order.dict() for order in validated_input.orders]
+            result = supplier.order_materials(orders_dict)
+            return [TextContent(type="text", text=str(result))]
+
+        elif name == "get_catalog":
+            validated_input = GetCatalogInput(**arguments)
+            result = supplier.get_catalog(validated_input.category)
+            return [TextContent(type="text", text=str(result))]
+
+        elif name == "get_order":
+            validated_input = GetOrderInput(**arguments)
+            result = supplier.get_order(validated_input.order_id)
+            return [TextContent(type="text", text=str(result))]
+
+        else:
+            raise ValueError(f"Unknown tool: {name}")
+
+    except Exception as e:
+        logger.error(f"Error in tool '{name}': {e}")
+        return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+
+async def main():
+    """Run the MCP server."""
+    from mcp.server.stdio import stdio_server
+
+    async with stdio_server() as (read_stream, write_stream):
+        logger.info("Building Materials Supplier MCP server starting...")
+        await server.run(
+            read_stream,
+            write_stream,
+            server.create_initialization_options(),
+        )
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    asyncio.run(main())

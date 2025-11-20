@@ -7,8 +7,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 from backend.agents.general_contractor import GeneralContractorAgent
-from backend.mcp_servers.materials_supplier import materials_supplier
-from backend.mcp_servers.permitting import permitting_service
 import logging
 
 # Configure logging
@@ -133,7 +131,7 @@ async def get_project_status():
 async def reset_project():
     """Reset the contractor for a new project."""
     try:
-        contractor.reset()
+        await contractor.reset()
         return {"status": "success", "message": "Project reset successfully"}
     except Exception as e:
         logger.error(f"Error resetting project: {e}")
@@ -235,7 +233,7 @@ async def get_task(task_id: str):
 async def get_materials_catalog(category: Optional[str] = None):
     """Get materials catalog, optionally filtered by category."""
     try:
-        catalog = materials_supplier.get_catalog(category)
+        catalog = await contractor.get_materials_catalog(category)
         return {"status": "success", "data": catalog}
     except Exception as e:
         logger.error(f"Error getting catalog: {e}")
@@ -246,7 +244,7 @@ async def get_materials_catalog(category: Optional[str] = None):
 async def check_materials_availability(material_ids: List[str]):
     """Check availability of specific materials."""
     try:
-        availability = materials_supplier.check_availability(material_ids)
+        availability = await contractor.check_materials_availability(material_ids)
         return {"status": "success", "data": availability}
     except Exception as e:
         logger.error(f"Error checking availability: {e}")
@@ -257,7 +255,7 @@ async def check_materials_availability(material_ids: List[str]):
 async def order_materials(request: MaterialOrderRequest):
     """Order materials from the supplier."""
     try:
-        result = materials_supplier.order_materials(request.orders)
+        result = await contractor.order_materials(request.orders)
         if result.get("status") == "failed":
             raise HTTPException(status_code=400, detail=result.get("error"))
         return {"status": "success", "data": result}
@@ -272,7 +270,8 @@ async def order_materials(request: MaterialOrderRequest):
 async def get_order(order_id: str):
     """Get details of a specific order."""
     try:
-        order = materials_supplier.get_order(order_id)
+        # Note: get_order is not exposed via MCP yet - needs to be added
+        order = await contractor.call_mcp_tool("materials", "get_order", {"order_id": order_id})
         if "error" in order:
             raise HTTPException(status_code=404, detail=order["error"])
         return {"status": "success", "data": order}
@@ -288,7 +287,7 @@ async def get_order(order_id: str):
 async def apply_for_permit(request: PermitApplicationRequest):
     """Apply for a construction permit."""
     try:
-        result = permitting_service.apply_for_permit(
+        result = await contractor.apply_for_permit(
             permit_type=request.permit_type,
             project_address=request.project_address,
             project_description=request.project_description,
@@ -304,7 +303,7 @@ async def apply_for_permit(request: PermitApplicationRequest):
 async def get_permit_status(permit_id: str):
     """Check status of a permit."""
     try:
-        result = permitting_service.check_permit_status(permit_id)
+        result = await contractor.check_permit_status(permit_id)
         if result.get("status") == "error":
             raise HTTPException(status_code=404, detail=result.get("message"))
         return {"status": "success", "data": result}
@@ -319,7 +318,7 @@ async def get_permit_status(permit_id: str):
 async def schedule_inspection(request: InspectionRequest):
     """Schedule a construction inspection."""
     try:
-        result = permitting_service.schedule_inspection(
+        result = await contractor.schedule_inspection(
             permit_id=request.permit_id,
             inspection_type=request.inspection_type,
             requested_date=request.requested_date,
@@ -338,7 +337,10 @@ async def schedule_inspection(request: InspectionRequest):
 async def get_inspection(inspection_id: str):
     """Get details of a specific inspection."""
     try:
-        inspection = permitting_service.get_inspection(inspection_id)
+        # Note: get_inspection is not exposed via helper method yet
+        inspection = await contractor.call_mcp_tool(
+            "permitting", "get_inspection", {"inspection_id": inspection_id}
+        )
         if "error" in inspection:
             raise HTTPException(status_code=404, detail=inspection["error"])
         return {"status": "success", "data": inspection}
@@ -353,7 +355,7 @@ async def get_inspection(inspection_id: str):
 async def get_required_permits(project_type: str, work_items: List[str]):
     """Determine what permits are required for a project."""
     try:
-        result = permitting_service.get_required_permits(project_type, work_items)
+        result = await contractor.get_required_permits(project_type, work_items)
         return {"status": "success", "data": result}
     except Exception as e:
         logger.error(f"Error getting required permits: {e}")

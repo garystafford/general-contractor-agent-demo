@@ -1,12 +1,68 @@
 """
-Permitting service (simplified MCP implementation).
+Permitting Service MCP Server.
+
+This MCP server provides tools for managing construction permits and inspections,
+including permit applications, status checking, inspection scheduling, and
+determining required permits for projects.
 """
 
-from typing import Dict, List, Any
-from datetime import datetime, timedelta
+import asyncio
 import logging
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+from mcp.server import Server
+from mcp.types import Tool, TextContent
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
+
+
+# Pydantic models for input validation
+class ApplyForPermitInput(BaseModel):
+    """Input for applying for a permit."""
+
+    permit_type: str = Field(
+        ...,
+        description="Type of permit (building, electrical, plumbing, mechanical, demolition, "
+        "roofing)",
+    )
+    project_address: str = Field(..., description="Address of construction project")
+    project_description: str = Field(..., description="Description of work to be performed")
+    applicant: str = Field(..., description="Name of applicant/contractor")
+
+
+class CheckPermitStatusInput(BaseModel):
+    """Input for checking permit status."""
+
+    permit_id: str = Field(..., description="ID of the permit to check")
+
+
+class ScheduleInspectionInput(BaseModel):
+    """Input for scheduling an inspection."""
+
+    permit_id: str = Field(..., description="ID of the associated permit")
+    inspection_type: str = Field(
+        ..., description="Type of inspection (framing, electrical, plumbing, final)"
+    )
+    requested_date: Optional[str] = Field(None, description="Requested date in ISO format")
+
+
+class GetRequiredPermitsInput(BaseModel):
+    """Input for determining required permits."""
+
+    project_type: str = Field(
+        ..., description="Type of project (new_construction, renovation, addition)"
+    )
+    work_items: List[str] = Field(
+        ..., description="List of work items (framing, electrical, plumbing, hvac, etc.)"
+    )
+
+
+class GetInspectionInput(BaseModel):
+    """Input for retrieving inspection details."""
+
+    inspection_id: str = Field(..., description="Inspection ID to retrieve")
 
 
 class PermittingService:
@@ -190,5 +246,181 @@ class PermittingService:
             return {"error": "Inspection not found"}
 
 
-# Global instance
-permitting_service = PermittingService()
+# Initialize the permitting service
+service = PermittingService()
+
+# Create MCP server
+server = Server("permitting-service")
+
+
+@server.list_tools()
+async def list_tools() -> list[Tool]:
+    """List available tools."""
+    return [
+        Tool(
+            name="apply_for_permit",
+            description="Submit an application for a construction permit. Returns permit ID and "
+            "estimated approval timeline",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "permit_type": {
+                        "type": "string",
+                        "description": "Type of permit (building, electrical, plumbing, "
+                        "mechanical, demolition, roofing)",
+                    },
+                    "project_address": {
+                        "type": "string",
+                        "description": "Address of the construction project",
+                    },
+                    "project_description": {
+                        "type": "string",
+                        "description": "Description of the work to be performed",
+                    },
+                    "applicant": {
+                        "type": "string",
+                        "description": "Name of the applicant or contractor",
+                    },
+                },
+                "required": ["permit_type", "project_address", "project_description", "applicant"],
+            },
+        ),
+        Tool(
+            name="check_permit_status",
+            description="Check the current status of a permit application",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "permit_id": {
+                        "type": "string",
+                        "description": "ID of the permit to check (e.g., 'PERMIT_1_20250119')",
+                    }
+                },
+                "required": ["permit_id"],
+            },
+        ),
+        Tool(
+            name="schedule_inspection",
+            description="Schedule a construction inspection for an approved permit",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "permit_id": {
+                        "type": "string",
+                        "description": "ID of the associated permit",
+                    },
+                    "inspection_type": {
+                        "type": "string",
+                        "description": "Type of inspection (framing, electrical, plumbing, final)",
+                    },
+                    "requested_date": {
+                        "type": "string",
+                        "description": "Requested date in ISO format (optional, defaults to "
+                        "tomorrow)",
+                    },
+                },
+                "required": ["permit_id", "inspection_type"],
+            },
+        ),
+        Tool(
+            name="get_required_permits",
+            description="Determine what permits are required for a construction project based on "
+            "project type and work items",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_type": {
+                        "type": "string",
+                        "description": "Type of project (new_construction, renovation, addition)",
+                    },
+                    "work_items": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of work items (framing, foundation, electrical, "
+                        "plumbing, hvac, roofing, structural, demolition)",
+                    },
+                },
+                "required": ["project_type", "work_items"],
+            },
+        ),
+        Tool(
+            name="get_inspection",
+            description="Retrieve details of a scheduled or completed inspection",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "inspection_id": {
+                        "type": "string",
+                        "description": "Inspection ID to retrieve (e.g., 'INSP_1')",
+                    }
+                },
+                "required": ["inspection_id"],
+            },
+        ),
+    ]
+
+
+@server.call_tool()
+async def call_tool(name: str, arguments: dict) -> list[TextContent]:
+    """Handle tool calls."""
+    try:
+        if name == "apply_for_permit":
+            validated_input = ApplyForPermitInput(**arguments)
+            result = service.apply_for_permit(
+                validated_input.permit_type,
+                validated_input.project_address,
+                validated_input.project_description,
+                validated_input.applicant,
+            )
+            return [TextContent(type="text", text=str(result))]
+
+        elif name == "check_permit_status":
+            validated_input = CheckPermitStatusInput(**arguments)
+            result = service.check_permit_status(validated_input.permit_id)
+            return [TextContent(type="text", text=str(result))]
+
+        elif name == "schedule_inspection":
+            validated_input = ScheduleInspectionInput(**arguments)
+            result = service.schedule_inspection(
+                validated_input.permit_id,
+                validated_input.inspection_type,
+                validated_input.requested_date,
+            )
+            return [TextContent(type="text", text=str(result))]
+
+        elif name == "get_required_permits":
+            validated_input = GetRequiredPermitsInput(**arguments)
+            result = service.get_required_permits(
+                validated_input.project_type, validated_input.work_items
+            )
+            return [TextContent(type="text", text=str(result))]
+
+        elif name == "get_inspection":
+            validated_input = GetInspectionInput(**arguments)
+            result = service.get_inspection(validated_input.inspection_id)
+            return [TextContent(type="text", text=str(result))]
+
+        else:
+            raise ValueError(f"Unknown tool: {name}")
+
+    except Exception as e:
+        logger.error(f"Error in tool '{name}': {e}")
+        return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+
+async def main():
+    """Run the MCP server."""
+    from mcp.server.stdio import stdio_server
+
+    async with stdio_server() as (read_stream, write_stream):
+        logger.info("Permitting Service MCP server starting...")
+        await server.run(
+            read_stream,
+            write_stream,
+            server.create_initialization_options(),
+        )
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    asyncio.run(main())

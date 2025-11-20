@@ -42,6 +42,60 @@ This system models a construction project where a **General Contractor** agent o
 
 - **Task Manager** (dependencies & sequencing)
 
+### MCP (Model Context Protocol) Architecture
+
+This project implements **proper MCP servers** for external services, demonstrating how to integrate MCP with Strands agents:
+
+#### MCP Servers
+
+Two MCP servers run as separate processes, communicating via stdio:
+
+1. **Materials Supplier Server** (`backend/mcp_servers/materials_supplier.py`)
+   - Tools: `check_availability`, `order_materials`, `get_catalog`, `get_order`
+   - Manages inventory, pricing, and material ordering
+   - Categories: lumber, electrical, plumbing, masonry, paint, HVAC, roofing
+
+2. **Permitting Service Server** (`backend/mcp_servers/permitting.py`)
+   - Tools: `apply_for_permit`, `check_permit_status`, `schedule_inspection`, `get_required_permits`, `get_inspection`
+   - Handles construction permits and inspections
+   - Permit types: building, electrical, plumbing, mechanical, demolition, roofing
+
+#### Integration with Strands Agents
+
+The **General Contractor** agent integrates with MCP servers using Strands' `MCPClient`:
+
+```python
+from mcp import StdioServerParameters
+from strands.tools.mcp import MCPClient
+
+# Initialize MCP clients
+materials_client = MCPClient(StdioServerParameters(
+    command="python",
+    args=["backend/mcp_servers/materials_supplier.py"]
+))
+```
+
+The General Contractor provides helper methods that wrap MCP tool calls:
+
+- `check_materials_availability()`
+- `order_materials()`
+- `apply_for_permit()`
+- `schedule_inspection()`
+- And more...
+
+**Architecture Flow:**
+
+```text
+FastAPI Routes → General Contractor Agent → MCP Clients → MCP Servers (stdio)
+```
+
+This architecture demonstrates:
+
+- Proper MCP protocol implementation
+- Process isolation for external services
+- Strands agent integration with MCP
+- Async communication patterns
+
 ## 🚀 Quick Start
 
 **Want to see the agents in action immediately?**
@@ -90,10 +144,12 @@ general-contractor-agent-demo/
 │   ├── __init__.py
 │   └── config.py                   # Configuration settings
 ├── main.py                         # Application entry point
+├── start.py                        # Startup script (MCP + API) ⭐
 ├── test_agent.py                   # Single agent test
 ├── test_shed_demo.py              # Demo with simulated output ⭐
 ├── test_shed_detailed.py          # Detailed planning & execution
 ├── test_shed_project.py           # Full project orchestration
+├── test_mcp_integration.py        # MCP integration tests ⭐
 ├── pyproject.toml                  # Project dependencies
 ├── .env                            # Environment configuration
 ├── .env.example                    # Environment variables template
@@ -247,7 +303,29 @@ Shows live streaming of:
 
 ### Running the Application
 
-#### Start the API Server
+#### Option 1: Start with MCP Servers (Recommended)
+
+The new startup script manages both MCP servers and the FastAPI backend:
+
+```bash
+# Start everything (MCP servers + API)
+python start.py
+
+# Or specify host/port
+python start.py --host 0.0.0.0 --port 8000
+```
+
+This will:
+
+- Start Materials Supplier MCP server
+- Start Permitting Service MCP server
+- Start FastAPI backend
+- Monitor all processes
+- Handle graceful shutdown (Ctrl+C)
+
+The API will be available at `http://localhost:8000`
+
+#### Option 2: Start API Server Only (Legacy)
 
 ```bash
 # Using uv
@@ -258,7 +336,22 @@ source .venv/bin/activate
 python main.py
 ```
 
-The API will be available at `http://localhost:8000`
+**Note:** With this option, MCP clients will start the MCP servers on-demand when needed.
+
+#### Testing MCP Integration
+
+Test the MCP servers and their integration with the General Contractor:
+
+```bash
+# Run comprehensive MCP integration tests
+python test_mcp_integration.py
+```
+
+This tests:
+
+- Materials supplier MCP server (catalog, availability, ordering)
+- Permitting service MCP server (permits, inspections)
+- Full integration scenario (coordinating permits and materials)
 
 #### API Documentation
 
