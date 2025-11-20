@@ -387,7 +387,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
         elif name == "order_materials":
             validated_input = OrderMaterialsInput(**arguments)
-            orders_dict = [order.dict() for order in validated_input.orders]
+            orders_dict = [order.model_dump() for order in validated_input.orders]
             result = supplier.order_materials(orders_dict)
             return [TextContent(type="text", text=str(result))]
 
