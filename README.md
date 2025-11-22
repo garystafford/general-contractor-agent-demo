@@ -1,118 +1,232 @@
 # General Contractor Agent Demo
 
-A multi-agent orchestration system demonstrating construction project management using AI agents. This project uses the analogy of a general contractor coordinating specialized trade agents to illustrate how complex, multi-agent AI systems can be designed and orchestrated.
+A full-stack multi-agent orchestration system demonstrating construction project management using AI agents. This project uses the analogy of a general contractor coordinating specialized trade agents to illustrate how complex, multi-agent AI systems can be designed and orchestrated.
 
-**Built with [Strands Agents](https://strandsagents.com/latest/) framework and AWS Bedrock.**
+**Built with [Strands Agents](https://strandsagents.com/latest/) framework, AWS Bedrock, React, and TypeScript.**
 
-> **👉 New to this project?** Start with [QUICKSTART.md](docs/QUICKSTART.md) or [SUMMARY.md](docs/SUMMARY.md) for a quick overview!
+![Dashboard Preview](docs/images/dashboard-preview.png)
+
+> **👉 New to this project?** Follow the Quick Start below or check out [QUICKSTART.md](docs/QUICKSTART.md) for detailed instructions!
+
+---
+
+## 🚀 Quick Start
+
+Get the system running in under 5 minutes!
+
+### Prerequisites
+
+- **Python 3.13+** with [uv package manager](https://docs.astral.sh/uv/getting-started/installation/)
+- **Node.js 18+** with npm
+- **AWS Account** with Bedrock access ([setup guide](#aws-bedrock-setup))
+- **AWS Credentials** configured (access keys or AWS profile)
+
+### Setup
+
+**1. Clone and navigate to the project:**
+
+```bash
+cd general-contractor-agent-demo
+```
+
+**2. Set up Python environment:**
+
+```bash
+# Install uv package manager (if not installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install Python dependencies
+uv sync
+
+# Activate virtual environment
+source .venv/bin/activate
+```
+
+**3. Set up Node environment:**
+
+```bash
+# Navigate to frontend directory
+cd frontend
+
+# Install dependencies
+npm install
+
+# Return to project root
+cd ..
+```
+
+**4. Configure environment variables:**
+
+```bash
+# Copy example env file
+cp .env.example .env
+
+# Edit .env and add your AWS credentials
+# Required: AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY (or AWS_PROFILE)
+# Required: DEFAULT_MODEL (e.g., us.anthropic.claude-sonnet-4-5-20250929-v1:0)
+```
+
+Example `.env` configuration:
+
+```bash
+# AWS Bedrock Configuration
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_access_key_here
+AWS_SECRET_ACCESS_KEY=your_secret_key_here
+
+# Model Configuration
+DEFAULT_MODEL=us.anthropic.claude-sonnet-4-5-20250929-v1:0
+
+# Loop Detection Settings (prevents infinite loops)
+TASK_TIMEOUT_SECONDS=120
+MAX_CONSECUTIVE_TOOL_CALLS=3
+MAX_IDENTICAL_CALLS=2
+ENABLE_LOOP_DETECTION=true
+```
+
+### Running the Application
+
+**Terminal 1 - Start Backend:**
+
+```bash
+# From project root
+python start.py
+```
+
+This starts:
+
+- Materials Supplier MCP server
+- Permitting Service MCP server
+- FastAPI backend at `http://localhost:8000`
+
+**Terminal 2 - Start Frontend:**
+
+```bash
+# In frontend directory
+cd frontend
+npm run dev
+```
+
+This starts the React frontend at `http://localhost:5173`
+
+**3. Open your browser:**
+
+Navigate to `http://localhost:5173` to see the UI!
+
+### Quick Test (No AWS Required)
+
+Want to see how it works without AWS setup?
+
+```bash
+# Run demo with simulated agent output
+uv run tests/test_shed_demo.py
+```
+
+This shows agent reasoning, tool calls, and task execution for building a complete shed!
+
+---
+
+## 📋 Table of Contents
+
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [Frontend Dashboard](#frontend-dashboard)
+- [Backend API](#backend-api)
+- [AWS Bedrock Setup](#aws-bedrock-setup)
+- [Testing](#testing)
+- [API Endpoints](#api-endpoints)
+- [Project Types](#project-types)
+- [Loop Detection & Recovery](#loop-detection--recovery)
+- [Development](#development)
+- [Troubleshooting](#common-issues--troubleshooting)
+- [Documentation](#documentation)
+
+---
 
 ## Overview
 
 This system models a construction project where a **General Contractor** agent orchestrates multiple specialized trade agents (Architect, Carpenter, Electrician, Plumber, Mason, Painter, HVAC, and Roofer). Each agent has specialized tools and expertise, and the General Contractor manages task dependencies, sequencing, and resource allocation.
 
-### Key Features
+## Key Features
+
+### Backend
 
 - **8 Specialized Trade Agents**: Each with domain-specific tools and expertise
 - **Task Dependency Management**: Automatic sequencing based on construction workflows
-- **Phase-based Orchestration**: Projects progress through planning, permitting, foundation, framing, rough-in, inspection, and finishing phases
-- **Material Management**: Integrated building materials supplier service
-- **Permitting System**: Construction permit and inspection management
+- **Phase-based Orchestration**: Projects progress through 8 construction phases
+- **Material Management**: Integrated building materials supplier MCP server
+- **Permitting System**: Construction permit and inspection management MCP server
+- **Loop Detection**: Prevents infinite loops with configurable thresholds
+- **Task Recovery**: Skip or retry failed/stuck tasks to unblock projects
 - **REST API**: Complete API for project management and monitoring
 - **Real-time Status Tracking**: Monitor agent status, task progress, and project completion
 
+### Frontend
+
+- **React + TypeScript**: Modern, type-safe UI built with Vite
+- **Real-time Dashboard**: Live updates every 1 second during task execution
+- **Live Activity Feed**: Watch agents work in real-time with color-coded task cards
+- **Phase Progress Visualization**: Track progress through 8 construction phases
+- **Task Management UI**: Skip or retry failed tasks directly from the dashboard
+- **Project Templates**: Pre-configured templates for common construction projects
+- **Responsive Design**: Works on desktop and mobile with Tailwind CSS
+- **Toast Notifications**: User feedback for all actions
+
+---
+
 ## Architecture
 
+### System Overview
+
 ```text
-┌─────────────────────────────────┐
-│   Your Application Code         │
-│   (GeneralContractor, etc.)     │
-└────────────┬────────────────────┘
-             │
-┌────────────▼────────────────────┐
-│   Strands Agents Framework      │  <-- Abstraction layer
-│   (Agent, tool, invoke_async)   │
-└────────────┬────────────────────┘
-             │
-┌────────────▼────────────────────┐
-│   AWS Bedrock API               │  <-- API provider
-└────────────┬────────────────────┘
-             │
-┌────────────▼────────────────────┐
-│   Claude Sonnet 4.5 Model       │  <-- Actual LLM
-│   (us.anthropic.claude-...)     │
-└─────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                     React Frontend                          │
+│  (Project Form, Dashboard, Live Activity Feed)              │
+└──────────────────────┬──────────────────────────────────────┘
+                       │ HTTP/REST API
+                       ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   FastAPI Backend                           │
+│  - Project Management  - Task Execution                     │
+│  - Agent Orchestration - Status Tracking                    │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+        ┌──────────────┼──────────────┐
+        ↓              ↓              ↓
+┌──────────────┐ ┌─────────┐ ┌──────────────────┐
+│   General    │ │  Trade  │ │   MCP Servers    │
+│  Contractor  │ │ Agents  │ │ - Materials      │
+│   (Claude)   │ │(Claude) │ │ - Permitting     │
+└──────────────┘ └─────────┘ └──────────────────┘
 ```
 
-```mermaid
----
-config:
-  layout: elk
-  theme: neo
-  look: neo
----
-flowchart TB
- subgraph subGraph0["Client Layer"]
-        API["FastAPI REST API"]
-  end
- subgraph subGraph1["Orchestration Layer"]
-        GC["General Contractor Agent<br>Orchestrator"]
-        TM["Task Manager<br>Dependencies &amp; Sequencing"]
-  end
- subgraph subGraph2["Specialized Trade Agents"]
-        ARCH["Architect Agent<br>Design &amp; Planning"]
-        CARP["Carpenter Agent<br>Framing &amp; Finishing"]
-        ELEC["Electrician Agent<br>Wiring &amp; Fixtures"]
-        PLUMB["Plumber Agent<br>Pipes &amp; Fixtures"]
-        MASON["Mason Agent<br>Concrete &amp; Masonry"]
-        PAINT["Painter Agent<br>Painting &amp; Finishing"]
-        HVAC["HVAC Agent<br>Heating &amp; Cooling"]
-        ROOF["Roofer Agent<br>Roofing &amp; Gutters"]
-  end
- subgraph subGraph3["External Services (MCP)"]
-        MCP1["Materials Supplier<br>MCP Server<br>━━━━━━━━━━<br>• check_availability<br>• order_materials<br>• get_catalog<br>• get_order"]
-        MCP2["Permitting Service<br>MCP Server<br>━━━━━━━━━━<br>• apply_for_permit<br>• check_permit_status<br>• schedule_inspection<br>• get_required_permits"]
-  end
-    API --> GC
-    GC --> TM & ARCH & CARP & ELEC & PLUMB & MASON & PAINT & HVAC & ROOF
-    GC -. MCP Client<br>stdi .-> MCP1 & MCP2
-    style API fill:#FF9800,stroke:#333,stroke-width:2px,color:#fff
-    style GC fill:#4CAF50,stroke:#333,stroke-width:3px,color:#fff
-    style TM fill:#2196F3,stroke:#333,stroke-width:2px,color:#fff
-    style MCP1 fill:#9C27B0,stroke:#333,stroke-width:2px,color:#fff
-    style MCP2 fill:#9C27B0,stroke:#333,stroke-width:2px,color:#fff
-```
+### Component Details
 
-### Component Overview
+**General Contractor (Orchestrator)**
 
-- **General Contractor (Orchestrator)**
+- Central orchestration agent powered by Claude
+- Manages task sequencing and dependencies
+- Delegates work to specialized trade agents
+- Integrates with MCP servers for materials and permits
 
-- **Specialized Agents**
+**Specialized Trade Agents**
 
-  - Architect Agent (design & planning)
-  - Carpenter Agent (framing, cabinetry, finishing)
-  - Electrician Agent (wiring, fixtures)
-  - Plumber Agent (pipes, fixtures)
-  - Mason Agent (concrete, masonry)
-  - Painter Agent (painting, finishing)
-  - HVAC Agent (heating, cooling systems)
-  - Roofer Agent (roofing, gutters)
+- Architect Agent (design & planning)
+- Carpenter Agent (framing, cabinetry, finishing)
+- Electrician Agent (wiring, fixtures)
+- Plumber Agent (pipes, fixtures)
+- Mason Agent (concrete, masonry)
+- Painter Agent (painting, finishing)
+- HVAC Agent (heating, cooling systems)
+- Roofer Agent (roofing, gutters)
 
-- **Support Services**
-
-  - Materials Supplier (inventory & ordering)
-  - Permitting Service (permits & inspections)
-
-- **Task Manager** (dependencies & sequencing)
-
-### MCP (Model Context Protocol) Architecture
-
-This project implements **proper MCP servers** for external services, demonstrating how to integrate MCP with Strands agents:
-
-#### MCP Servers
+**MCP Servers (Model Context Protocol)**
 
 Two MCP servers run as separate processes, communicating via stdio:
 
 1. **Materials Supplier Server** (`backend/mcp_servers/materials_supplier.py`)
+
    - Tools: `check_availability`, `order_materials`, `get_catalog`, `get_order`
    - Manages inventory, pricing, and material ordering
    - Categories: lumber, electrical, plumbing, masonry, paint, HVAC, roofing
@@ -122,200 +236,158 @@ Two MCP servers run as separate processes, communicating via stdio:
    - Handles construction permits and inspections
    - Permit types: building, electrical, plumbing, mechanical, demolition, roofing
 
-#### Integration with Strands Agents
+**Task Manager**
 
-The **General Contractor** agent integrates with MCP servers using Strands' `MCPClient`:
+- Manages task dependencies and sequencing
+- Tracks task states: pending, ready, in_progress, completed, failed
+- Supports 8 construction phases: planning, permitting, foundation, framing, rough_in, inspection, finishing, final_inspection
 
-```python
-from mcp import StdioServerParameters
-from strands.tools.mcp import MCPClient
+---
 
-# Initialize MCP clients
-materials_client = MCPClient(StdioServerParameters(
-    command="python",
-    args=["backend/mcp_servers/materials_supplier.py"]
-))
-```
+## Frontend Dashboard
 
-The General Contractor provides helper methods that wrap MCP tool calls:
+The React frontend provides a comprehensive real-time view of your construction project:
 
-- `check_materials_availability()`
-- `order_materials()`
-- `apply_for_permit()`
-- `schedule_inspection()`
-- And more...
+### Features
 
-**Architecture Flow:**
+**Project Form**
 
-```text
-FastAPI Routes → General Contractor Agent → MCP Clients → MCP Servers (stdio)
-```
+- Choose from pre-configured project templates (Kitchen, Bathroom, Shed, etc.)
+- Or describe a custom project with dynamic planning
+- Configure project parameters and submit
 
-This architecture demonstrates:
+**Dashboard Components**
 
-- Proper MCP protocol implementation
-- Process isolation for external services
-- Strands agent integration with MCP
-- Async communication patterns
+1. **Auto-Refresh Indicator**
 
-## 🚀 Quick Start
+   - Shows "🔴 LIVE" when tasks are in progress
+   - Updates every 1 second for real-time feedback
+   - Manual refresh button available
 
-**Want to see the agents in action immediately?**
+2. **Stats Cards**
 
-```bash
-# Run the demo (no AWS required!)
-uv run tests/test_shed_demo.py
-```
+   - Completion percentage (1 decimal precision)
+   - Tasks in progress
+   - Completed/Total tasks
+   - Failed tasks count
 
-This shows simulated agent reasoning and tool calling for a complete shed construction project!
+3. **Phase Progress Bar**
 
-**For detailed guides:**
+   - Visual representation of 8 construction phases
+   - Color-coded: green (completed), blue (current), gray (upcoming)
+   - Shows current phase name
 
-- [QUICKSTART.md](docs/QUICKSTART.md) - Start here!
-- [TESTING.md](docs/TESTING.md) - Complete testing guide
-- [EXECUTION_GUIDE.md](docs/EXECUTION_GUIDE.md) - Execution mode details
+4. **Live Activity Feed** (scrollable, 600px height)
 
-## Project Structure
+   - **Blue cards (pulsing)**: Agents currently working
+   - **Red cards**: Failed tasks with Skip/Retry buttons
+   - **Green cards**: Completed tasks (most recent first)
+   - **Yellow cards**: Queued tasks waiting to start
 
-```text
-general-contractor-agent-demo/
-├── backend/
-│   ├── agents/
-│   │   ├── __init__.py
-│   │   ├── general_contractor.py   # Orchestration agent
-│   │   ├── architect.py            # Design agent
-│   │   ├── carpenter.py            # Carpentry agent
-│   │   ├── electrician.py          # Electrical agent
-│   │   ├── plumber.py              # Plumbing agent
-│   │   ├── mason.py                # Masonry agent
-│   │   ├── painter.py              # Painting agent
-│   │   ├── hvac.py                 # HVAC agent
-│   │   └── roofer.py               # Roofing agent
-│   ├── mcp_servers/
-│   │   ├── __init__.py
-│   │   ├── materials_supplier.py   # Materials service
-│   │   └── permitting.py           # Permitting service
-│   ├── orchestration/
-│   │   ├── __init__.py
-│   │   └── task_manager.py         # Task & dependency management
-│   ├── api/
-│   │   ├── __init__.py
-│   │   └── routes.py               # FastAPI endpoints
-│   ├── utils/
-│   │   └── __init__.py
-│   ├── __init__.py
-│   └── config.py                   # Configuration settings
-├── tests/
-│   ├── test_agent.py               # Single agent test
-│   ├── test_shed_demo.py          # Demo with simulated output ⭐
-│   ├── test_shed_detailed.py      # Detailed planning & execution
-│   ├── test_shed_project.py       # Full project orchestration
-│   └── test_mcp_integration.py    # MCP integration tests ⭐
-├── docs/
-│   ├── QUICKSTART.md               # Quick start guide ⭐
-│   ├── TESTING.md                  # Testing documentation
-│   ├── EXECUTION_GUIDE.md          # Execution mode guide
-│   └── SUMMARY.md                  # Project overview
-├── main.py                         # Application entry point
-├── start.py                        # Startup script (MCP + API) ⭐
-├── pyproject.toml                  # Project dependencies
-├── .env                            # Environment configuration
-├── .env.example                    # Environment variables template
-└── README.md                       # This file
-```
+5. **Control Buttons**
+   - **Next Phase**: Execute next construction phase
+   - **Execute All**: Run entire project to completion
+   - **Refresh**: Manual data refresh
+   - **Reset**: Clear project and start over
 
-## Getting Started
+### Task Recovery UI
 
-### Prerequisites
+When tasks fail or timeout (e.g., stuck in loops), they appear in red cards with action buttons:
 
-- Python 3.13+
-- uv package manager
-- AWS account with Bedrock access
-- AWS credentials configured (access key ID and secret access key, or IAM role)
+- **Skip Button** (orange): Mark task as completed so dependent tasks can proceed
+- **Retry Button** (blue): Reset and re-execute the failed task
 
-### Installation
+Both actions show confirmation dialogs and provide toast feedback.
 
-1. **Install uv package manager** (if not already installed):
+---
 
-   ```bash
-   # On macOS/Linux
-   curl -LsSf https://astral.sh/uv/install.sh | sh
+## Backend API
 
-   # On Windows (PowerShell)
-   powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-   ```
+### FastAPI Server
 
-   Or visit [https://docs.astral.sh/uv/getting-started/installation/](https://docs.astral.sh/uv/getting-started/installation/) for other installation methods.
+The backend provides a complete REST API for project management:
 
-2. **Navigate to the project directory**:
+**API Documentation** (when server is running):
 
-   ```bash
-   cd general-contractor-agent-demo
-   ```
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
 
-3. **Install dependencies**:
+### Key Endpoints
 
-   ```bash
-   # Install production dependencies
-   uv sync
+**Project Management**
 
-   # Or install with dev dependencies for linting/formatting
-   uv sync --extra dev
+- `POST /api/projects/start` - Start a new project
+- `POST /api/projects/execute-next-phase` - Execute next phase
+- `POST /api/projects/execute-all` - Execute entire project
+- `GET /api/projects/status` - Get project status
+- `POST /api/projects/reset` - Reset for new project
 
-   # Activate virtual environment
-   source .venv/bin/activate
-   ```
+**Task Management**
 
-4. **Set up environment variables**:
+- `GET /api/tasks` - Get all tasks
+- `GET /api/tasks/{task_id}` - Get specific task
+- `POST /api/tasks/{task_id}/skip` - Skip failed task
+- `POST /api/tasks/{task_id}/retry` - Retry failed task
 
-   ```bash
-   cp .env.example .env
-   ```
+**Agent Management**
 
-5. **Edit `.env` file** and add your AWS credentials:
+- `GET /api/agents` - List all agents
+- `GET /api/agents/status` - Get all agents' status
+- `GET /api/agents/{agent_name}` - Get specific agent status
 
-   ```text
-   # AWS Bedrock Configuration
-   AWS_REGION=us-east-1
-   AWS_ACCESS_KEY_ID=your_access_key_here
-   AWS_SECRET_ACCESS_KEY=your_secret_key_here
-   # Or use AWS profile instead:
-   # AWS_PROFILE=default
+**Materials & Permitting**
 
-   # Model Configuration (Bedrock model ID - use inference profile format)
-   DEFAULT_MODEL=us.anthropic.claude-sonnet-4-5-v1:0
-   ```
+- `GET /api/materials/catalog` - Browse materials
+- `POST /api/materials/order` - Order materials
+- `POST /api/permits/apply` - Apply for permit
+- `POST /api/permits/inspections` - Schedule inspection
 
-   **Note**: You can use either AWS access keys or an AWS profile. If using a profile, comment out the access key lines and uncomment the AWS_PROFILE line.
+---
 
-### AWS Bedrock Setup
+## AWS Bedrock Setup
 
-Before running the application, you need to enable Claude models in AWS Bedrock:
+Before running the application, enable Claude models in AWS Bedrock:
 
 1. **Log into AWS Console** and navigate to Amazon Bedrock
 2. **Enable Model Access**:
+
    - Go to "Model access" in the left sidebar
    - Click "Enable specific models"
-   - Find "Claude" and enable "Claude Sonnet 4.5 v1" (use inference profile: `us.anthropic.claude-sonnet-4-5-v1:0`)
-   - Wait for the model to show as "Access granted" (may take a few minutes)
-3. **Verify Permissions**:
-   - Ensure your IAM user/role has permission to invoke Bedrock models
-   - Required permissions: `bedrock:InvokeModel`, `bedrock:InvokeModelWithResponseStream`
+   - Find "Claude" and enable "Claude Sonnet 4.5 v1"
+   - Use inference profile: `us.anthropic.claude-sonnet-4-5-20250929-v1:0`
+   - Wait for status to show "Access granted" (may take a few minutes)
+
+3. **Verify IAM Permissions**:
+
+   - Your IAM user/role needs:
+     - `bedrock:InvokeModel`
+     - `bedrock:InvokeModelWithResponseStream`
+
+4. **Configure Credentials**:
+
+   ```bash
+   # Option 1: Use access keys in .env
+   AWS_ACCESS_KEY_ID=your_access_key_here
+   AWS_SECRET_ACCESS_KEY=your_secret_key_here
+
+   # Option 2: Use AWS profile
+   AWS_PROFILE=default
+   ```
 
 For detailed instructions, see [AWS Bedrock Model Access Documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html).
 
-### Testing the Setup
+---
 
-This project includes several test scripts to help you understand and verify the system:
+## Testing
 
-#### 1. Demo Mode (No AWS Required) ⭐ RECOMMENDED
+### Demo Mode (No AWS Required) ⭐ RECOMMENDED
 
 ```bash
-# Run the shed construction demo with simulated agent output
+# Run shed construction demo with simulated output
 uv run tests/test_shed_demo.py
 ```
 
-This shows exactly what the execution mode looks like with:
+Shows:
 
 - Real-time agent reasoning
 - Tool calls with inputs
@@ -324,10 +396,10 @@ This shows exactly what the execution mode looks like with:
 
 **Perfect for seeing how the system works without AWS setup!**
 
-#### 2. Planning Mode (No AWS Required)
+### Planning Mode (No AWS Required)
 
 ```bash
-# See the complete task breakdown and dependencies
+# See complete task breakdown and dependencies
 uv run tests/test_shed_detailed.py
 ```
 
@@ -338,7 +410,7 @@ Shows:
 - Materials and requirements
 - Agent workload distribution
 
-#### 3. Single Agent Test (AWS Required)
+### Single Agent Test (AWS Required)
 
 ```bash
 # Test a single agent with AWS Bedrock
@@ -347,11 +419,11 @@ uv run tests/test_agent.py
 
 Verifies:
 
-- AWS credentials are configured correctly
-- Bedrock access is working
-- Strands Agents framework is properly set up
+- AWS credentials configured correctly
+- Bedrock access working
+- Strands Agents framework setup
 
-#### 4. Full Execution Mode (AWS Required)
+### Full Execution Mode (AWS Required)
 
 ```bash
 # Execute with real Claude AI agents
@@ -364,134 +436,78 @@ Shows live streaming of:
 - Actual tool calls and results
 - Complete project execution (5-10 minutes)
 
-**See [QUICKSTART.md](docs/QUICKSTART.md) for detailed instructions and [TESTING.md](docs/TESTING.md) for comprehensive testing documentation.**
-
-### Running the Application
-
-#### Option 1: Start with MCP Servers (Recommended)
-
-The new startup script manages both MCP servers and the FastAPI backend:
+### MCP Integration Tests
 
 ```bash
-# Start everything (MCP servers + API)
-python start.py
-
-# Or specify host/port
-python start.py --host 0.0.0.0 --port 8000
-```
-
-This will:
-
-- Start Materials Supplier MCP server
-- Start Permitting Service MCP server
-- Start FastAPI backend
-- Monitor all processes
-- Handle graceful shutdown (Ctrl+C)
-
-The API will be available at `http://localhost:8000`
-
-#### Option 2: Start API Server Only (Legacy)
-
-```bash
-# Using uv
-uv run main.py
-
-# Or activate the virtual environment first
-source .venv/bin/activate
-python main.py
-```
-
-**Note:** With this option, MCP clients will start the MCP servers on-demand when needed.
-
-#### Testing MCP Integration
-
-Test the MCP servers and their integration with the General Contractor:
-
-```bash
-# Run comprehensive MCP integration tests
+# Test MCP servers
 python tests/test_mcp_integration.py
 ```
 
-This tests:
+Tests:
 
-- Materials supplier MCP server (catalog, availability, ordering)
-- Permitting service MCP server (permits, inspections)
-- Full integration scenario (coordinating permits and materials)
+- Materials supplier MCP server
+- Permitting service MCP server
+- Full integration scenarios
 
-#### API Documentation
+**See [TESTING.md](docs/TESTING.md) for comprehensive testing documentation.**
 
-Once the server is running, visit:
+---
 
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+## API Endpoints
 
-## Usage Examples
+### Complete Endpoint Reference
 
-### 1. Start a New Project
+#### Project Management
 
-```bash
-curl -X POST http://localhost:8000/api/projects/start \
-  -H "Content-Type: application/json" \
-  -d '{
-    "description": "Remodel kitchen with new cabinets and appliances",
-    "project_type": "kitchen_remodel",
-    "parameters": {}
-  }'
-```
+| Method | Endpoint                           | Description                            |
+| ------ | ---------------------------------- | -------------------------------------- |
+| POST   | `/api/projects/start`              | Start a new construction project       |
+| POST   | `/api/projects/execute-next-phase` | Execute next construction phase        |
+| POST   | `/api/projects/execute-all`        | Execute entire project to completion   |
+| GET    | `/api/projects/status`             | Get current project status and metrics |
+| POST   | `/api/projects/reset`              | Reset project for new start            |
 
-### 2. Execute the Entire Project
+#### Task Management
 
-```bash
-curl -X POST http://localhost:8000/api/projects/execute-all
-```
+| Method | Endpoint                     | Description                                |
+| ------ | ---------------------------- | ------------------------------------------ |
+| GET    | `/api/tasks`                 | Get all tasks with status                  |
+| GET    | `/api/tasks/{task_id}`       | Get specific task details                  |
+| POST   | `/api/tasks/{task_id}/skip`  | Skip failed/stuck task to unblock progress |
+| POST   | `/api/tasks/{task_id}/retry` | Retry failed task                          |
 
-### 3. Check Project Status
+#### Agent Management
 
-```bash
-curl http://localhost:8000/api/projects/status
-```
+| Method | Endpoint                   | Description                                |
+| ------ | -------------------------- | ------------------------------------------ |
+| GET    | `/api/agents`              | List all available agents                  |
+| GET    | `/api/agents/status`       | Get status of all agents                   |
+| GET    | `/api/agents/{agent_name}` | Get specific agent status and current task |
 
-### 4. Get Agent Status
+#### Materials Supplier
 
-```bash
-curl http://localhost:8000/api/agents/Carpenter
-```
+| Method | Endpoint                            | Description                                      |
+| ------ | ----------------------------------- | ------------------------------------------------ |
+| GET    | `/api/materials/catalog`            | Get materials catalog (optional category filter) |
+| POST   | `/api/materials/check-availability` | Check material availability                      |
+| POST   | `/api/materials/order`              | Place materials order                            |
+| GET    | `/api/materials/orders/{order_id}`  | Get order details and status                     |
 
-### 5. View All Tasks
+#### Permitting Service
 
-```bash
-curl http://localhost:8000/api/tasks
-```
+| Method | Endpoint                                   | Description                           |
+| ------ | ------------------------------------------ | ------------------------------------- |
+| POST   | `/api/permits/apply`                       | Apply for construction permit         |
+| GET    | `/api/permits/{permit_id}`                 | Check permit status                   |
+| POST   | `/api/permits/inspections`                 | Schedule inspection                   |
+| GET    | `/api/permits/inspections/{inspection_id}` | Get inspection details                |
+| POST   | `/api/permits/required`                    | Get required permits for project type |
 
-### 6. Order Materials
-
-```bash
-curl -X POST http://localhost:8000/api/materials/order \
-  -H "Content-Type: application/json" \
-  -d '{
-    "orders": [
-      {"material_id": "2x4_studs", "quantity": 100},
-      {"material_id": "plywood_sheets", "quantity": 20}
-    ]
-  }'
-```
-
-### 7. Apply for Permit
-
-```bash
-curl -X POST http://localhost:8000/api/permits/apply \
-  -H "Content-Type: application/json" \
-  -d '{
-    "permit_type": "building",
-    "project_address": "123 Main St",
-    "project_description": "Kitchen remodel",
-    "applicant": "General Contractor"
-  }'
-```
+---
 
 ## Project Types
 
-The system supports several pre-configured project types with automatic task sequencing:
+The system supports pre-configured project templates with automatic task sequencing:
 
 ### Kitchen Remodel
 
@@ -515,6 +531,17 @@ The system supports several pre-configured project types with automatic task seq
 - Fixture installation
 - Final inspection
 
+### Shed Construction
+
+- Architectural plans
+- Foundation (concrete slab)
+- Framing (walls and roof)
+- Roofing installation
+- Electrical wiring
+- Siding and exterior
+- Painting
+- Final walkthrough
+
 ### New Construction
 
 - Architectural plans
@@ -537,363 +564,145 @@ The system supports several pre-configured project types with automatic task seq
 - System integration
 - Finishing
 
-## Specialized Agents
+### Custom Projects
 
-Each agent has specific tools for their trade:
+Enable dynamic planning for custom project descriptions.
 
-### Carpenter
+---
 
-- Frame walls
-- Install doors
-- Build cabinets
-- Install wood flooring
-- Hang drywall
-- Build stairs
+## Loop Detection & Recovery
 
-### Electrician
+### Problem
 
-- Wire outlets/switches
-- Install lighting fixtures
-- Upgrade electrical panel
-- Run new circuits
-- Install ceiling fans
-- Troubleshoot wiring
+AI agents can sometimes get stuck in infinite loops, repeatedly calling the same tool with the same parameters. For example:
 
-### Plumber
+```
+Tool #63: frame_walls
+Tool #64: frame_walls
+Tool #65: frame_walls
+...
+Tool #72: frame_walls  (Same tool 72 times!)
+```
 
-- Install sinks
-- Install toilets
-- Install showers
-- Repair/replace pipes
-- Unclog drains
-- Install water heaters
+### Solution: Multi-Layer Protection
 
-### Mason
+**1. Loop Detection (Configurable in `.env`)**
 
-- Lay brick walls
-- Pour concrete foundations
-- Repair masonry
-- Install pavers
-- Build fireplaces
+```bash
+# Maximum consecutive identical tool calls before stopping
+MAX_CONSECUTIVE_TOOL_CALLS=3
 
-### Painter
+# Maximum total tool calls for a single task
+MAX_TOTAL_TOOL_CALLS=20
 
-- Paint interior walls
-- Paint exterior
-- Prime surfaces
-- Remove old paint
-- Refinish cabinets
-- Apply wallpaper
+# Maximum identical calls with same parameters
+MAX_IDENTICAL_CALLS=2
 
-### HVAC
+# Enable/disable loop detection
+ENABLE_LOOP_DETECTION=true
+```
 
-- Install heating systems
-- Install AC units
-- Install ductwork
-- Install thermostats
-- Perform maintenance
+**2. Task Timeout**
 
-### Roofer
+```bash
+# Timeout per task in seconds
+TASK_TIMEOUT_SECONDS=60  # Fast for testing, 300 for production
+```
 
-- Install shingles
-- Repair leaks
-- Install flashing
-- Install underlayment
-- Clean gutters
-- Inspect roof
+**3. Agent Prompt Instructions**
 
-### Architect
-
-- Create floor plans
-- Create elevation drawings
-- Design kitchen layouts
-- Design bathroom layouts
-- Create structural plans
-- Specify materials
-
-## API Endpoints
-
-### Project Management
-
-- `POST /api/projects/start` - Start a new project
-- `POST /api/projects/execute-next-phase` - Execute next phase
-- `POST /api/projects/execute-all` - Execute entire project
-- `GET /api/projects/status` - Get project status
-- `POST /api/projects/reset` - Reset for new project
-
-### Agent Management
-
-- `GET /api/agents` - List all agents
-- `GET /api/agents/status` - Get all agents' status
-- `GET /api/agents/{agent_name}` - Get specific agent status
-
-### Task Management
-
-- `GET /api/tasks` - Get all tasks
-- `GET /api/tasks/{task_id}` - Get specific task details
-
-### Materials
-
-- `GET /api/materials/catalog` - Get materials catalog
-- `POST /api/materials/check-availability` - Check material availability
-- `POST /api/materials/order` - Order materials
-- `GET /api/materials/orders/{order_id}` - Get order details
-
-### Permitting
-
-- `POST /api/permits/apply` - Apply for permit
-- `GET /api/permits/{permit_id}` - Check permit status
-- `POST /api/permits/inspections` - Schedule inspection
-- `GET /api/permits/inspections/{inspection_id}` - Get inspection details
-- `POST /api/permits/required` - Get required permits for project
-
-## Configuration
-
-Configuration is managed through environment variables (`.env` file):
+Agents receive explicit loop prevention instructions:
 
 ```text
-# AWS Bedrock Configuration (Required)
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=your_access_key_here
-AWS_SECRET_ACCESS_KEY=your_secret_key_here
-# Or use AWS profile:
-# AWS_PROFILE=default
-
-# Model Configuration (Required - Bedrock inference profile)
-DEFAULT_MODEL=us.anthropic.claude-sonnet-4-5-v1:0
-
-# API Configuration (optional)
-API_HOST=0.0.0.0
-API_PORT=8000
-
-# Project Settings (optional)
-MAX_PARALLEL_TASKS=3
-TASK_TIMEOUT_SECONDS=300
-
-# Logging (optional)
-LOG_LEVEL=INFO
+IMPORTANT CONSTRAINTS:
+- Do NOT call the same tool more than 3 times in a row
+- If a tool fails, try a different approach instead of repeating
+- Each tool should be called AT MOST ONCE unless necessary
 ```
+
+### Recovery: Skip or Retry
+
+When a task fails due to loops or timeout, the dashboard shows:
+
+**Red Card with Actions:**
+
+- **Skip** (orange button): Mark as completed so dependent tasks can proceed
+- **Retry** (blue button): Reset task and try again
+
+Both actions require confirmation and provide toast feedback.
+
+**See [LOOP_PROTECTION.md](docs/LOOP_PROTECTION.md) for detailed documentation.**
+
+---
 
 ## Development
 
-### Project Dependencies
+### Project Structure
 
-The project uses uv for dependency management. All dependencies are defined in `pyproject.toml`:
-
-**Production Dependencies:**
-
-- **strands-agents**: Multi-agent framework for building AI systems
-- **boto3**: AWS SDK for Python (Bedrock integration)
-- **fastapi**: Web framework
-- **uvicorn**: ASGI server
-- **pydantic**: Data validation
-- **pydantic-settings**: Settings management
-- **python-dotenv**: Environment variable loading
-- **httpx**: HTTP client
-
-**Dev Dependencies (optional):**
-
-- **black**: Code formatter (100 char line length)
-- **autoflake**: Removes unused imports and variables
-- **isort**: Import sorting (black-compatible)
-- **flake8**: Style guide enforcement (PEP 8)
-- **mypy**: Static type checking
-- **pylint**: Code analysis and linting
-- **types-boto3**: Type stubs for boto3
-
-Install dev dependencies:
-
-```bash
-uv sync --extra dev
+```text
+general-contractor-agent-demo/
+├── backend/
+│   ├── agents/              # 8 specialized trade agents
+│   ├── mcp_servers/         # MCP servers (materials, permitting)
+│   ├── orchestration/       # Task manager and dependencies
+│   ├── api/                 # FastAPI routes and WebSocket
+│   ├── utils/               # Loop detection utilities
+│   └── config.py            # Configuration settings
+├── frontend/
+│   ├── src/
+│   │   ├── components/      # React components (Dashboard, Form, etc.)
+│   │   ├── api/             # API client
+│   │   ├── hooks/           # Custom React hooks
+│   │   ├── store/           # Zustand state management
+│   │   ├── types/           # TypeScript type definitions
+│   │   └── App.tsx          # Main app with routing
+│   ├── package.json
+│   └── vite.config.ts
+├── tests/                   # Test scripts and demos
+├── docs/                    # Documentation
+├── start.py                 # Unified startup script
+├── main.py                  # FastAPI entry point
+├── pyproject.toml           # Python dependencies
+└── .env                     # Environment configuration
 ```
 
-### Task Sequencing
+### Tech Stack
 
-Tasks are automatically sequenced based on:
+**Backend:**
 
-1. **Dependencies**: Tasks wait for prerequisite tasks to complete
-2. **Phases**: Tasks are organized into construction phases
-3. **Agent Availability**: Agents can only work on one task at a time
+- Python 3.13+
+- Strands Agents framework
+- AWS Bedrock (Claude Sonnet 4.5)
+- FastAPI + Uvicorn
+- Pydantic for validation
+- MCP (Model Context Protocol) servers
 
-Phase order:
+**Frontend:**
 
-1. Planning
-2. Permitting
-3. Foundation
-4. Framing
-5. Rough-in
-6. Inspection
-7. Finishing
-8. Final Inspection
-
-## Educational Value
-
-This project demonstrates key concepts in multi-agent AI systems:
-
-1. **Agent Orchestration**: How a central agent coordinates multiple specialized agents
-2. **Task Dependencies**: Managing prerequisites and sequencing
-3. **Tool Use**: Agents using specialized tools to accomplish tasks
-4. **State Management**: Tracking project and agent states
-5. **Resource Allocation**: Coordinating shared resources (materials, permits)
-6. **Error Handling**: Managing failures and retries
-7. **Parallel Execution**: Running independent tasks simultaneously
-8. **Real-world Modeling**: Applying AI agents to complex domain problems
-
-## Limitations & Future Enhancements
-
-### Current Limitations
-
-- Simplified MCP server implementations (not full MCP protocol)
-- No persistent storage (in-memory only)
-- No authentication/authorization
-- Frontend not yet implemented
-
-### Planned Enhancements
-
-- Full MCP server protocol implementation
-- AWS Cloudscape React frontend
-- Database integration for persistence
-- Authentication and user management
-- Cost estimation and budget tracking
-- Timeline visualization
-- Agent performance metrics
-- Multi-project support
-- Real-time WebSocket updates
-
-## Development
-
-### Code Quality Tools
-
-The project includes comprehensive linting and formatting tools configured in [pyproject.toml](pyproject.toml).
-
-#### Install Dev Dependencies
-
-```bash
-# Install all development tools
-uv sync --extra dev
-```
-
-**Included Tools:**
-
-- **black** - Code formatter (100 char line length)
-- **autoflake** - Removes unused imports and variables
-- **isort** - Import sorting (black-compatible)
-- **flake8** - Style guide enforcement (PEP 8)
-- **mypy** - Static type checking
-- **pylint** - Code analysis and linting
-- **types-boto3** - Type stubs for boto3
-
-#### Format Code
-
-```bash
-# Format all Python files
-black .
-
-# Sort imports
-isort .
-
-# Remove unused imports
-autoflake --in-place --recursive .
-```
-
-#### Lint Code
-
-```bash
-# Check style with flake8
-flake8 backend/ tests/
-
-# Type check with mypy
-mypy backend/
-
-# Full analysis with pylint
-pylint backend/
-```
-
-#### Run All at Once
-
-```bash
-# Format, sort, and lint
-black . && isort . && autoflake --in-place --recursive . && flake8 .
-```
-
-#### Tool Configuration
-
-All tools are pre-configured in [pyproject.toml](pyproject.toml):
-
-- **Line length**: 100 characters (all tools)
-- **Python version**: 3.13
-- **Black profile**: isort uses black-compatible settings
-- **Mypy**: Ignores missing imports (for external packages)
-- **Pylint**: Disabled overly strict rules (docstrings, name conventions)
-
-#### VS Code Integration
-
-Add to `.vscode/settings.json`:
-
-```json
-{
-  "python.formatting.provider": "black",
-  "python.linting.enabled": true,
-  "python.linting.pylintEnabled": true,
-  "python.linting.flake8Enabled": true,
-  "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.organizeImports": true
-  }
-}
-```
-
-### Project Type Extensions
-
-The TaskManager supports multiple project types. To add a new project type:
-
-1. **Add a task generation method** in [backend/orchestration/task_manager.py](backend/orchestration/task_manager.py):
-
-   ```python
-   def _create_deck_construction_tasks(self, **kwargs) -> List[Task]:
-       """Create tasks for building a deck."""
-       return [
-           Task("1", "Architect", "Design deck plans", [], "planning"),
-           Task("2", "Mason", "Pour concrete footings", ["1"], "foundation"),
-           # ... more tasks
-       ]
-   ```
-
-2. **Register the project type** in `create_project_tasks()`:
-
-   ```python
-   elif project_type == "deck_construction":
-       tasks = self._create_deck_construction_tasks(**kwargs)
-   ```
-
-3. **Create a test script** to demonstrate the new project type
-
-**Current Project Types:**
-
-- `kitchen_remodel` - Kitchen renovation
-- `bathroom_remodel` - Bathroom renovation
-- `new_construction` - New building construction
-- `addition` - Home addition
-- `shed_construction` - Storage shed (demo)
+- React 18
+- TypeScript
+- Vite (build tool)
+- Tailwind CSS v3
+- Zustand (state management)
+- React Router
+- Axios (API client)
+- React Hot Toast (notifications)
+- Lucide React (icons)
 
 ### Adding New Agents
 
-To add a new specialized agent:
+1. Create agent file in `backend/agents/` (e.g., `landscaper.py`)
+2. Define tools using `@tool` decorator
+3. Create agent factory function with `system_prompt` and tools
+4. Register in `backend/agents/__init__.py`
+5. Add to GeneralContractor agent pool
+6. Create tasks that use the new agent
 
-1. **Create agent file** in `backend/agents/` (e.g., `landscaper.py`)
-2. **Define tools** using `@tool` decorator
-3. **Create agent factory function** with `system_prompt` and tools
-4. **Register in** `backend/agents/__init__.py`
-5. **Add to GeneralContractor** agent pool
-6. **Create tasks** that use the new agent
-
-Example agent structure:
+Example structure:
 
 ```python
 from strands import Agent, tool
 from strands.models import BedrockModel
-from backend.config import settings
-import boto3
 
 @tool
 def plant_trees(input: PlantTreesInput) -> dict:
@@ -901,22 +710,7 @@ def plant_trees(input: PlantTreesInput) -> dict:
     return {"status": "success", "details": f"Planted {input.tree_count} trees"}
 
 def create_landscaper_agent() -> Agent:
-    """Create the Landscaper agent."""
-    # Create boto session
-    session_kwargs = {"region_name": settings.aws_region}
-    if settings.aws_profile:
-        session_kwargs["profile_name"] = settings.aws_profile
-    # ... configure credentials
-
-    boto_session = boto3.Session(**session_kwargs)
-
-    # Create model
-    model = BedrockModel(
-        model_id=settings.default_model,
-        boto_session=boto_session,
-    )
-
-    # Create agent with system_prompt and tools
+    # Configure model and create agent
     return Agent(
         model=model,
         system_prompt="You are an expert Landscaper...",
@@ -924,40 +718,94 @@ def create_landscaper_agent() -> Agent:
     )
 ```
 
+### Adding New Project Types
+
+1. Add task generation method in `backend/orchestration/task_manager.py`
+2. Register project type in `create_project_tasks()`
+3. Add to frontend project type options in `frontend/src/components/ProjectForm.tsx`
+4. Create test script to demonstrate new project type
+
+### Code Quality Tools
+
+Install dev dependencies:
+
+```bash
+uv sync --extra dev
+```
+
+Format code:
+
+```bash
+black . && isort . && autoflake --in-place --recursive .
+```
+
+Lint code:
+
+```bash
+flake8 backend/ tests/ && mypy backend/
+```
+
+---
+
 ## Common Issues & Troubleshooting
 
 ### Setup Issues
 
 **Issue**: `Module 'backend' not found`
 
-- **Solution**: Make sure you're running from the project root directory
+- **Solution**: Run from project root directory
 
-**Issue**: `AWS credentials not found` or `botocore.exceptions.NoCredentialsError`
+**Issue**: `AWS credentials not found`
 
-- **Solution**: Ensure `.env` file exists with AWS credentials set (`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`) or `AWS_PROFILE` configured
+- **Solution**: Ensure `.env` exists with `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` or `AWS_PROFILE`
 
 **Issue**: `AccessDeniedException` when invoking Bedrock
 
 - **Solution**:
-  - Verify Claude Sonnet 4.5 v1 model is enabled in AWS Bedrock console
-  - Check your IAM user/role has `bedrock:InvokeModel` permission
-  - Confirm you're using the correct region (default: `us-east-1`)
+  - Enable Claude Sonnet 4.5 in AWS Bedrock console
+  - Verify IAM permissions include `bedrock:InvokeModel`
+  - Confirm correct region (default: `us-east-1`)
 
-**Issue**: `ValidationException: The provided model identifier is invalid`
+**Issue**: `ValidationException: Invalid model identifier`
 
-- **Solution**: Verify the inference profile in `.env` matches the format: `us.anthropic.claude-sonnet-4-5-v1:0`
+- **Solution**: Use inference profile format in `.env`:
+  ```
+  DEFAULT_MODEL=us.anthropic.claude-sonnet-4-5-20250929-v1:0
+  ```
 
 **Issue**: `Port 8000 already in use`
 
-- **Solution**: Change `API_PORT` in `.env` or stop the other service using port 8000
+- **Solution**: Change `API_PORT` in `.env` or stop other service using port 8000
 
-**Issue**: Agent not responding
+**Issue**: Frontend shows blank page
 
-- **Solution**: Check logs for errors, verify AWS credentials are valid and Bedrock access is enabled
+- **Solution**: Check browser console for errors, verify backend is running, check API_PORT matches
 
-## Example: Shed Construction Project
+**Issue**: Tasks stuck in infinite loops
 
-The included test scripts demonstrate building a 10×12 ft storage shed through the orchestration of 6 specialized agents:
+- **Solution**:
+  - Verify loop detection is enabled in `.env`
+  - Reduce `TASK_TIMEOUT_SECONDS` to fail faster
+  - Use Skip button in dashboard to unblock project
+
+---
+
+## Documentation
+
+- **[SUMMARY.md](docs/SUMMARY.md)** - Project overview and quick reference ⭐
+- **[QUICKSTART.md](docs/QUICKSTART.md)** - Quick start guide and test script overview
+- **[TESTING.md](docs/TESTING.md)** - Comprehensive testing documentation
+- **[EXECUTION_GUIDE.md](docs/EXECUTION_GUIDE.md)** - Detailed execution mode guide
+- **[LOOP_PROTECTION.md](docs/LOOP_PROTECTION.md)** - Loop detection and prevention ⚠️
+- **[DYNAMIC_PLANNING.md](docs/DYNAMIC_PLANNING.md)** - Dynamic task planning for custom projects
+- **[CURRENT_LIMITATIONS.md](docs/CURRENT_LIMITATIONS.md)** - Known limitations and workarounds
+- **API Documentation** - <http://localhost:8000/docs> (when server running)
+
+---
+
+## Example: Shed Construction
+
+The included test scripts demonstrate building a 10×12 ft storage shed:
 
 **Project Specifications:**
 
@@ -976,16 +824,9 @@ The included test scripts demonstrate building a 10×12 ft storage shed through 
 5. **Finishing**: Carpenter installs siding/door/window, Painter finishes exterior
 6. **Final Inspection**: Carpenter performs walkthrough
 
-**Agents Involved:**
+**Run demo:** `uv run tests/test_shed_demo.py`
 
-- Architect (1 task)
-- Mason (1 task)
-- Carpenter (5 tasks)
-- Roofer (1 task)
-- Electrician (1 task)
-- Painter (1 task)
-
-Run `uv run tests/test_shed_demo.py` to see this in action!
+---
 
 ## License
 
@@ -1002,16 +843,10 @@ This is a training workshop project. Feedback and suggestions are welcome!
 - Inspired by real-world construction project management
 - Designed to demonstrate multi-agent AI orchestration patterns
 
-## Documentation
-
-- **[SUMMARY.md](docs/SUMMARY.md)** - Project overview and quick reference ⭐
-- **[QUICKSTART.md](docs/QUICKSTART.md)** - Quick start guide and test script overview
-- **[TESTING.md](docs/TESTING.md)** - Comprehensive testing documentation
-- **[EXECUTION_GUIDE.md](docs/EXECUTION_GUIDE.md)** - Detailed execution mode guide
-- **[LOOP_PROTECTION.md](docs/LOOP_PROTECTION.md)** - Agent loop detection and prevention mechanisms
-- **[CURRENT_LIMITATIONS.md](docs/CURRENT_LIMITATIONS.md)** - Known limitations and workarounds ⚠️
-- **API Documentation** - <http://localhost:8000/docs> (when server is running)
-
 ---
 
+## Support
+
 For questions or issues, please open an issue on the GitHub repository.
+
+**Need help getting started?** Check out [QUICKSTART.md](docs/QUICKSTART.md)!

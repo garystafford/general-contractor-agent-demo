@@ -2,27 +2,29 @@
 General Contractor orchestration agent.
 """
 
-from typing import Dict, List, Any, Optional
-from backend.orchestration.task_manager import TaskManager, Task
-from backend.agents import (
-    create_architect_agent,
-    create_carpenter_agent,
-    create_electrician_agent,
-    create_plumber_agent,
-    create_mason_agent,
-    create_painter_agent,
-    create_hvac_agent,
-    create_roofer_agent,
-    create_project_planner_agent,
-)
-from backend.config import settings
-from mcp import StdioServerParameters
-from mcp.client.stdio import stdio_client
-from strands.tools.mcp import MCPClient
 import asyncio
 import logging
 import sys
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from mcp import StdioServerParameters
+from mcp.client.stdio import stdio_client
+from strands.tools.mcp import MCPClient
+
+from backend.agents import (
+    create_architect_agent,
+    create_carpenter_agent,
+    create_electrician_agent,
+    create_hvac_agent,
+    create_mason_agent,
+    create_painter_agent,
+    create_plumber_agent,
+    create_project_planner_agent,
+    create_roofer_agent,
+)
+from backend.config import settings
+from backend.orchestration.task_manager import Task, TaskManager
 
 logger = logging.getLogger(__name__)
 
@@ -512,36 +514,47 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
         agent = self.agents[agent_name]
 
         # Prepare task prompt for Strands agent
+        max_consecutive = getattr(settings, "max_consecutive_tool_calls", 3)
         task_prompt = f"""Task ID: {task.task_id}
 Description: {task.description}
 
 Requirements: {task.requirements}
 Materials needed: {task.materials}
 
-Complete this task using your specialized tools. Call each tool once and provide a summary when done."""
+IMPORTANT CONSTRAINTS:
+- Do NOT call the same tool more than {max_consecutive} times in a row
+- If a tool fails or returns an error, try a different approach instead of repeating
+- Each tool should be called AT MOST ONCE unless absolutely necessary
+- Provide a concise summary when complete
+
+Complete this task using your specialized tools efficiently."""
 
         try:
             # Execute task with Strands agent using invoke_async
             # Add timeout protection to prevent infinite loops
             logger.info(f"Delegating task {task.task_id} to {agent_name}")
 
-            # Set a timeout of 5 minutes per task
-            timeout_seconds = (
-                settings.task_timeout_seconds if hasattr(settings, "task_timeout_seconds") else 300
-            )
+            # Set a timeout per task - catch infinite loops faster
+            timeout_seconds = getattr(settings, "task_timeout_seconds", 300)
 
             try:
                 result = await asyncio.wait_for(
                     agent.invoke_async(task_prompt), timeout=timeout_seconds
                 )
             except asyncio.TimeoutError:
-                error_msg = f"Task {task.task_id} timed out after {timeout_seconds} seconds (possible infinite loop)"
+                error_msg = (
+                    f"Task {task.task_id} timed out after {timeout_seconds} seconds. "
+                    f"Agent '{agent_name}' likely stuck in a loop. "
+                    f"Check if the agent is calling the same tool repeatedly."
+                )
                 logger.error(error_msg)
+                logger.error(f"Task description: {task.description}")
                 self.task_manager.mark_failed(task.task_id, error_msg)
                 return {
-                    "status": "error",
+                    "status": "failed",
                     "task_id": task.task_id,
                     "error": error_msg,
+                    "agent": agent_name,
                 }
 
             # Format result for task manager

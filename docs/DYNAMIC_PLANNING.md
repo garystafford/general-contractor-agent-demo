@@ -446,6 +446,13 @@ curl -X POST http://localhost:8000/api/projects/start \
   -H "Content-Type: application/json" \
   -d '{
     "project_type": "wooden_deck",
-    "description": "Build a 12 x 8 wooden deck with a railing and two steps down to lawn on the back of a house."
+    "description": "Build a 12 x 8 wooden deck on the back of an existing house. The deck should have a wooden railing and two steps down to the lawn at the back of the house."
+  }'
+
+  curl -X POST http://localhost:8000/api/projects/start \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_type": "dog_house",
+    "description": "Build a doghouse for a large dog with insulated walls, a weatherproof roof, and a concrete floor."
   }'
 ```

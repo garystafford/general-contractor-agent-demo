@@ -3,8 +3,8 @@ Detailed shed construction test showing full task breakdown with optional execut
 """
 
 import asyncio
-import sys
 import json
+import sys
 from pathlib import Path
 
 # Add project root to path
@@ -59,7 +59,7 @@ async def test_detailed_shed_execution():
     print("=" * 80)
     print()
 
-    all_tasks = gc.get_all_tasks()
+    gc.get_all_tasks()
     task_num = 0
 
     # Execute each task one by one to show detailed output

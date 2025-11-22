@@ -2,8 +2,9 @@
 Configuration settings for the General Contractor Agent Demo.
 """
 
-from pydantic_settings import BaseSettings
 from typing import Optional
+
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -35,9 +36,19 @@ class Settings(BaseSettings):
     # Project settings
     max_parallel_tasks: int = 3
     # Task timeout in seconds - agent execution will be terminated after this time
-    # Recommended: 60-120 for testing, 300-600 for production
+    # Recommended: 60 for testing to catch loops quickly, 300 for production
     # This is the PRIMARY protection against infinite loops
-    task_timeout_seconds: int = 300
+    task_timeout_seconds: int = 60
+
+    # Loop Detection Settings
+    # Maximum consecutive identical tool calls before failing the task
+    max_consecutive_tool_calls: int = 3
+    # Maximum total tool calls for a single task
+    max_total_tool_calls: int = 20
+    # Maximum identical calls with same parameters
+    max_identical_calls: int = 2
+    # Enable loop detection (if False, only timeout protection is used)
+    enable_loop_detection: bool = True
 
     # Logging
     log_level: str = "INFO"

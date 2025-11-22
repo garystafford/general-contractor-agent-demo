@@ -2,12 +2,15 @@
 FastAPI routes for the General Contractor Agent Demo.
 """
 
-from fastapi import FastAPI, HTTPException
+import asyncio
+import logging
+from typing import Any, Dict, List, Optional, Set
+
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Dict, Any, List, Optional
+
 from backend.agents.general_contractor import GeneralContractorAgent
-import logging
 
 # Configure logging
 logging.basicConfig(
@@ -35,6 +38,34 @@ app.add_middleware(
 
 # Initialize General Contractor
 contractor = GeneralContractorAgent()
+
+
+# WebSocket Connection Manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Set[WebSocket] = set()
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.add(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.discard(websocket)
+
+    async def broadcast(self, message: dict):
+        """Broadcast message to all connected clients."""
+        disconnected = set()
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except Exception:
+                disconnected.add(connection)
+
+        # Clean up disconnected clients
+        self.active_connections -= disconnected
+
+
+manager = ConnectionManager()
 
 
 # Pydantic models
@@ -237,6 +268,64 @@ async def get_task(task_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/tasks/{task_id}/skip")
+async def skip_task(task_id: str):
+    """Skip a failed or stuck task and mark it as completed with a note."""
+    try:
+        task = contractor.get_task(task_id)
+        if task is None:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        # Mark as completed with a skipped note
+        contractor.task_manager.mark_completed(
+            task_id,
+            {
+                "status": "skipped",
+                "message": "Task manually skipped due to failure or timeout",
+                "original_status": task.status.value,
+            },
+        )
+
+        logger.info(f"Task {task_id} manually skipped by user")
+        return {
+            "status": "success",
+            "message": f"Task {task_id} skipped successfully",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error skipping task: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/tasks/{task_id}/retry")
+async def retry_task(task_id: str):
+    """Retry a failed task."""
+    try:
+        task = contractor.get_task(task_id)
+        if task is None:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        if task.status.value != "failed":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Task is {task.status.value}, can only retry failed tasks",
+            )
+
+        # Reset task to ready state
+        contractor.task_manager.mark_ready(task_id)
+
+        # Execute the task again
+        result = await contractor.execute_task(task)
+
+        return {"status": "success", "data": result}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrying task: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # Materials Supplier Endpoints
 @app.get("/api/materials/catalog")
 async def get_materials_catalog(category: Optional[str] = None):
@@ -369,6 +458,185 @@ async def get_required_permits(project_type: str, work_items: List[str]):
     except Exception as e:
         logger.error(f"Error getting required permits: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# WebSocket Endpoints
+@app.websocket("/ws/project-updates")
+async def websocket_project_updates(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time project updates.
+    Streams project status, task updates, and agent activity.
+    """
+    await manager.connect(websocket)
+    try:
+        # Send initial project status
+        initial_status = contractor.get_project_status()
+        await websocket.send_json({"type": "project_status", "data": initial_status})
+
+        # Keep connection alive and send updates
+        while True:
+            try:
+                # Check for messages from client (ping/pong)
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
+
+                # Handle client messages if needed
+                if data == "ping":
+                    await websocket.send_json({"type": "pong"})
+                elif data == "get_status":
+                    status = contractor.get_project_status()
+                    await websocket.send_json({"type": "project_status", "data": status})
+
+            except asyncio.TimeoutError:
+                # No message received, send periodic update
+                status = contractor.get_project_status()
+                await websocket.send_json({"type": "project_status", "data": status})
+                await asyncio.sleep(2)  # Update every 2 seconds
+
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        logger.info("WebSocket client disconnected")
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+        manager.disconnect(websocket)
+
+
+@app.websocket("/ws/task-updates")
+async def websocket_task_updates(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time task updates.
+    Streams individual task status changes.
+    """
+    await manager.connect(websocket)
+    try:
+        # Send initial task list
+        tasks = contractor.get_all_tasks()
+        tasks_dict = [
+            {
+                "task_id": t.task_id,
+                "agent": t.agent,
+                "description": t.description,
+                "status": t.status.value,
+                "phase": t.phase,
+                "dependencies": t.dependencies,
+            }
+            for t in tasks
+        ]
+        await websocket.send_json({"type": "tasks_list", "data": tasks_dict})
+
+        # Keep connection alive and send updates
+        previous_tasks_state = {}
+        while True:
+            try:
+                # Check for messages from client
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
+
+                if data == "ping":
+                    await websocket.send_json({"type": "pong"})
+                elif data == "get_tasks":
+                    tasks = contractor.get_all_tasks()
+                    tasks_dict = [
+                        {
+                            "task_id": t.task_id,
+                            "agent": t.agent,
+                            "description": t.description,
+                            "status": t.status.value,
+                            "phase": t.phase,
+                            "dependencies": t.dependencies,
+                        }
+                        for t in tasks
+                    ]
+                    await websocket.send_json({"type": "tasks_list", "data": tasks_dict})
+
+            except asyncio.TimeoutError:
+                # Check for task changes
+                tasks = contractor.get_all_tasks()
+                current_state = {t.task_id: t.status.value for t in tasks}
+
+                # Detect changes
+                for task in tasks:
+                    task_id = task.task_id
+                    current_status = task.status.value
+
+                    if (
+                        task_id not in previous_tasks_state
+                        or previous_tasks_state[task_id] != current_status
+                    ):
+                        # Task status changed
+                        await websocket.send_json(
+                            {
+                                "type": "task_update",
+                                "data": {
+                                    "task_id": task.task_id,
+                                    "agent": task.agent,
+                                    "description": task.description,
+                                    "status": current_status,
+                                    "phase": task.phase,
+                                    "dependencies": task.dependencies,
+                                },
+                            }
+                        )
+
+                previous_tasks_state = current_state
+                await asyncio.sleep(1)  # Check every second
+
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        logger.info("Task WebSocket client disconnected")
+    except Exception as e:
+        logger.error(f"Task WebSocket error: {e}")
+        manager.disconnect(websocket)
+
+
+@app.websocket("/ws/agent-activity")
+async def websocket_agent_activity(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time agent activity.
+    Streams which agents are currently working and which tools they're using.
+    """
+    await manager.connect(websocket)
+    try:
+        # Keep connection alive and send agent activity updates
+        while True:
+            try:
+                # Check for messages from client
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
+
+                if data == "ping":
+                    await websocket.send_json({"type": "pong"})
+
+            except asyncio.TimeoutError:
+                # Get current task execution state
+                tasks = contractor.get_all_tasks()
+                active_agents = {}
+
+                for task in tasks:
+                    if task.status.value == "in_progress":
+                        active_agents[task.agent] = {
+                            "task_id": task.task_id,
+                            "description": task.description,
+                            "phase": task.phase,
+                        }
+
+                # Send agent activity update
+                await websocket.send_json(
+                    {
+                        "type": "agent_activity",
+                        "data": {
+                            "active_agents": active_agents,
+                            "total_agents": len(contractor.agents),
+                            "busy_count": len(active_agents),
+                        },
+                    }
+                )
+
+                await asyncio.sleep(0.5)  # Update twice per second for smooth animation
+
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        logger.info("Agent activity WebSocket client disconnected")
+    except Exception as e:
+        logger.error(f"Agent activity WebSocket error: {e}")
+        manager.disconnect(websocket)
 
 
 if __name__ == "__main__":

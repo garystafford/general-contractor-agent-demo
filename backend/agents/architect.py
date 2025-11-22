@@ -2,9 +2,10 @@
 Architect agent implementation with specialized tools using Strands Agents framework.
 """
 
+from pydantic import BaseModel, Field
 from strands import Agent, tool
 from strands.models import BedrockModel
-from pydantic import BaseModel, Field
+
 from backend.config import settings
 
 

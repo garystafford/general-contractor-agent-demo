@@ -3,8 +3,8 @@ Loop detection and prevention utilities for agent execution.
 """
 
 import logging
-from typing import Dict, List, Tuple, Any
 from collections import defaultdict
+from typing import Any, Dict, List, Tuple
 
 logger = logging.getLogger(__name__)
 

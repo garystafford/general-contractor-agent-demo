@@ -2,11 +2,13 @@
 Project Planning agent for dynamic task generation using LLM knowledge.
 """
 
+from typing import Any, Dict, List
+
+from pydantic import BaseModel, Field
 from strands import Agent, tool
 from strands.models import BedrockModel
-from pydantic import BaseModel, Field
+
 from backend.config import settings
-from typing import List, Dict, Any
 
 
 # Tool Input Models

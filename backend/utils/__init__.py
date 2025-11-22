@@ -3,8 +3,8 @@ Utility modules for the General Contractor Agent Demo.
 """
 
 from backend.utils.loop_detection import (
-    ToolCallTracker,
     LoopDetectionError,
+    ToolCallTracker,
 )
 
 __all__ = [

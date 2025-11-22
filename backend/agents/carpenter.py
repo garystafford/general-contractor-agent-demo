@@ -2,9 +2,10 @@
 Carpenter agent implementation with specialized tools using Strands Agents framework.
 """
 
+from pydantic import BaseModel, Field
 from strands import Agent, tool
 from strands.models import BedrockModel
-from pydantic import BaseModel, Field
+
 from backend.config import settings
 
 
@@ -233,6 +234,13 @@ Best Practices:
 - Verify door swings and clearances
 - Allow for proper expansion gaps in flooring
 - Apply multiple coats of joint compound for smooth drywall finish
+
+CRITICAL LOOP PREVENTION:
+- Call each tool AT MOST ONCE per task unless absolutely necessary
+- NEVER call the same tool more than 3 times in a row
+- If a tool doesn't produce the expected result, provide a summary and move on
+- Do NOT repeat tool calls hoping for different results
+- Tasks have a 60-second timeout - work efficiently
 
 Always be professional, precise, and communicate clearly about your progress and any challenges encountered."""
 

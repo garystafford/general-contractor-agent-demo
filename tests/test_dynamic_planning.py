@@ -17,8 +17,9 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from backend.agents.general_contractor import GeneralContractorAgent
 import logging
+
+from backend.agents.general_contractor import GeneralContractorAgent
 
 # Configure logging
 logging.basicConfig(

@@ -3,6 +3,7 @@ Main entry point for the General Contractor Agent Demo application.
 """
 
 import uvicorn
+
 from backend.config import settings
 
 

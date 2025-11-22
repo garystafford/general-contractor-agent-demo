@@ -2,10 +2,10 @@
 Task Manager for handling task sequencing and dependencies.
 """
 
-from typing import Dict, List, Any, Set, Optional
-from enum import Enum
-from dataclasses import dataclass, field
 import logging
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 

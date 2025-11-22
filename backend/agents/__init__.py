@@ -5,12 +5,12 @@ Agent initialization module for Strands Agents framework.
 from backend.agents.architect import create_architect_agent
 from backend.agents.carpenter import create_carpenter_agent
 from backend.agents.electrician import create_electrician_agent
-from backend.agents.plumber import create_plumber_agent
+from backend.agents.hvac import create_hvac_agent
 from backend.agents.mason import create_mason_agent
 from backend.agents.painter import create_painter_agent
-from backend.agents.hvac import create_hvac_agent
-from backend.agents.roofer import create_roofer_agent
+from backend.agents.plumber import create_plumber_agent
 from backend.agents.project_planner import create_project_planner_agent
+from backend.agents.roofer import create_roofer_agent
 
 
 def initialize_all_agents():
