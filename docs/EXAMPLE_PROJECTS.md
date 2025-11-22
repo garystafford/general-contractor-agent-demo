@@ -54,9 +54,19 @@ Build an outdoor kitchen with built-in grill area, concrete countertops, stone v
 
 ---
 
+### 6. Raised-Bed Garden Planters
+
+```text
+Construct (2) 3x6 ft. raised-bed garden planters on opposite ends of the back deck.
+```
+
+**Expected Output**: Simple carpentry project with material selection, cutting/assembly, finishing, and installation tasks. Very quick to complete!
+
+---
+
 ## Medium Complexity (15-20 tasks)
 
-### 6. Pool House
+### 7. Pool House
 
 ```text
 Construct a 10x12 pool house with bathroom, changing area, storage closet, mini-fridge space, tile floor, vinyl siding, and electrical hookup.
@@ -66,7 +76,7 @@ Construct a 10x12 pool house with bathroom, changing area, storage closet, mini-
 
 ---
 
-### 7. Workshop Addition
+### 8. Workshop Addition
 
 ```text
 Add a 15x20 workshop to existing garage with concrete floor, insulated walls, 220V electrical service, workbench area, and tool storage.
@@ -108,6 +118,7 @@ Build a [size] [type of structure] with [material 1], [material 2],
 
 **For Quick Testing (< 5 minutes)**:
 
+- Raised-Bed Garden Planters (#6) - Fastest!
 - Dog House (#4)
 - Garden Shed (#1)
 
@@ -118,8 +129,8 @@ Build a [size] [type of structure] with [material 1], [material 2],
 
 **For Complex Scenarios (10-15 minutes)**:
 
-- Pool House (#6)
-- Workshop Addition (#7)
+- Pool House (#7)
+- Workshop Addition (#8)
 
 ---
 

@@ -44,37 +44,40 @@ export function ProjectForm() {
     try {
       const usingDynamicPlanning = formData.useDynamicPlanning || formData.projectType === 'custom';
 
+      console.log('Starting project...', { description: formData.description, usingDynamicPlanning });
+
       // Step 1: Start the project (creates tasks)
-      await apiClient.startProject({
+      const result = await apiClient.startProject({
         description: formData.description,
         project_type: formData.projectType === 'custom' ? 'custom_project' : formData.projectType,
         use_dynamic_planning: usingDynamicPlanning,
       });
 
+      console.log('Project started successfully:', result);
+
       toast.success('Project created! Starting autonomous execution...');
 
-      // Step 2: Clean up form state BEFORE navigation
-      setIsSubmitting(false);
-      setLoading(false);
-
-      // Step 3: Navigate to dashboard
+      // Step 2: Navigate immediately (don't wait for state updates)
+      console.log('Navigating to dashboard...');
       navigate('/dashboard');
 
-      // Step 4: Give a moment for dashboard to mount, then start execution
-      // This ensures the dashboard is ready to display progress
+      // Step 3: Start execution in background
       setTimeout(async () => {
         try {
+          console.log('Starting autonomous execution...');
           await apiClient.executeAll();
+          console.log('Execution completed');
         } catch (error) {
           console.error('Execution error:', error);
           toast.error('Execution failed - check dashboard for details');
         }
-      }, 500);
+      }, 1000);
     } catch (error: any) {
       console.error('Error starting project:', error);
       const errorMessage = error.message || 'Failed to start project';
       setError(errorMessage);
       toast.error(errorMessage);
+    } finally {
       setIsSubmitting(false);
       setLoading(false);
     }

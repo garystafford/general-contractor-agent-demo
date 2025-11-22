@@ -4,7 +4,11 @@ A full-stack multi-agent orchestration system demonstrating construction project
 
 **Built with [Strands Agents](https://strandsagents.com/latest/) framework, AWS Bedrock, React, and TypeScript.**
 
+![Form Preview](docs/images/form-preview.png)
+
 ![Dashboard Preview](docs/images/dashboard-preview.png)
+
+![Logs Preview](docs/images/logs-preview.png)
 
 > **👉 New to this project?** Follow the Quick Start below or check out [QUICKSTART.md](docs/QUICKSTART.md) for detailed instructions!
 
@@ -812,6 +816,7 @@ cd frontend && npm run lint:fix
 - **[SUMMARY.md](docs/SUMMARY.md)** - Project overview and quick reference ⭐
 - **[QUICKSTART.md](docs/QUICKSTART.md)** - Quick start guide and test script overview
 - **[EXAMPLE_PROJECTS.md](docs/EXAMPLE_PROJECTS.md)** - Sample project descriptions to test with 📝
+- **[CHANGELOG.md](docs/CHANGELOG.md)** - Complete history of changes and improvements 📋
 - **[TESTING.md](docs/TESTING.md)** - Comprehensive testing documentation
 - **[EXECUTION_GUIDE.md](docs/EXECUTION_GUIDE.md)** - Detailed execution mode guide
 - **[LOOP_PROTECTION.md](docs/LOOP_PROTECTION.md)** - Loop detection and prevention ⚠️

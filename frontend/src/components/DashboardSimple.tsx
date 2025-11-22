@@ -177,7 +177,30 @@ export function DashboardSimple() {
   };
 
   const actualPhase = getActualPhase();
-  const currentPhaseIndex = PHASES.indexOf(actualPhase);
+
+  // Map phase to closest standard phase if not found
+  const normalizePhase = (phase: string): string => {
+    // Handle exact matches
+    if (PHASES.includes(phase)) return phase;
+
+    // Map common variations
+    const phaseMap: Record<string, string> = {
+      'construction': 'framing',
+      'demolition': 'framing',
+      'build': 'framing',
+      'install': 'finishing',
+      'interior': 'finishing',
+      'exterior': 'finishing',
+    };
+
+    return phaseMap[phase] || 'planning';
+  };
+
+  const normalizedPhase = normalizePhase(actualPhase);
+  // When project is 100% complete, set phase index beyond array so all phases show as completed (green)
+  const currentPhaseIndex = task_status.completion_percentage >= 100
+    ? PHASES.length
+    : PHASES.indexOf(normalizedPhase);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
@@ -308,7 +331,7 @@ export function DashboardSimple() {
           <div className="flex justify-between mt-2 text-xs text-gray-600 dark:text-gray-400">
             <span>Planning</span>
             <span className="font-semibold text-blue-600 dark:text-blue-400 capitalize">
-              {actualPhase.replace('_', ' ')}
+              {actualPhase.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
             </span>
             <span>Final Inspection</span>
           </div>
@@ -495,18 +518,6 @@ export function DashboardSimple() {
               ))}
           </div>
         </div>
-
-        {/* Status Message */}
-        {isExecuting && (
-          <div className="fixed bottom-4 right-4 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span>
-              {executionMode === 'all'
-                ? 'Executing entire project...'
-                : 'Executing next phase...'}
-            </span>
-          </div>
-        )}
       </div>
     </div>
   );
