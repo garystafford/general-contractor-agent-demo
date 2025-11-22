@@ -1,0 +1,67 @@
+{
+  "status": "success",
+  "data": {
+    "status": "success",
+    "message": "Project initialized: wooden_deck (using dynamic planning)",
+    "project": {
+      "description": "Build a 12 x 8 wooden deck with a railing and two steps down to lawn on the back of a house.",
+      "type": "wooden_deck",
+      "parameters": {},
+      "start_time": null,
+      "status": "planning",
+      "planning_method": "dynamic"
+    },
+    "total_tasks": 19,
+    "task_breakdown": {
+      "by_phase": {
+        "planning": [
+          {
+            "id": "1",
+            "description": "Design 12x8 deck layout with railing and stairs specifications"
+          }
+        ],
+        "permitting": [
+          {
+            "id": "2",
+            "description": "Obtain building permit for deck construction"
+          }
+        ],
+        "foundation": [
+          {
+            "id": "3",
+            "description": "Mark footing locations and prepare site"
+          },
+          { "id": "4", "description": "Dig footing holes below frost line" },
+          {
+            "id": "5",
+            "description": "Pour concrete footings and set post anchors"
+          },
+          { "id": "6", "description": "Inspect and cure footings" }
+        ],
+        "framing": [
+          { "id": "7", "description": "Install ledger board to house" },
+          { "id": "8", "description": "Install support posts" },
+          { "id": "9", "description": "Install support beams" },
+          { "id": "10", "description": "Install floor joists" },
+          { "id": "11", "description": "Install decking boards" },
+          { "id": "12", "description": "Build and install stairs" }
+        ],
+        "finishing": [
+          { "id": "13", "description": "Install railing posts" },
+          { "id": "14", "description": "Install top and bottom rails" },
+          { "id": "15", "description": "Install balusters" },
+          { "id": "16", "description": "Install stair railing" },
+          { "id": "17", "description": "Apply protective finish to deck" }
+        ],
+        "final_inspection": [
+          { "id": "18", "description": "Schedule final inspection" },
+          {
+            "id": "19",
+            "description": "Obtain final approval and certificate of completion"
+          }
+        ]
+      },
+      "by_agent": { "Architect": 4, "Carpenter": 11, "Mason": 3, "Painter": 1 }
+    }
+  }
+}

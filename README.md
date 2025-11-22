@@ -22,6 +22,27 @@ This system models a construction project where a **General Contractor** agent o
 
 ## Architecture
 
+```text
+┌─────────────────────────────────┐
+│   Your Application Code         │
+│   (GeneralContractor, etc.)     │
+└────────────┬────────────────────┘
+             │
+┌────────────▼────────────────────┐
+│   Strands Agents Framework      │  <-- Abstraction layer
+│   (Agent, tool, invoke_async)   │
+└────────────┬────────────────────┘
+             │
+┌────────────▼────────────────────┐
+│   AWS Bedrock API               │  <-- API provider
+└────────────┬────────────────────┘
+             │
+┌────────────▼────────────────────┐
+│   Claude Sonnet 4.5 Model       │  <-- Actual LLM
+│   (us.anthropic.claude-...)     │
+└─────────────────────────────────┘
+```
+
 ```mermaid
 ---
 config:

@@ -10,6 +10,7 @@ from backend.agents.mason import create_mason_agent
 from backend.agents.painter import create_painter_agent
 from backend.agents.hvac import create_hvac_agent
 from backend.agents.roofer import create_roofer_agent
+from backend.agents.project_planner import create_project_planner_agent
 
 
 def initialize_all_agents():
@@ -43,4 +44,5 @@ __all__ = [
     "create_painter_agent",
     "create_hvac_agent",
     "create_roofer_agent",
+    "create_project_planner_agent",
 ]

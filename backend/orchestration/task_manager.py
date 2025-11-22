@@ -51,6 +51,15 @@ class TaskManager:
         "final_inspection",
     ]
 
+    # Supported hardcoded project types
+    SUPPORTED_PROJECT_TYPES = [
+        "kitchen_remodel",
+        "bathroom_remodel",
+        "new_construction",
+        "addition",
+        "shed_construction",
+    ]
+
     def __init__(self):
         self.tasks: Dict[str, Task] = {}
         self.completed_tasks: Set[str] = set()
@@ -480,6 +489,58 @@ class TaskManager:
             )
         )
 
+        return tasks
+
+    def create_tasks_from_plan(self, task_plan: List[Dict[str, Any]]) -> List[Task]:
+        """
+        Create tasks from a dynamic planning result.
+
+        Args:
+            task_plan: List of task dictionaries with structure:
+                {
+                    "task_id": "1",
+                    "agent": "Architect",
+                    "description": "Design dog house",
+                    "dependencies": ["0"],  # Empty or list of task IDs
+                    "phase": "planning",
+                    "requirements": "...",  # String or dict
+                    "materials": ["material1", "material2"]
+                }
+
+        Returns:
+            List of created Task objects
+        """
+        tasks = []
+
+        for task_dict in task_plan:
+            # Extract task properties with defaults
+            task_id = task_dict.get("task_id", "")
+            agent = task_dict.get("agent", "")
+            description = task_dict.get("description", "")
+            dependencies = task_dict.get("dependencies", [])
+            phase = task_dict.get("phase", "construction")
+            requirements = task_dict.get("requirements", {})
+            materials = task_dict.get("materials", [])
+
+            # Convert requirements to dict if it's a string
+            if isinstance(requirements, str):
+                requirements = {"details": requirements}
+
+            # Create Task object
+            task = Task(
+                task_id=task_id,
+                agent=agent,
+                description=description,
+                dependencies=dependencies,
+                phase=phase,
+                requirements=requirements,
+                materials=materials,
+            )
+
+            tasks.append(task)
+            self.add_task(task)
+
+        logger.info(f"Created {len(tasks)} tasks from dynamic plan")
         return tasks
 
     def get_project_status(self) -> Dict[str, Any]:

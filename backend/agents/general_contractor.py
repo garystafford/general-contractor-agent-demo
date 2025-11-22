@@ -13,6 +13,7 @@ from backend.agents import (
     create_painter_agent,
     create_hvac_agent,
     create_roofer_agent,
+    create_project_planner_agent,
 )
 from backend.config import settings
 from mcp import StdioServerParameters
@@ -54,6 +55,9 @@ class GeneralContractorAgent:
             "Roofer": create_roofer_agent(),
         }
 
+        # Planning agent (lazy-loaded on first use to save costs)
+        self._planning_agent = None
+
         # Initialize MCP clients for external services
         self.mcp_clients: Dict[str, Optional[MCPClient]] = {
             "materials": None,
@@ -66,6 +70,14 @@ class GeneralContractorAgent:
         self.project_phase = "idle"  # idle, planning, in_progress, completed
 
         logger.info("General Contractor initialized with 8 specialized Strands agents")
+
+    @property
+    def planning_agent(self):
+        """Lazy-load planning agent on first use."""
+        if self._planning_agent is None:
+            logger.info("Initializing Planning Agent for dynamic project planning")
+            self._planning_agent = create_project_planner_agent()
+        return self._planning_agent
 
     async def initialize_mcp_clients(self) -> None:
         """Initialize MCP client connections to external services."""
@@ -240,8 +252,113 @@ class GeneralContractorAgent:
             {"project_type": project_type, "work_items": work_items},
         )
 
+    async def _create_dynamic_project_plan(
+        self, project_type: str, description: str, **kwargs
+    ) -> List[Task]:
+        """
+        Use Planning Agent to create a dynamic project plan.
+
+        Args:
+            project_type: Type of project (e.g., "dog_house", "deck", "treehouse")
+            description: Detailed project description
+            **kwargs: Additional parameters
+
+        Returns:
+            List of Task objects
+        """
+        logger.info(f"Using dynamic planning for project type: {project_type}")
+
+        # Prepare prompt for planning agent
+        planning_prompt = f"""Create a complete construction project plan for the following:
+
+Project Type: {project_type}
+Description: {description}
+Parameters: {kwargs if kwargs else 'None specified'}
+
+Use ALL your tools in sequence to create a comprehensive, executable plan:
+1. analyze_project_scope - Analyze the requirements
+2. generate_task_breakdown - Create detailed task list
+3. validate_task_dependencies - Ensure dependencies are valid
+4. assign_construction_phases - Assign phases appropriately
+5. finalize_project_plan - Output the final structured plan
+
+Remember to output the final plan in exact JSON format with the 'tasks' and 'summary' fields."""
+
+        try:
+            # Call planning agent with timeout
+            result = await asyncio.wait_for(
+                self.planning_agent.invoke_async(planning_prompt),
+                timeout=120  # 2 minute timeout for planning
+            )
+
+            logger.info(f"Planning agent result: {result}")
+
+            # Parse the result to extract task plan
+            task_plan = self._parse_planning_result(result)
+
+            # Create tasks from the plan
+            tasks = self.task_manager.create_tasks_from_plan(task_plan)
+
+            logger.info(f"Created {len(tasks)} tasks from dynamic planning")
+            return tasks
+
+        except asyncio.TimeoutError:
+            logger.error("Planning agent timed out")
+            raise Exception("Dynamic planning timed out after 120 seconds")
+        except Exception as e:
+            logger.error(f"Error in dynamic planning: {e}")
+            raise
+
+    def _parse_planning_result(self, planning_result: Any) -> List[Dict[str, Any]]:
+        """
+        Parse the planning agent result into a list of task dictionaries.
+
+        Args:
+            planning_result: AgentResult or string result from planning agent
+
+        Returns:
+            List of task dictionaries
+        """
+        import json
+        import re
+
+        # Extract text from AgentResult if needed
+        if hasattr(planning_result, 'text'):
+            # Strands AgentResult object
+            result_text = planning_result.text
+        elif isinstance(planning_result, str):
+            # Already a string
+            result_text = planning_result
+        else:
+            # Try to convert to string
+            result_text = str(planning_result)
+
+        logger.info(f"Parsing planning result (first 500 chars): {result_text[:500]}")
+
+        # Try to extract JSON from the result
+        # Look for JSON blocks in the result
+        json_pattern = r'\{[\s\S]*"tasks"[\s\S]*\}'
+        matches = re.findall(json_pattern, result_text)
+
+        if matches:
+            # Try to parse the first (likely best) match
+            for match in matches:
+                try:
+                    parsed = json.loads(match)
+                    if "tasks" in parsed:
+                        return parsed["tasks"]
+                except json.JSONDecodeError:
+                    continue
+
+        # Fallback: look for task list pattern
+        logger.warning("Could not find structured JSON in planning result, attempting manual parse")
+
+        # If we can't parse, return empty list and log error
+        logger.error(f"Failed to parse planning result: {result_text[:500]}")
+        raise ValueError("Could not parse planning agent output into task list")
+
     async def start_project(
-        self, project_description: str, project_type: str, **kwargs
+        self, project_description: str, project_type: str, use_dynamic_planning: bool = False, **kwargs
     ) -> Dict[str, Any]:
         """
         Start a new construction project.
@@ -249,6 +366,7 @@ class GeneralContractorAgent:
         Args:
             project_description: Description of the project
             project_type: Type of project (kitchen_remodel, new_construction, etc.)
+            use_dynamic_planning: Force use of dynamic planning even for supported types
             **kwargs: Additional project parameters
 
         Returns:
@@ -263,16 +381,31 @@ class GeneralContractorAgent:
             "parameters": kwargs,
             "start_time": None,
             "status": "planning",
+            "planning_method": "unknown",
         }
 
-        # Generate task sequence for this project type
-        tasks = self.task_manager.create_project_tasks(project_type, **kwargs)
+        # Determine if we should use dynamic planning
+        is_supported_type = project_type in self.task_manager.SUPPORTED_PROJECT_TYPES
+        should_use_dynamic = use_dynamic_planning or not is_supported_type
+
+        if should_use_dynamic:
+            # Use dynamic planning with LLM
+            logger.info(f"Using dynamic planning for '{project_type}'")
+            self.current_project["planning_method"] = "dynamic"
+            tasks = await self._create_dynamic_project_plan(
+                project_type, project_description, **kwargs
+            )
+        else:
+            # Use hardcoded template
+            logger.info(f"Using hardcoded template for '{project_type}'")
+            self.current_project["planning_method"] = "template"
+            tasks = self.task_manager.create_project_tasks(project_type, **kwargs)
 
         self.project_phase = "planning"
 
         return {
             "status": "success",
-            "message": f"Project initialized: {project_type}",
+            "message": f"Project initialized: {project_type} (using {self.current_project['planning_method']} planning)",
             "project": self.current_project,
             "total_tasks": len(tasks),
             "task_breakdown": self._get_task_breakdown(tasks),

@@ -42,6 +42,7 @@ class ProjectRequest(BaseModel):
     description: str
     project_type: str
     parameters: Optional[Dict[str, Any]] = {}
+    use_dynamic_planning: Optional[bool] = False
 
 
 class MaterialOrderRequest(BaseModel):
@@ -81,11 +82,19 @@ async def health_check():
 # Project Management Endpoints
 @app.post("/api/projects/start")
 async def start_project(request: ProjectRequest):
-    """Start a new construction project."""
+    """
+    Start a new construction project.
+
+    Supports both hardcoded templates and dynamic LLM-based planning:
+    - Hardcoded templates: kitchen_remodel, bathroom_remodel, new_construction, addition, shed_construction
+    - Dynamic planning: Any other project type (dog_house, deck, treehouse, etc.)
+    - Use use_dynamic_planning=true to force dynamic planning for any project type
+    """
     try:
         result = await contractor.start_project(
             project_description=request.description,
             project_type=request.project_type,
+            use_dynamic_planning=request.use_dynamic_planning,
             **request.parameters,
         )
         return {"status": "success", "data": result}
