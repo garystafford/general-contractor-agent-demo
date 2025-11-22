@@ -59,7 +59,7 @@ def install_shingles(input: InstallShinglesInput) -> dict:
             "roofing nails",
             "drip edge",
         ],
-        "details": f"Shingle installation complete. Roof is now water-tight and ready for inspection.",
+        "details": "Shingle installation complete. Roof is now water-tight and ready for inspection.",
     }
 
 
@@ -101,7 +101,7 @@ def install_underlayment(input: InstallUnderlaymentInput) -> dict:
         "area_covered": input.area_sq_ft,
         "rolls_used": round(rolls, 1),
         "materials_used": [f"{round(rolls, 1)} rolls underlayment", "nails"],
-        "details": f"Underlayment installation complete. Ready for shingle installation.",
+        "details": "Underlayment installation complete. Ready for shingle installation.",
     }
 
 

@@ -48,7 +48,7 @@ async def simulate_agent_task(
         print(f"   Input: {json.dumps(tool['input'], indent=3)}")
         await asyncio.sleep(0.4)
 
-        print(f"✓ Tool completed successfully")
+        print("✓ Tool completed successfully")
         print(f"   Result: {json.dumps(tool['result'], indent=3)}")
         print()
         await asyncio.sleep(0.2)

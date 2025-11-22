@@ -157,7 +157,7 @@ async def test_shed_construction():
                             result_str = str(task.result)[:200]
                         print(f"     Result: {result_str}...")
                     except Exception:
-                        print(f"     Result: [AgentResult object]")
+                        print("     Result: [AgentResult object]")
                 if task.error:
                     print(f"     Error: {task.error}")
 

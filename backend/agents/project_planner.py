@@ -7,14 +7,15 @@ from strands.models import BedrockModel
 from pydantic import BaseModel, Field
 from backend.config import settings
 from typing import List, Dict, Any
-import json
 
 
 # Tool Input Models
 class AnalyzeProjectInput(BaseModel):
     """Input for analyzing project requirements."""
 
-    project_type: str = Field(description="Type of construction project (e.g., dog_house, deck, treehouse)")
+    project_type: str = Field(
+        description="Type of construction project (e.g., dog_house, deck, treehouse)"
+    )
     description: str = Field(description="Detailed project description")
     parameters: Dict[str, Any] = Field(default={}, description="Additional project parameters")
 
@@ -62,9 +63,9 @@ def analyze_project_scope(input: AnalyzeProjectInput) -> dict:
             "required_trades": [],  # LLM will populate
             "key_phases": [],  # LLM will populate
             "estimated_tasks": 0,  # LLM will estimate
-            "special_considerations": []  # LLM will identify
+            "special_considerations": [],  # LLM will identify
         },
-        "message": "Project scope analyzed. Ready for task generation."
+        "message": "Project scope analyzed. Ready for task generation.",
     }
 
 
@@ -98,7 +99,7 @@ def generate_task_breakdown(input: GenerateTasksInput) -> dict:
         "status": "generated",
         "tasks": [],  # LLM will populate with structured tasks
         "task_count": 0,
-        "message": "Task breakdown generated. Ready for validation."
+        "message": "Task breakdown generated. Ready for validation.",
     }
 
 
@@ -119,7 +120,7 @@ def validate_task_dependencies(input: ValidateDependenciesInput) -> dict:
         "status": "validated",
         "is_valid": True,  # LLM will determine
         "issues": [],  # LLM will list any problems
-        "message": "Dependencies validated successfully."
+        "message": "Dependencies validated successfully.",
     }
 
 
@@ -143,7 +144,7 @@ def assign_construction_phases(input: AssignPhasesInput) -> dict:
         "status": "assigned",
         "tasks_with_phases": [],  # LLM will populate
         "phase_summary": {},  # Count of tasks per phase
-        "message": "Construction phases assigned."
+        "message": "Construction phases assigned.",
     }
 
 
@@ -177,7 +178,7 @@ def finalize_project_plan(input: dict) -> dict:
         "status": "finalized",
         "tasks": [],  # LLM will populate final task list
         "summary": {},
-        "message": "Project plan finalized and ready for execution."
+        "message": "Project plan finalized and ready for execution.",
     }
 
 

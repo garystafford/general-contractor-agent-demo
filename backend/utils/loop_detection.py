@@ -20,10 +20,7 @@ class ToolCallTracker:
     """
 
     def __init__(
-        self,
-        max_total_calls: int = 20,
-        max_identical_calls: int = 2,
-        max_recent_repeats: int = 3
+        self, max_total_calls: int = 20, max_identical_calls: int = 2, max_recent_repeats: int = 3
     ):
         """
         Initialize the tracker.
@@ -87,15 +84,13 @@ class ToolCallTracker:
 
         # Check 3: Repeating pattern in recent calls
         if total_calls >= self.max_recent_repeats * 2:
-            recent = self.call_history[-self.max_recent_repeats * 2:]
-            first_half = recent[:self.max_recent_repeats]
-            second_half = recent[self.max_recent_repeats:]
+            recent = self.call_history[-self.max_recent_repeats * 2 :]
+            first_half = recent[: self.max_recent_repeats]
+            second_half = recent[self.max_recent_repeats :]
 
             if first_half == second_half:
                 self.loop_detected = True
-                self.loop_reason = (
-                    f"Detected repeating pattern: {[t[0] for t in first_half]}"
-                )
+                self.loop_reason = f"Detected repeating pattern: {[t[0] for t in first_half]}"
                 logger.warning(f"Loop detected: {self.loop_reason}")
                 return False
 
@@ -109,8 +104,7 @@ class ToolCallTracker:
             "loop_detected": self.loop_detected,
             "loop_reason": self.loop_reason,
             "call_history": [
-                {"tool": tool, "count": count}
-                for (tool, params), count in self.call_counts.items()
+                {"tool": tool, "count": count} for (tool, params), count in self.call_counts.items()
             ],
         }
 

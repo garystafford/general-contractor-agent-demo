@@ -1,0 +1,114 @@
+{
+  "status": "success",
+  "data": {
+    "status": "success",
+    "message": "Project initialized: new_kitch (using dynamic planning)",
+    "project": {
+      "description": "Replace an existing 8x10 kitchen, tile floor, new cabinets, new sink, lighting, and appliances",
+      "type": "new_kitch",
+      "parameters": {},
+      "start_time": null,
+      "status": "planning",
+      "planning_method": "dynamic"
+    },
+    "total_tasks": 31,
+    "task_breakdown": {
+      "by_phase": {
+        "planning": [
+          {
+            "id": "1",
+            "description": "Design kitchen layout with cabinet placement, appliance locations, plumbing and electrical plans"
+          }
+        ],
+        "permitting": [
+          { "id": "2", "description": "Obtain electrical and plumbing permits" }
+        ],
+        "demolition": [
+          {
+            "id": "3",
+            "description": "Protect adjacent areas and set up dust barriers"
+          },
+          {
+            "id": "4",
+            "description": "Disconnect and remove existing light fixtures and appliances"
+          },
+          {
+            "id": "5",
+            "description": "Shut off water and disconnect existing sink and plumbing"
+          },
+          {
+            "id": "6",
+            "description": "Remove existing cabinets and countertops"
+          },
+          { "id": "7", "description": "Remove existing tile flooring" },
+          { "id": "8", "description": "Inspect and repair subfloor and walls" }
+        ],
+        "rough_in": [
+          {
+            "id": "9",
+            "description": "Install new electrical wiring and outlets per code"
+          },
+          {
+            "id": "10",
+            "description": "Relocate or update plumbing lines as needed"
+          }
+        ],
+        "inspection": [
+          { "id": "11", "description": "Rough-in electrical inspection" },
+          { "id": "12", "description": "Rough-in plumbing inspection" }
+        ],
+        "installation": [
+          { "id": "13", "description": "Patch and prepare walls for cabinets" },
+          {
+            "id": "14",
+            "description": "Prepare subfloor and install tile backer board"
+          },
+          { "id": "15", "description": "Install tile flooring" },
+          { "id": "16", "description": "Grout tile floor and apply sealer" },
+          { "id": "17", "description": "Install lower cabinets and level" },
+          { "id": "18", "description": "Install upper cabinets and level" },
+          { "id": "19", "description": "Install countertops" },
+          { "id": "20", "description": "Install sink and faucet" },
+          {
+            "id": "21",
+            "description": "Install dishwasher and garbage disposal if applicable"
+          },
+          {
+            "id": "22",
+            "description": "Install outlets, switches, and cover plates"
+          },
+          {
+            "id": "23",
+            "description": "Install under-cabinet and overhead lighting"
+          },
+          { "id": "24", "description": "Connect and test major appliances" }
+        ],
+        "finishing": [
+          {
+            "id": "25",
+            "description": "Install cabinet hardware, trim, and molding"
+          },
+          { "id": "26", "description": "Paint or touch up walls and trim" },
+          { "id": "27", "description": "Install backsplash if specified" },
+          { "id": "28", "description": "Final cleanup and debris removal" }
+        ],
+        "final_inspection": [
+          { "id": "29", "description": "Final electrical inspection" },
+          { "id": "30", "description": "Final plumbing inspection" },
+          {
+            "id": "31",
+            "description": "Final walkthrough and project sign-off"
+          }
+        ]
+      },
+      "by_agent": {
+        "Architect": 3,
+        "Carpenter": 10,
+        "Electrician": 7,
+        "Plumber": 6,
+        "Mason": 4,
+        "Painter": 1
+      }
+    }
+  }
+}

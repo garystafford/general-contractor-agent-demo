@@ -431,3 +431,21 @@ uv run python tests/test_dynamic_planning.py execute
 ```
 
 🎉 **The backend can now build ANYTHING!**
+
+## Additional Examples
+
+```bash
+curl -X POST http://localhost:8000/api/projects/start \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_type": "new_kitch",
+    "description": "Replace an existing 8x10 kitchen, tile floor, new cabinets, new sink, lighting, and appliances"
+  }
+
+  curl -X POST http://localhost:8000/api/projects/start \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_type": "wooden_deck",
+    "description": "Build a 12 x 8 wooden deck with a railing and two steps down to lawn on the back of a house."
+  }'
+```

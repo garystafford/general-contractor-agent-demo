@@ -31,14 +31,14 @@ def test_structure():
     print("Test 1: TaskManager.SUPPORTED_PROJECT_TYPES")
     print("-" * 80)
     tm = TaskManager()
-    assert hasattr(tm, 'SUPPORTED_PROJECT_TYPES'), "TaskManager missing SUPPORTED_PROJECT_TYPES"
+    assert hasattr(tm, "SUPPORTED_PROJECT_TYPES"), "TaskManager missing SUPPORTED_PROJECT_TYPES"
     print(f"✓ Supported types: {tm.SUPPORTED_PROJECT_TYPES}")
     print()
 
     # Test 2: TaskManager has create_tasks_from_plan method
     print("Test 2: TaskManager.create_tasks_from_plan()")
     print("-" * 80)
-    assert hasattr(tm, 'create_tasks_from_plan'), "TaskManager missing create_tasks_from_plan"
+    assert hasattr(tm, "create_tasks_from_plan"), "TaskManager missing create_tasks_from_plan"
     print("✓ Method exists")
     print()
 
@@ -53,7 +53,7 @@ def test_structure():
             "dependencies": [],
             "phase": "planning",
             "requirements": "Create scaled drawings",
-            "materials": ["paper", "pencils"]
+            "materials": ["paper", "pencils"],
         },
         {
             "task_id": "2",
@@ -62,8 +62,8 @@ def test_structure():
             "dependencies": ["1"],
             "phase": "framing",
             "requirements": {"lumber_type": "pressure-treated"},
-            "materials": ["2x4 lumber", "screws"]
-        }
+            "materials": ["2x4 lumber", "screws"],
+        },
     ]
 
     tasks = tm.create_tasks_from_plan(sample_plan)
@@ -73,14 +73,16 @@ def test_structure():
     assert tasks[1].dependencies == ["1"], "Task 2 dependencies mismatch"
     print(f"✓ Created {len(tasks)} tasks from plan")
     print(f"  - Task 1: {tasks[0].description} (Agent: {tasks[0].agent})")
-    print(f"  - Task 2: {tasks[1].description} (Agent: {tasks[1].agent}, Dependencies: {tasks[1].dependencies})")
+    print(
+        f"  - Task 2: {tasks[1].description} (Agent: {tasks[1].agent}, Dependencies: {tasks[1].dependencies})"
+    )
     print()
 
     # Test 4: GeneralContractor has planning_agent property
     print("Test 4: GeneralContractor.planning_agent (lazy-loaded)")
     print("-" * 80)
     contractor = GeneralContractorAgent()
-    assert hasattr(contractor, '_planning_agent'), "GeneralContractor missing _planning_agent"
+    assert hasattr(contractor, "_planning_agent"), "GeneralContractor missing _planning_agent"
     assert contractor._planning_agent is None, "Planning agent should start as None (lazy-loaded)"
     print("✓ Planning agent is lazy-loaded (initially None)")
     print()
@@ -89,9 +91,10 @@ def test_structure():
     print("Test 5: GeneralContractor.start_project signature")
     print("-" * 80)
     import inspect
+
     sig = inspect.signature(contractor.start_project)
     params = list(sig.parameters.keys())
-    assert 'use_dynamic_planning' in params, "start_project missing use_dynamic_planning parameter"
+    assert "use_dynamic_planning" in params, "start_project missing use_dynamic_planning parameter"
     print(f"✓ Parameters: {params}")
     print()
 
@@ -114,8 +117,10 @@ def test_structure():
     # Test 7: Verify new methods exist
     print("Test 7: GeneralContractor helper methods")
     print("-" * 80)
-    assert hasattr(contractor, '_create_dynamic_project_plan'), "Missing _create_dynamic_project_plan"
-    assert hasattr(contractor, '_parse_planning_result'), "Missing _parse_planning_result"
+    assert hasattr(
+        contractor, "_create_dynamic_project_plan"
+    ), "Missing _create_dynamic_project_plan"
+    assert hasattr(contractor, "_parse_planning_result"), "Missing _parse_planning_result"
     print("✓ _create_dynamic_project_plan exists")
     print("✓ _parse_planning_result exists")
     print()

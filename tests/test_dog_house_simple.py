@@ -41,24 +41,24 @@ async def test_dog_house():
             project_description="Build a medium dog house with weatherproof roof",
             project_type="dog_house",
             dog_size="medium",
-            weatherproof=True
+            weatherproof=True,
         )
 
         print(f"\n✓ Status: {result['status']}")
         print(f"✓ Planning method: {result['project']['planning_method']}")
         print(f"✓ Total tasks: {result['total_tasks']}")
 
-        if result['total_tasks'] > 0:
+        if result["total_tasks"] > 0:
             print("\n✓ Tasks generated successfully!")
 
             # Show task breakdown
-            breakdown = result['task_breakdown']
+            breakdown = result["task_breakdown"]
             print(f"\nPhases: {list(breakdown['by_phase'].keys())}")
             print(f"Agents: {list(breakdown['by_agent'].keys())}")
 
             # Show first few tasks
             all_tasks = contractor.get_all_tasks()
-            print(f"\nFirst 3 tasks:")
+            print("\nFirst 3 tasks:")
             for i, task in enumerate(all_tasks[:3], 1):
                 print(f"  {i}. {task.agent}: {task.description}")
         else:

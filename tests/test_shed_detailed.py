@@ -142,7 +142,7 @@ Please complete this task using your specialized tools."""
                     elif event_type == "tool_result":
                         # Tool result
                         result_content = event.get("content", {})
-                        print(f"✓ Tool completed successfully")
+                        print("✓ Tool completed successfully")
                         if isinstance(result_content, dict):
                             print(f"   Result: {json.dumps(result_content, indent=3)}")
                         tool_results.append(result_content)
@@ -174,7 +174,7 @@ Please complete this task using your specialized tools."""
                 gc.task_manager.mark_completed(task.task_id, task_result)
 
             except Exception as e:
-                print(f"\n❌ TASK FAILED")
+                print("\n❌ TASK FAILED")
                 print("-" * 80)
                 print(f"Error: {e}")
                 import traceback
@@ -294,7 +294,7 @@ async def test_detailed_shed_planning():
                 if task.dependencies:
                     print(f"   Dependencies: Task(s) {', '.join(task.dependencies)}")
                 else:
-                    print(f"   Dependencies: None (can start immediately)")
+                    print("   Dependencies: None (can start immediately)")
 
                 if task.materials:
                     print(f"   Materials:    {', '.join(task.materials)}")

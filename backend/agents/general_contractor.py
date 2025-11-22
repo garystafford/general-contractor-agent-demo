@@ -3,7 +3,7 @@ General Contractor orchestration agent.
 """
 
 from typing import Dict, List, Any, Optional
-from backend.orchestration.task_manager import TaskManager, Task, TaskStatus
+from backend.orchestration.task_manager import TaskManager, Task
 from backend.agents import (
     create_architect_agent,
     create_carpenter_agent,
@@ -171,7 +171,7 @@ class GeneralContractorAgent:
         try:
             # Generate a unique tool use ID
             import uuid
-            import json
+
             tool_use_id = f"{tool_name}_{uuid.uuid4().hex[:8]}"
 
             # Call the tool with proper signature: (tool_use_id, name, arguments)
@@ -181,11 +181,11 @@ class GeneralContractorAgent:
             # MCPToolResult can be dict or object with: status, toolUseId, content (list of TextContent)
             if isinstance(mcp_result, dict):
                 # Dict format
-                if 'content' in mcp_result and mcp_result['content']:
-                    text_content = mcp_result['content'][0]['text']
+                if "content" in mcp_result and mcp_result["content"]:
+                    text_content = mcp_result["content"][0]["text"]
                     result = eval(text_content)
                     return result
-            elif hasattr(mcp_result, 'content') and mcp_result.content:
+            elif hasattr(mcp_result, "content") and mcp_result.content:
                 # Object format
                 text_content = mcp_result.content[0].text
                 result = eval(text_content)
@@ -288,7 +288,7 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
             # Call planning agent with timeout
             result = await asyncio.wait_for(
                 self.planning_agent.invoke_async(planning_prompt),
-                timeout=120  # 2 minute timeout for planning
+                timeout=120,  # 2 minute timeout for planning
             )
 
             logger.info(f"Planning agent result: {result}")
@@ -323,7 +323,7 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
         import re
 
         # Extract text from AgentResult if needed
-        if hasattr(planning_result, 'text'):
+        if hasattr(planning_result, "text"):
             # Strands AgentResult object
             result_text = planning_result.text
         elif isinstance(planning_result, str):
@@ -358,7 +358,11 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
         raise ValueError("Could not parse planning agent output into task list")
 
     async def start_project(
-        self, project_description: str, project_type: str, use_dynamic_planning: bool = False, **kwargs
+        self,
+        project_description: str,
+        project_type: str,
+        use_dynamic_planning: bool = False,
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Start a new construction project.
@@ -522,12 +526,13 @@ Complete this task using your specialized tools. Call each tool once and provide
             logger.info(f"Delegating task {task.task_id} to {agent_name}")
 
             # Set a timeout of 5 minutes per task
-            timeout_seconds = settings.task_timeout_seconds if hasattr(settings, 'task_timeout_seconds') else 300
+            timeout_seconds = (
+                settings.task_timeout_seconds if hasattr(settings, "task_timeout_seconds") else 300
+            )
 
             try:
                 result = await asyncio.wait_for(
-                    agent.invoke_async(task_prompt),
-                    timeout=timeout_seconds
+                    agent.invoke_async(task_prompt), timeout=timeout_seconds
                 )
             except asyncio.TimeoutError:
                 error_msg = f"Task {task.task_id} timed out after {timeout_seconds} seconds (possible infinite loop)"

@@ -62,7 +62,9 @@ async def test_dog_house_planning():
     print(f"   • Project Type: {project_type}")
     print(f"   • Description: {description}")
     print(f"   • Dog Size: {parameters['dog_size']}")
-    print(f"   • Dimensions: {parameters['dimensions']['width']}ft W × {parameters['dimensions']['length']}ft L × {parameters['dimensions']['height']}ft H")
+    print(
+        f"   • Dimensions: {parameters['dimensions']['width']}ft W × {parameters['dimensions']['length']}ft L × {parameters['dimensions']['height']}ft H"
+    )
     print(f"   • Weatherproof: {parameters['weatherproof']}")
     print(f"   • Insulated: {parameters['insulated']}")
     print()
@@ -103,9 +105,7 @@ async def test_dog_house_planning():
         print("-" * 80)
 
         result = await contractor.start_project(
-            project_description=description,
-            project_type=project_type,
-            **parameters
+            project_description=description, project_type=project_type, **parameters
         )
 
         print(f"✓ Status: {result['status'].upper()}")
@@ -120,12 +120,12 @@ async def test_dog_house_planning():
         print("=" * 80)
         print()
 
-        breakdown = result['task_breakdown']
+        breakdown = result["task_breakdown"]
 
         # Tasks by phase
         print("📅 TASKS BY PHASE:")
         print("-" * 80)
-        for phase, tasks in breakdown['by_phase'].items():
+        for phase, tasks in breakdown["by_phase"].items():
             print(f"\n{phase.upper().replace('_', ' ')}:")
             for task in tasks:
                 print(f"  • Task #{task['id']}: {task['description']}")
@@ -135,7 +135,7 @@ async def test_dog_house_planning():
         # Tasks by agent
         print("👥 TASKS BY AGENT:")
         print("-" * 80)
-        for agent, count in breakdown['by_agent'].items():
+        for agent, count in breakdown["by_agent"].items():
             print(f"  • {agent}: {count} task(s)")
 
         print()
@@ -159,14 +159,14 @@ async def test_dog_house_planning():
             print("=" * 80)
             print()
 
-            final_status = execution_result['final_status']
+            final_status = execution_result["final_status"]
             print(f"✅ Completed: {final_status['completed']}/{final_status['total_tasks']}")
             print(f"❌ Failed: {final_status['failed']}")
             print(f"⏳ Pending: {final_status['pending']}")
             print(f"📈 Completion: {final_status['completion_percentage']:.1f}%")
             print()
 
-            if final_status['completion_percentage'] == 100:
+            if final_status["completion_percentage"] == 100:
                 print("🎉 PROJECT COMPLETED SUCCESSFULLY!")
             else:
                 print("⚠️  PROJECT PARTIALLY COMPLETED")
@@ -233,22 +233,22 @@ async def test_multiple_project_types():
         {
             "type": "dog_house",
             "description": "Build a medium dog house with weatherproof roof",
-            "params": {"dog_size": "medium"}
+            "params": {"dog_size": "medium"},
         },
         {
             "type": "deck",
             "description": "Build a 12x16 wooden deck with stairs and railing",
-            "params": {"dimensions": {"width": 12, "length": 16}}
+            "params": {"dimensions": {"width": 12, "length": 16}},
         },
         {
             "type": "treehouse",
             "description": "Build a simple treehouse platform with ladder",
-            "params": {"height": 8, "platform_size": "6x8"}
+            "params": {"height": 8, "platform_size": "6x8"},
         },
         {
             "type": "fence",
             "description": "Install 100 linear feet of 6-foot privacy fence",
-            "params": {"length": 100, "height": 6, "style": "privacy"}
+            "params": {"length": 100, "height": 6, "style": "privacy"},
         },
     ]
 
@@ -273,28 +273,26 @@ async def test_multiple_project_types():
 
         try:
             result = await contractor.start_project(
-                project_description=project['description'],
-                project_type=project['type'],
-                **project['params']
+                project_description=project["description"],
+                project_type=project["type"],
+                **project["params"],
             )
 
-            print(f"✓ Planning successful")
+            print("✓ Planning successful")
             print(f"✓ Total tasks: {result['total_tasks']}")
             print(f"✓ Planning method: {result['project']['planning_method']}")
 
-            results.append({
-                "project_type": project['type'],
-                "status": "success",
-                "tasks": result['total_tasks']
-            })
+            results.append(
+                {
+                    "project_type": project["type"],
+                    "status": "success",
+                    "tasks": result["total_tasks"],
+                }
+            )
 
         except Exception as e:
             logger.error(f"Failed to plan {project['type']}: {e}")
-            results.append({
-                "project_type": project['type'],
-                "status": "failed",
-                "error": str(e)
-            })
+            results.append({"project_type": project["type"], "status": "failed", "error": str(e)})
 
         # Reset for next project
         await contractor.reset()
@@ -306,16 +304,16 @@ async def test_multiple_project_types():
     print("=" * 80)
     print()
 
-    successful = sum(1 for r in results if r['status'] == 'success')
-    failed = sum(1 for r in results if r['status'] == 'failed')
+    successful = sum(1 for r in results if r["status"] == "success")
+    failed = sum(1 for r in results if r["status"] == "failed")
 
     print(f"✅ Successful: {successful}/{len(projects)}")
     print(f"❌ Failed: {failed}/{len(projects)}")
     print()
 
     for result in results:
-        status_icon = "✓" if result['status'] == 'success' else "✗"
-        if result['status'] == 'success':
+        status_icon = "✓" if result["status"] == "success" else "✗"
+        if result["status"] == "success":
             print(f"  {status_icon} {result['project_type']}: {result['tasks']} tasks")
         else:
             print(f"  {status_icon} {result['project_type']}: {result['error']}")
