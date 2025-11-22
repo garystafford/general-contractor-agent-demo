@@ -727,6 +727,8 @@ def create_landscaper_agent() -> Agent:
 
 ### Code Quality Tools
 
+**Backend (Python):**
+
 Install dev dependencies:
 
 ```bash
@@ -743,6 +745,20 @@ Lint code:
 
 ```bash
 flake8 backend/ tests/ && mypy backend/
+```
+
+**Frontend (TypeScript/React):**
+
+Lint code:
+
+```bash
+cd frontend && npm run lint
+```
+
+Auto-fix linting issues:
+
+```bash
+cd frontend && npm run lint:fix
 ```
 
 ---
@@ -769,6 +785,7 @@ flake8 backend/ tests/ && mypy backend/
 **Issue**: `ValidationException: Invalid model identifier`
 
 - **Solution**: Use inference profile format in `.env`:
+
   ```
   DEFAULT_MODEL=us.anthropic.claude-sonnet-4-5-20250929-v1:0
   ```
@@ -794,6 +811,7 @@ flake8 backend/ tests/ && mypy backend/
 
 - **[SUMMARY.md](docs/SUMMARY.md)** - Project overview and quick reference ⭐
 - **[QUICKSTART.md](docs/QUICKSTART.md)** - Quick start guide and test script overview
+- **[EXAMPLE_PROJECTS.md](docs/EXAMPLE_PROJECTS.md)** - Sample project descriptions to test with 📝
 - **[TESTING.md](docs/TESTING.md)** - Comprehensive testing documentation
 - **[EXECUTION_GUIDE.md](docs/EXECUTION_GUIDE.md)** - Detailed execution mode guide
 - **[LOOP_PROTECTION.md](docs/LOOP_PROTECTION.md)** - Loop detection and prevention ⚠️

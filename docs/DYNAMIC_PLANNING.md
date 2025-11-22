@@ -438,8 +438,8 @@ uv run python tests/test_dynamic_planning.py execute
 curl -X POST http://localhost:8000/api/projects/start \
   -H "Content-Type: application/json" \
   -d '{
-    "project_type": "new_kitch",
-    "description": "Replace an existing 8x10 kitchen, tile floor, new cabinets, new sink, lighting, and appliances"
+    "project_type": "new_kitchen",
+    "description": "Remodel the existing 10x12 kitchen: tile floor, new cabinets, new sink, overhead lighting, island, marble countertops, and appliances."
   }
 
   curl -X POST http://localhost:8000/api/projects/start \

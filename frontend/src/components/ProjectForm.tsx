@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { useProjectStore } from '../store/projectStore';
 import toast from 'react-hot-toast';
-import { Building2, Hammer } from 'lucide-react';
+import { Building2, Hammer, Info } from 'lucide-react';
 
 const PROJECT_TYPES = [
   { value: 'kitchen_remodel', label: 'Kitchen Remodel', template: true },
@@ -25,6 +25,7 @@ export function ProjectForm() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPlanningInfo, setShowPlanningInfo] = useState(false);
 
   const selectedProjectType = PROJECT_TYPES.find((pt) => pt.value === formData.projectType);
 
@@ -41,20 +42,39 @@ export function ProjectForm() {
     setError(null);
 
     try {
+      const usingDynamicPlanning = formData.useDynamicPlanning || formData.projectType === 'custom';
+
+      // Step 1: Start the project (creates tasks)
       await apiClient.startProject({
         description: formData.description,
         project_type: formData.projectType === 'custom' ? 'custom_project' : formData.projectType,
-        use_dynamic_planning: formData.useDynamicPlanning || formData.projectType === 'custom',
+        use_dynamic_planning: usingDynamicPlanning,
       });
 
-      toast.success('Project started successfully!');
+      toast.success('Project created! Starting autonomous execution...');
+
+      // Step 2: Clean up form state BEFORE navigation
+      setIsSubmitting(false);
+      setLoading(false);
+
+      // Step 3: Navigate to dashboard
       navigate('/dashboard');
+
+      // Step 4: Give a moment for dashboard to mount, then start execution
+      // This ensures the dashboard is ready to display progress
+      setTimeout(async () => {
+        try {
+          await apiClient.executeAll();
+        } catch (error) {
+          console.error('Execution error:', error);
+          toast.error('Execution failed - check dashboard for details');
+        }
+      }, 500);
     } catch (error: any) {
       console.error('Error starting project:', error);
       const errorMessage = error.message || 'Failed to start project';
       setError(errorMessage);
       toast.error(errorMessage);
-    } finally {
       setIsSubmitting(false);
       setLoading(false);
     }
@@ -130,22 +150,68 @@ export function ProjectForm() {
 
             {/* Dynamic Planning Toggle */}
             {selectedProjectType?.template && (
-              <div className="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <input
-                  type="checkbox"
-                  id="useDynamicPlanning"
-                  checked={formData.useDynamicPlanning}
-                  onChange={(e) =>
-                    setFormData({ ...formData, useDynamicPlanning: e.target.checked })
-                  }
-                  className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <label
-                  htmlFor="useDynamicPlanning"
-                  className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
-                >
-                  Use AI-powered dynamic planning instead of template
-                </label>
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    id="useDynamicPlanning"
+                    checked={formData.useDynamicPlanning}
+                    onChange={(e) =>
+                      setFormData({ ...formData, useDynamicPlanning: e.target.checked })
+                    }
+                    className="w-5 h-5 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <label
+                        htmlFor="useDynamicPlanning"
+                        className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
+                      >
+                        Generate custom AI plan (instead of using standard template)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowPlanningInfo(!showPlanningInfo)}
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition"
+                        aria-label="More information about dynamic planning"
+                      >
+                        <Info className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {showPlanningInfo && (
+                      <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded-md border border-blue-200 dark:border-blue-700 text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                        <p className="font-semibold text-gray-700 dark:text-gray-300">
+                          What is Dynamic Planning?
+                        </p>
+                        <p>
+                          AI analyzes your project description and generates a fully customized task breakdown tailored to your specific requirements.
+                        </p>
+                        <div className="grid grid-cols-2 gap-3 mt-3">
+                          <div>
+                            <p className="font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                              Standard Template
+                            </p>
+                            <ul className="text-xs space-y-1">
+                              <li>✓ Predefined tasks</li>
+                              <li>✓ Fast & predictable</li>
+                              <li>✓ Best for common projects</li>
+                            </ul>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                              Dynamic Planning
+                            </p>
+                            <ul className="text-xs space-y-1">
+                              <li>✓ Custom AI-generated tasks</li>
+                              <li>✓ Adapts to your needs</li>
+                              <li>✓ Best for unique requirements</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -158,7 +224,11 @@ export function ProjectForm() {
               {isSubmitting ? (
                 <>
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  <span>Starting Project...</span>
+                  <span>
+                    {formData.useDynamicPlanning || formData.projectType === 'custom'
+                      ? 'Generating AI Project Plan...'
+                      : 'Starting Project...'}
+                  </span>
                 </>
               ) : (
                 <>
@@ -174,10 +244,10 @@ export function ProjectForm() {
         <div className="mt-6 bg-white/50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-2">How it works:</h3>
           <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-            <li>• Choose a template or describe a custom project</li>
-            <li>• AI agents will break down the project into tasks</li>
-            <li>• Watch agents collaborate in real-time on the dashboard</li>
-            <li>• Track materials, permits, and construction progress</li>
+            <li>• <strong>Choose planning method:</strong> Use predefined templates for common projects, or enable dynamic planning for AI-customized task breakdowns</li>
+            <li>• <strong>AI coordination:</strong> Multiple specialized agents collaborate to manage your project</li>
+            <li>• <strong>Real-time tracking:</strong> Watch agents work together on the dashboard</li>
+            <li>• <strong>Complete management:</strong> Track materials, permits, and construction progress</li>
           </ul>
           <button
             onClick={() => navigate('/dashboard')}

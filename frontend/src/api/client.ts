@@ -26,6 +26,16 @@ class APIClient {
     });
   }
 
+  // Health Check
+  async healthCheck(): Promise<boolean> {
+    try {
+      const response = await this.client.get('/health', { timeout: 5000 });
+      return response.data.status === 'healthy';
+    } catch {
+      return false;
+    }
+  }
+
   // Project Management
   async startProject(request: ProjectRequest): Promise<ProjectStartResponse> {
     const response = await this.client.post<APIResponse<ProjectStartResponse>>(

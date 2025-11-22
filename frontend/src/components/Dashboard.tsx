@@ -81,7 +81,7 @@ export function Dashboard() {
         ]);
         setProjectStatus(status);
         setTasks(tasks);
-      } catch (error: any) {
+      } catch {
         toast.error('Failed to load project data');
       }
     };
@@ -119,7 +119,7 @@ export function Dashboard() {
           error: 'Failed to execute project',
         }
       );
-    } catch (error: any) {
+    } catch {
       // Error handled by toast.promise
     } finally {
       setTimeout(() => {
@@ -139,7 +139,7 @@ export function Dashboard() {
       reset();
       toast.success('Project reset successfully');
       navigate('/');
-    } catch (error: any) {
+    } catch {
       toast.error('Failed to reset project');
     }
   };

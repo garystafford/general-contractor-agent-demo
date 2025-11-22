@@ -613,9 +613,25 @@ Complete this task using your specialized tools efficiently."""
                 break
 
             if result["status"] == "waiting":
-                # This shouldn't happen in a well-sequenced project
-                logger.warning("Project is waiting for dependencies")
-                break
+                # Tasks are waiting for dependencies to complete
+                # Check if there are any in-progress tasks that will eventually complete
+                project_status = result.get("project_status", {})
+                in_progress = project_status.get("in_progress", 0)
+                pending = project_status.get("pending", 0)
+
+                if in_progress == 0 and pending > 0:
+                    # No tasks running but some are pending - this is a dependency deadlock
+                    logger.error(f"Dependency deadlock detected: {pending} pending tasks but none can execute")
+                    break
+                elif in_progress == 0 and pending == 0:
+                    # Nothing running and nothing pending - we're done
+                    logger.info("Project complete - no tasks remaining")
+                    break
+                else:
+                    # Tasks are in progress, just wait a bit and try again
+                    logger.info(f"Waiting for {in_progress} tasks to complete before next phase")
+                    await asyncio.sleep(1)
+                    continue
 
             # Small delay between phases
             await asyncio.sleep(0.1)

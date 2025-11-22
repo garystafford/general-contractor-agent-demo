@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProjectStore } from '../store/projectStore';
 import { apiClient } from '../api/client';
+import { config } from '../config';
 import toast from 'react-hot-toast';
 import {
-  Play,
-  SkipForward,
   RotateCcw,
   CheckCircle2,
   Clock,
@@ -38,8 +37,6 @@ export function DashboardSimple() {
     reset,
   } = useProjectStore();
 
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [executionMode, setExecutionMode] = useState<'next' | 'all' | null>(null);
   const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
 
   // Fetch project data
@@ -52,7 +49,7 @@ export function DashboardSimple() {
       setProjectStatus(status);
       setTasks(tasks);
       return status;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to load project data:', error);
       return null;
     }
@@ -80,10 +77,10 @@ export function DashboardSimple() {
 
     if (hasTasksInProgress || isNotComplete) {
       setIsAutoRefreshing(true);
-      console.log('🔄 Auto-refreshing dashboard (tasks in progress)...');
+      console.log(`🔄 Auto-refreshing dashboard every ${config.uiRefreshIntervalMs}ms (tasks in progress)...`);
       const interval = setInterval(async () => {
         await fetchProjectData();
-      }, 1000); // Refresh every 1 second for faster updates
+      }, config.uiRefreshIntervalMs);
 
       return () => {
         clearInterval(interval);
@@ -94,58 +91,6 @@ export function DashboardSimple() {
     }
   }, [projectStatus]);
 
-  const handleExecuteNextPhase = async () => {
-    if (isExecuting) {
-      toast.error('Already executing - please wait');
-      return;
-    }
-
-    setIsExecuting(true);
-    setExecutionMode('next');
-
-    try {
-      toast.loading('Executing next phase...', { id: 'execute-next' });
-      await apiClient.executeNextPhase();
-      toast.success('Phase execution started', { id: 'execute-next' });
-
-      // Refresh status immediately
-      await fetchProjectData();
-    } catch (error: any) {
-      const msg = error.message || 'Failed to execute phase - is backend running?';
-      toast.error(msg, { id: 'execute-next' });
-      console.error('Execute next phase error:', error);
-    } finally {
-      setIsExecuting(false);
-      setExecutionMode(null);
-    }
-  };
-
-  const handleExecuteAll = async () => {
-    if (isExecuting) {
-      toast.error('Already executing - please wait');
-      return;
-    }
-
-    setIsExecuting(true);
-    setExecutionMode('all');
-
-    try {
-      const executePromise = apiClient.executeAll().then(async () => {
-        await fetchProjectData();
-      });
-
-      await toast.promise(executePromise, {
-        loading: 'Executing entire project... This may take several minutes.',
-        success: 'Project execution completed!',
-        error: (err) => `Failed: ${err.message || 'Is backend running?'}`,
-      });
-    } catch (error: any) {
-      console.error('Execute all error:', error);
-    } finally {
-      setIsExecuting(false);
-      setExecutionMode(null);
-    }
-  };
 
   const handleReset = async () => {
     if (!confirm('Are you sure you want to reset the project? All progress will be lost.')) {
@@ -157,7 +102,7 @@ export function DashboardSimple() {
       reset();
       toast.success('Project reset successfully');
       navigate('/');
-    } catch (error: any) {
+    } catch {
       toast.error('Failed to reset project');
     }
   };
@@ -171,7 +116,7 @@ export function DashboardSimple() {
       await apiClient.skipTask(taskId);
       toast.success('Task skipped - dependent tasks can now proceed');
       await fetchProjectData();
-    } catch (error: any) {
+    } catch {
       toast.error('Failed to skip task');
     }
   };
@@ -185,7 +130,7 @@ export function DashboardSimple() {
       await apiClient.retryTask(taskId);
       toast.success('Task reset - retrying now...');
       await fetchProjectData();
-    } catch (error: any) {
+    } catch {
       toast.error('Failed to retry task');
     }
   };
@@ -205,6 +150,11 @@ export function DashboardSimple() {
 
   // Calculate ACTUAL construction phase from tasks, not project status
   const getActualPhase = () => {
+    // If project is 100% complete, show final_inspection as completed
+    if (task_status.completion_percentage >= 100) {
+      return 'final_inspection';
+    }
+
     // Find the phase of tasks currently in progress
     const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
     if (inProgressTasks.length > 0) {
@@ -237,7 +187,7 @@ export function DashboardSimple() {
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex items-center space-x-2">
             <RefreshCw className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
             <span className="text-sm text-blue-900 dark:text-blue-100">
-              🔴 LIVE - Refreshing every 1 second | Last update: {new Date().toLocaleTimeString()}
+              🔴 LIVE - Refreshing every {config.uiRefreshIntervalMs / 1000} second{config.uiRefreshIntervalMs !== 1000 ? 's' : ''} | Last update: {new Date().toLocaleTimeString()}
             </span>
             <button
               onClick={fetchProjectData}
@@ -273,22 +223,6 @@ export function DashboardSimple() {
             >
               <RefreshCw className="w-4 h-4" />
               <span>Refresh</span>
-            </button>
-            <button
-              onClick={handleExecuteNextPhase}
-              disabled={isExecuting || task_status.completion_percentage >= 100}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition"
-            >
-              <SkipForward className="w-4 h-4" />
-              <span>Next Phase</span>
-            </button>
-            <button
-              onClick={handleExecuteAll}
-              disabled={isExecuting || task_status.completion_percentage >= 100}
-              className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition"
-            >
-              <Play className="w-4 h-4" />
-              <span>Execute All</span>
             </button>
             <button
               onClick={handleReset}
@@ -380,31 +314,27 @@ export function DashboardSimple() {
           </div>
         </div>
 
-        {/* Action Prompt */}
-        {task_status.in_progress === 0 && task_status.pending > 0 && (
-          <div className="bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-400 dark:border-orange-600 rounded-lg p-6">
-            <h3 className="text-lg font-bold text-orange-900 dark:text-orange-100 mb-2">
-              ⚠️ Project Paused - Action Required!
+        {/* Autonomous Execution Status */}
+        {task_status.in_progress === 0 && task_status.pending > 0 && task_status.completion_percentage < 100 && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-400 dark:border-blue-600 rounded-lg p-6">
+            <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100 mb-2">
+              🤖 Autonomous Execution in Progress
             </h3>
-            <p className="text-orange-800 dark:text-orange-200 mb-4">
-              {task_status.pending} tasks are waiting to be executed. Click one of the buttons above to continue:
+            <p className="text-blue-800 dark:text-blue-200">
+              {task_status.pending} tasks waiting for dependencies. The system is running autonomously and will execute tasks as they become ready.
             </p>
-            <div className="flex space-x-3">
-              <button
-                onClick={handleExecuteNextPhase}
-                className="flex items-center space-x-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold"
-              >
-                <SkipForward className="w-4 h-4" />
-                <span>Execute Next Phase</span>
-              </button>
-              <button
-                onClick={handleExecuteAll}
-                className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold"
-              >
-                <Play className="w-4 h-4" />
-                <span>Execute All Remaining Tasks</span>
-              </button>
-            </div>
+          </div>
+        )}
+
+        {/* Project Complete */}
+        {task_status.completion_percentage >= 100 && (
+          <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-400 dark:border-green-600 rounded-lg p-6">
+            <h3 className="text-lg font-bold text-green-900 dark:text-green-100 mb-2">
+              ✅ Project Complete!
+            </h3>
+            <p className="text-green-800 dark:text-green-200">
+              All tasks have been completed successfully. You can reset to start a new project.
+            </p>
           </div>
         )}
 
@@ -418,11 +348,14 @@ export function DashboardSimple() {
               {tasks.filter(t => t.status === 'in_progress').length} active · {' '}
               {tasks.filter(t => t.status === 'failed').length} failed · {' '}
               {tasks.filter(t => t.status === 'completed').length} completed · {' '}
-              {tasks.filter(t => t.status === 'ready').length} queued
+              {tasks.filter(t => t.status === 'ready').length} queued · {' '}
+              {tasks.filter(t => t.status === 'pending').length} pending · {' '}
+              {tasks.filter(t => t.status === 'blocked').length} blocked
             </div>
           </div>
           <div className="space-y-2 max-h-[600px] overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-4"
                style={{ scrollbarWidth: 'thin' }}>
+            {/* In Progress - Show first with animation */}
             {tasks
               .filter(t => t.status === 'in_progress')
               .map(task => (
@@ -442,6 +375,88 @@ export function DashboardSimple() {
                 </div>
               ))}
 
+            {/* Ready - Dependencies met, ready to execute */}
+            {tasks
+              .filter(t => t.status === 'ready')
+              .map(task => (
+                <div key={task.task_id} className="flex items-center space-x-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                  <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100">
+                      {task.agent} - Queued
+                    </p>
+                    <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                      {task.description}
+                    </p>
+                  </div>
+                  <span className="text-xs px-2 py-1 bg-yellow-600 text-white rounded">
+                    Next
+                  </span>
+                </div>
+              ))}
+
+            {/* Pending - Waiting for dependencies */}
+            {tasks
+              .filter(t => t.status === 'pending')
+              .map(task => (
+                <div key={task.task_id} className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {task.agent} - Pending
+                    </p>
+                    <p className="text-xs text-gray-700 dark:text-gray-300">
+                      {task.description}
+                    </p>
+                  </div>
+                  <span className="text-xs px-2 py-1 bg-gray-600 text-white rounded">
+                    Waiting
+                  </span>
+                </div>
+              ))}
+
+            {/* Blocked - Dependencies cannot be met */}
+            {tasks
+              .filter(t => t.status === 'blocked')
+              .map(task => (
+                <div key={task.task_id} className="flex items-center space-x-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                  <AlertCircle className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-purple-900 dark:text-purple-100">
+                      {task.agent} - Blocked
+                    </p>
+                    <p className="text-xs text-purple-700 dark:text-purple-300">
+                      {task.description}
+                    </p>
+                  </div>
+                  <span className="text-xs px-2 py-1 bg-purple-600 text-white rounded">
+                    Blocked
+                  </span>
+                </div>
+              ))}
+
+            {/* Completed - Show in reverse order (most recent first) */}
+            {tasks
+              .filter(t => t.status === 'completed')
+              .reverse()
+              .map(task => (
+                <div key={task.task_id} className="flex items-center space-x-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                      {task.agent} completed
+                    </p>
+                    <p className="text-xs text-green-700 dark:text-green-300">
+                      {task.description}
+                    </p>
+                  </div>
+                  <span className="text-xs px-2 py-1 bg-green-600 text-white rounded">
+                    ✓
+                  </span>
+                </div>
+              ))}
+
+            {/* Failed - Show last with error handling options */}
             {tasks
               .filter(t => t.status === 'failed')
               .map(task => (
@@ -475,45 +490,6 @@ export function DashboardSimple() {
                   </div>
                   <span className="text-xs px-2 py-1 bg-red-600 text-white rounded">
                     ERROR
-                  </span>
-                </div>
-              ))}
-
-            {tasks
-              .filter(t => t.status === 'completed')
-              .reverse()
-              .map(task => (
-                <div key={task.task_id} className="flex items-center space-x-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-green-900 dark:text-green-100">
-                      {task.agent} completed
-                    </p>
-                    <p className="text-xs text-green-700 dark:text-green-300">
-                      {task.description}
-                    </p>
-                  </div>
-                  <span className="text-xs px-2 py-1 bg-green-600 text-white rounded">
-                    ✓
-                  </span>
-                </div>
-              ))}
-
-            {tasks
-              .filter(t => t.status === 'ready')
-              .map(task => (
-                <div key={task.task_id} className="flex items-center space-x-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                  <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100">
-                      {task.agent} - Queued
-                    </p>
-                    <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                      {task.description}
-                    </p>
-                  </div>
-                  <span className="text-xs px-2 py-1 bg-yellow-600 text-white rounded">
-                    Next
                   </span>
                 </div>
               ))}
