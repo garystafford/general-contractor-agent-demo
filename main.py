@@ -1,5 +1,12 @@
 """
 Main entry point for the General Contractor Agent Demo application.
+Starts the FastAPI server using Uvicorn.
+
+Usage: 
+    uv run main.py
+
+Author: Gary Stafford
+Date: 2025-11-23
 """
 
 import uvicorn

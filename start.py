@@ -7,9 +7,12 @@ This script manages the lifecycle of:
 - FastAPI backend server
 
 Usage:
-    python start.py
-    python start.py --port 8000
-    python start.py --host 0.0.0.0 --port 8000
+    uv run start.py
+    uv run start.py --port 8000
+    uv run start.py --host 0.0.0.0 --port 8000
+
+Author: Gary Stafford
+Date: 2025-11-23
 """
 
 import argparse

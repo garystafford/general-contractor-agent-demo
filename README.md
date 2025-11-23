@@ -2,21 +2,54 @@
 
 A full-stack multi-agent orchestration system demonstrating construction project management using AI agents. This project uses the analogy of a general contractor coordinating specialized trade agents to illustrate how complex, multi-agent AI systems can be designed and orchestrated.
 
-**Built with [Strands Agents](https://strandsagents.com/latest/) framework, AWS Bedrock, React, and TypeScript.**
+## Tech Stack
+
+Built with [Strands Agents](https://strandsagents.com/latest/) framework, Amazon Bedrock, React, and TypeScript.
+
+**Backend:**
+
+- Python 3.13+
+- AWS Strands Agents framework
+- Amazon Bedrock (Anthropic Claude LLMs)
+- FastAPI + Uvicorn
+- Pydantic for data validation
+- MCP (Model Context Protocol) servers
+
+**Frontend:**
+
+- React 18
+- TypeScript
+- Vite (build tool)
+- Tailwind CSS v3
+- Zustand (state management)
+- React Router
+- Axios (API client)
+- React Hot Toast (notifications)
+- Lucide React (icons)
+
+## Previews
+
+### React Frontend Project Submission Form
 
 ![Form Preview](docs/images/form-preview.png)
 
+### React Frontend Dashboard
+
 ![Dashboard Preview](docs/images/dashboard-preview.png)
 
-![Logs Preview](docs/images/logs-preview.png)
+### FastAPI Backend API
 
-> **👉 New to this project?** Follow the Quick Start below or check out [QUICKSTART.md](docs/QUICKSTART.md) for detailed instructions!
+![API Preview](docs/images/api-preview.png)
+
+### Backend Logs
+
+![Logs Preview](docs/images/logs-preview.png)
 
 ---
 
 ## 🚀 Quick Start
 
-Get the system running in under 5 minutes!
+Get the system running locally in under 5 minutes!
 
 ### Prerequisites
 
@@ -65,27 +98,27 @@ cd ..
 # Copy example env file
 cp .env.example .env
 
-# Edit .env and add your AWS credentials
-# Required: AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY (or AWS_PROFILE)
-# Required: DEFAULT_MODEL (e.g., us.anthropic.claude-sonnet-4-5-20250929-v1:0)
+# Amazon Bedrock Configuration
+# Authentication: Use AWS SSO login (aws sso login) with a profile, or use explicit credentials below
+# Recommended: Use AWS_PROFILE for SSO-based authentication
+# AWS_PROFILE=default
+
+# Optional: Hardcode credentials (not recommended if using AWS SSO)
+# AWS_ACCESS_KEY_ID="your-access-key-id"
+# AWS_SECRET_ACCESS_KEY="your-secret-access-key"
+# AWS_SESSION_TOKEN="your-session-token"
 ```
 
 Example `.env` configuration:
 
 ```bash
-# AWS Bedrock Configuration
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=your_access_key_here
-AWS_SECRET_ACCESS_KEY=your_secret_key_here
-
-# Model Configuration
 DEFAULT_MODEL=us.anthropic.claude-sonnet-4-5-20250929-v1:0
-
-# Loop Detection Settings (prevents infinite loops)
 TASK_TIMEOUT_SECONDS=120
 MAX_CONSECUTIVE_TOOL_CALLS=3
+MAX_TOTAL_TOOL_CALLS=20
 MAX_IDENTICAL_CALLS=2
 ENABLE_LOOP_DETECTION=true
+LOG_LEVEL=INFO
 ```
 
 ### Running the Application
@@ -94,7 +127,7 @@ ENABLE_LOOP_DETECTION=true
 
 ```bash
 # From project root
-python start.py
+uv run start.py
 ```
 
 This starts:
@@ -132,11 +165,9 @@ Build an 8x10 garden shed with a single window, wood siding, an asphalt shingle 
 - [Architecture](#architecture)
 - [Frontend Dashboard](#frontend-dashboard)
 - [Backend API](#backend-api)
-- [AWS Bedrock Setup](#aws-bedrock-setup)
 - [Testing](#testing)
 - [API Endpoints](#api-endpoints)
 - [Project Types](#project-types)
-- [Loop Detection & Recovery](#loop-detection--recovery)
 - [Development](#development)
 - [Troubleshooting](#common-issues--troubleshooting)
 - [Documentation](#documentation)
@@ -153,7 +184,7 @@ This system models a construction project where a **General Contractor** agent o
 
 - **8 Specialized Trade Agents**: Each with domain-specific tools and expertise
 - **Task Dependency Management**: Automatic sequencing based on construction workflows
-- **Phase-based Orchestration**: Projects progress through 8 construction phases
+- **Phase-based Orchestration**: Projects progress through multiple construction phases
 - **Material Management**: Integrated building materials supplier MCP server
 - **Permitting System**: Construction permit and inspection management MCP server
 - **Loop Detection**: Prevents infinite loops with configurable thresholds
@@ -164,7 +195,7 @@ This system models a construction project where a **General Contractor** agent o
 ### Frontend
 
 - **React + TypeScript**: Modern, type-safe UI built with Vite
-- **Real-time Dashboard**: Live updates every 1 second during task execution
+- **Real-time Dashboard**: Live updates every few second during task execution
 - **Live Activity Feed**: Watch agents work in real-time with color-coded task cards
 - **Phase Progress Visualization**: Track progress through 8 construction phases
 - **Task Management UI**: Skip or retry failed tasks directly from the dashboard
@@ -189,22 +220,22 @@ This system models a construction project where a **General Contractor** agent o
 │                   FastAPI Backend                           │
 │  - Project Management  - Task Execution                     │
 │  - Agent Orchestration - Status Tracking                    │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-        ┌──────────────┼──────────────┐
-        ↓              ↓              ↓
-┌──────────────┐ ┌─────────┐ ┌──────────────────┐
-│   General    │ │  Trade  │ │   MCP Servers    │
-│  Contractor  │ │ Agents  │ │ - Materials      │
-│   (Claude)   │ │(Claude) │ │ - Permitting     │
-└──────────────┘ └─────────┘ └──────────────────┘
+└───────────────────────┬─────────────────────────────────────┘
+                        │
+        ┌───────────────┼─────────────────┐
+        ↓               ↓                 ↓
+┌──────────────┐ ┌─────────────┐ ┌──────────────────┐
+│   General    │ │ Specialized │ │   MCP Servers    │
+│  Contractor  │ │   Agents    │ │ - Materials      │
+│(Orchestrator)│ │ (8 Trades)  │ │ - Permitting     │
+└──────────────┘ └─────────────┘ └──────────────────┘
 ```
 
 ### Component Details
 
 #### General Contractor (Orchestrator)
 
-- Central orchestration agent powered by Claude
+- Central orchestration agent powered by Amazon Bedrock and Anthropic Claude
 - Manages task sequencing and dependencies
 - Delegates work to specialized trade agents
 - Integrates with MCP servers for materials and permits
@@ -222,7 +253,7 @@ This system models a construction project where a **General Contractor** agent o
 
 #### MCP Servers (Model Context Protocol)
 
-Two MCP servers run as separate processes, communicating via stdio:
+Two MCP servers run as separate processes, communicating via `stdio`:
 
 1. **Materials Supplier Server** (`backend/mcp_servers/materials_supplier.py`)
 
@@ -260,12 +291,12 @@ The React frontend provides a comprehensive real-time view of your construction 
 1. **Auto-Refresh Indicator**
 
    - Shows "🔴 LIVE" when tasks are in progress
-   - Updates every 1 second for real-time feedback
+   - Updates every few seconds for real-time feedback
    - Manual refresh button available
 
 2. **Stats Cards**
 
-   - Completion percentage (1 decimal precision)
+   - Completion percentage
    - Tasks in progress
    - Completed/Total tasks
    - Failed tasks count
@@ -279,24 +310,12 @@ The React frontend provides a comprehensive real-time view of your construction 
 4. **Live Activity Feed** (scrollable, 600px height)
 
    - **Blue cards (pulsing)**: Agents currently working
-   - **Red cards**: Failed tasks with Skip/Retry buttons
    - **Green cards**: Completed tasks (most recent first)
    - **Yellow cards**: Queued tasks waiting to start
 
 5. **Control Buttons**
-   - **Next Phase**: Execute next construction phase
-   - **Execute All**: Run entire project to completion
    - **Refresh**: Manual data refresh
    - **Reset**: Clear project and start over
-
-### Task Recovery UI
-
-When tasks fail or timeout (e.g., stuck in loops), they appear in red cards with action buttons:
-
-- **Skip Button** (orange): Mark task as completed so dependent tasks can proceed
-- **Retry Button** (blue): Reset and re-execute the failed task
-
-Both actions show confirmation dialogs and provide toast feedback.
 
 ---
 
@@ -343,37 +362,9 @@ The backend provides a complete REST API for project management:
 
 ---
 
-## AWS Bedrock Setup
+## Amazon Bedrock Setup
 
-Before running the application, enable Claude models in AWS Bedrock:
-
-1. **Log into AWS Console** and navigate to Amazon Bedrock
-2. **Enable Model Access**:
-
-   - Go to "Model access" in the left sidebar
-   - Click "Enable specific models"
-   - Find "Claude" and enable "Claude Sonnet 4.5 v1"
-   - Use inference profile: `us.anthropic.claude-sonnet-4-5-20250929-v1:0`
-   - Wait for status to show "Access granted" (may take a few minutes)
-
-3. **Verify IAM Permissions**:
-
-   - Your IAM user/role needs:
-     - `bedrock:InvokeModel`
-     - `bedrock:InvokeModelWithResponseStream`
-
-4. **Configure Credentials**:
-
-   ```bash
-   # Option 1: Use access keys in .env
-   AWS_ACCESS_KEY_ID=your_access_key_here
-   AWS_SECRET_ACCESS_KEY=your_secret_key_here
-
-   # Option 2: Use AWS profile
-   AWS_PROFILE=default
-   ```
-
-For detailed instructions, see [AWS Bedrock Model Access Documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html).
+For detailed instructions, see [Amazon Bedrock Model Access Documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html).
 
 ---
 
@@ -412,7 +403,7 @@ Shows:
 ### Single Agent Test (AWS Required)
 
 ```bash
-# Test a single agent with AWS Bedrock
+# Test a single agent with Amazon Bedrock
 uv run tests/test_agent.py
 ```
 
@@ -439,7 +430,7 @@ Shows live streaming of:
 
 ```bash
 # Test MCP servers
-python tests/test_mcp_integration.py
+uv run tests/test_mcp_integration.py
 ```
 
 Tests:
@@ -619,21 +610,6 @@ IMPORTANT CONSTRAINTS:
 - Each tool should be called AT MOST ONCE unless necessary
 ```
 
-### Recovery: Skip or Retry
-
-When a task fails due to loops or timeout, the dashboard shows:
-
-**Red Card with Actions:**
-
-- **Skip** (orange button): Mark as completed so dependent tasks can proceed
-- **Retry** (blue button): Reset task and try again
-
-Both actions require confirmation and provide toast feedback.
-
-**See [LOOP_PROTECTION.md](docs/LOOP_PROTECTION.md) for detailed documentation.**
-
----
-
 ## Development
 
 ### Project Structure
@@ -664,29 +640,6 @@ general-contractor-agent-demo/
 ├── pyproject.toml           # Python dependencies
 └── .env                     # Environment configuration
 ```
-
-### Tech Stack
-
-**Backend:**
-
-- Python 3.13+
-- Strands Agents framework
-- AWS Bedrock (Claude Sonnet 4.5)
-- FastAPI + Uvicorn
-- Pydantic for validation
-- MCP (Model Context Protocol) servers
-
-**Frontend:**
-
-- React 18
-- TypeScript
-- Vite (build tool)
-- Tailwind CSS v3
-- Zustand (state management)
-- React Router
-- Axios (API client)
-- React Hot Toast (notifications)
-- Lucide React (icons)
 
 ### Adding New Agents
 
@@ -777,7 +730,7 @@ cd frontend && npm run lint:fix
 **Issue**: `AccessDeniedException` when invoking Bedrock
 
 - **Solution**:
-  - Enable Claude Sonnet 4.5 in AWS Bedrock console
+  - Enable Claude Sonnet 4.5 in Amazon Bedrock console
   - Verify IAM permissions include `bedrock:InvokeModel`
   - Confirm correct region (default: `us-east-1`)
 
@@ -785,7 +738,7 @@ cd frontend && npm run lint:fix
 
 - **Solution**: Use inference profile format in `.env`:
 
-  ```
+  ```text
   DEFAULT_MODEL=us.anthropic.claude-sonnet-4-5-20250929-v1:0
   ```
 
@@ -857,7 +810,7 @@ This is a training workshop project. Feedback and suggestions are welcome!
 ## Acknowledgments
 
 - Built with [Strands Agents](https://strandsagents.com/latest/) framework
-- Powered by Claude via AWS Bedrock
+- Powered by Claude via Amazon Bedrock
 - Inspired by real-world construction project management
 - Designed to demonstrate multi-agent AI orchestration patterns
 

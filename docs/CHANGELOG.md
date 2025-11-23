@@ -7,6 +7,7 @@ This document tracks all major changes, improvements, and features added to the 
 ## Session 4: UX & Polish (November 22, 2025)
 
 ### 🎨 Dynamic Planning UI Clarity
+
 - **Added interactive Info button** with expandable help section explaining dynamic planning
 - **Improved checkbox label**: Changed from "Use AI-powered dynamic planning instead of template" to "Generate custom AI plan (instead of using standard template)"
 - **Added comparison table**: Side-by-side view of Standard Template vs. Dynamic Planning features
@@ -19,6 +20,7 @@ This document tracks all major changes, improvements, and features added to the 
 ---
 
 ### ⚙️ Configurable UI Refresh Interval
+
 - **Created frontend config system**: New `frontend/src/config.ts` file
 - **Added environment variable**: `VITE_UI_REFRESH_INTERVAL_MS` for frontend
 - **Changed default**: From 1 second to 3 seconds (reduced load)
@@ -32,6 +34,7 @@ This document tracks all major changes, improvements, and features added to the 
 ---
 
 ### 🤖 Fully Autonomous Execution
+
 - **Auto-execute on project start**: Projects now run autonomously without manual intervention
 - **Removed manual buttons**: Deleted "Execute All" and "Next Phase" buttons from dashboard header
 - **Removed "Action Required" banner**: No more confusing "Project Paused" warnings
@@ -48,6 +51,7 @@ This document tracks all major changes, improvements, and features added to the 
 ### 🐛 Critical Bug Fixes
 
 #### Fixed Execution Stopping Bug (87.5% Issue)
+
 - **Problem**: `execute_entire_project()` would stop when encountering "waiting" status, leaving projects incomplete
 - **Solution**: Added intelligent waiting logic that continues execution when tasks are in progress
 - **Added deadlock detection**: Breaks only on true dependency deadlocks
@@ -56,6 +60,7 @@ This document tracks all major changes, improvements, and features added to the 
 **Files Modified**: `backend/agents/general_contractor.py:615-634`
 
 #### Fixed Phase Progression Visualization
+
 - **Problem**: Phase progress bar showed all gray or incorrect colors
 - **Solution**:
   - Added phase normalization to map non-standard phases ("construction" → "framing")
@@ -66,6 +71,7 @@ This document tracks all major changes, improvements, and features added to the 
 **Files Modified**: `frontend/src/components/DashboardSimple.tsx:181-203`
 
 #### Fixed Navigation Flow
+
 - **Problem**: Form submission wouldn't navigate to dashboard automatically
 - **Solution**: Improved navigation timing and state cleanup
 - **Added debugging**: Console logs for troubleshooting
@@ -75,6 +81,7 @@ This document tracks all major changes, improvements, and features added to the 
 ---
 
 ### 👁️ Enhanced Task Visibility
+
 - **Added PENDING status display**: Gray cards showing tasks waiting for dependencies
 - **Added BLOCKED status display**: Purple cards showing tasks that can't proceed
 - **Updated activity feed header**: Shows all 6 task states (active, failed, completed, queued, pending, blocked)
@@ -92,6 +99,7 @@ This document tracks all major changes, improvements, and features added to the 
 ---
 
 ### 🏥 Backend Health Check System
+
 - **Added startup health check**: Verifies backend is running before loading app
 - **Loading state**: Shows "Connecting to backend..." during check
 - **Error screen**: Clear instructions if backend is unavailable
@@ -106,6 +114,7 @@ This document tracks all major changes, improvements, and features added to the 
 ---
 
 ### 🧹 ESLint Setup & Code Quality
+
 - **Installed ESLint**: With TypeScript and React plugins
 - **Created ESLint config**: `.eslintrc.json` with recommended rules
 - **Added npm scripts**:
@@ -124,6 +133,7 @@ This document tracks all major changes, improvements, and features added to the 
 ---
 
 ### 📚 Documentation Improvements
+
 - **Created EXAMPLE_PROJECTS.md**: Comprehensive project examples
   - 6 simple projects (dog house, garden shed, deck, garage, outdoor kitchen, planters)
   - 2 medium complexity projects (pool house, workshop)
@@ -141,6 +151,7 @@ This document tracks all major changes, improvements, and features added to the 
 ---
 
 ### 🔧 Minor Improvements
+
 - Fixed auto-refresh indicator showing hardcoded "1 second" instead of actual config value
 - Removed unused icon imports (Play, SkipForward)
 - Improved error messages throughout
@@ -152,6 +163,7 @@ This document tracks all major changes, improvements, and features added to the 
 ## Session 3: Dynamic Planning Feature (Previous Session)
 
 ### 🧠 AI-Powered Dynamic Planning
+
 - **Implemented dynamic planning system**: AI generates custom task breakdowns
 - **Created project planner agent**: Uses Claude to analyze project descriptions
 - **Added toggle in UI**: Optional for template projects, automatic for custom projects
@@ -166,6 +178,7 @@ This document tracks all major changes, improvements, and features added to the 
 ## Session 2: Core Fixes & Features
 
 ### 🔧 MCP Server Integration
+
 - **Fixed MCP server connectivity**: Resolved stdio communication issues
 - **Improved error handling**: Better MCP server failure recovery
 - **Added MCP testing**: Integration tests for materials and permitting servers
@@ -175,6 +188,7 @@ This document tracks all major changes, improvements, and features added to the 
 ---
 
 ### 🗂️ Project Reorganization
+
 - **Restructured directories**: Better separation of concerns
 - **Organized agents**: Each agent in separate file
 - **Improved imports**: Cleaner module structure
@@ -185,6 +199,7 @@ This document tracks all major changes, improvements, and features added to the 
 ---
 
 ### 🔁 Loop Detection & Protection
+
 - **Implemented loop detection**: Prevents agents from repeating same tool calls infinitely
 - **Configurable thresholds**:
   - `MAX_CONSECUTIVE_TOOL_CALLS`
@@ -200,6 +215,7 @@ This document tracks all major changes, improvements, and features added to the 
 ---
 
 ### 🎯 Task Recovery System
+
 - **Skip functionality**: Mark failed tasks as complete to unblock dependents
 - **Retry functionality**: Reset and re-execute failed tasks
 - **UI integration**: Red cards with action buttons
@@ -213,6 +229,7 @@ This document tracks all major changes, improvements, and features added to the 
 ## Session 1: Initial Project Setup
 
 ### 🏗️ Core Architecture
+
 - **FastAPI backend**: RESTful API with WebSocket support
 - **React frontend**: TypeScript + Vite + Tailwind CSS
 - **8 Specialized agents**: Architect, Carpenter, Electrician, Plumber, Mason, Painter, HVAC, Roofer
@@ -223,6 +240,7 @@ This document tracks all major changes, improvements, and features added to the 
 ---
 
 ### 🔌 MCP Servers
+
 - **Materials Supplier Server**:
   - Tools: check_availability, order_materials, get_catalog, get_order
   - Categories: lumber, electrical, plumbing, masonry, paint, HVAC, roofing
@@ -235,6 +253,7 @@ This document tracks all major changes, improvements, and features added to the 
 ---
 
 ### 🎨 Frontend Dashboard
+
 - **Real-time updates**: Live activity feed with auto-refresh
 - **Stats cards**: Completion percentage, in progress, completed/total, failed
 - **Phase progress bar**: Visual representation of 8 construction phases
@@ -247,6 +266,7 @@ This document tracks all major changes, improvements, and features added to the 
 ---
 
 ### 🗄️ State Management
+
 - **Zustand store**: Centralized project and task state
 - **API client**: Axios-based client with type safety
 - **WebSocket hook**: Real-time updates (for Dashboard.tsx)
@@ -257,7 +277,9 @@ This document tracks all major changes, improvements, and features added to the 
 ---
 
 ### 📋 Project Templates
+
 Pre-configured templates for common construction projects:
+
 - Kitchen Remodel (10 tasks)
 - Bathroom Remodel (11 tasks)
 - Shed Construction (10 tasks)
@@ -270,6 +292,7 @@ Pre-configured templates for common construction projects:
 ---
 
 ### 📖 Initial Documentation
+
 - **README.md**: Comprehensive project documentation
 - **QUICKSTART.md**: Quick start guide
 - **TESTING.md**: Testing documentation
@@ -282,6 +305,7 @@ Pre-configured templates for common construction projects:
 ---
 
 ### 🧪 Testing Infrastructure
+
 - **Demo mode**: Test without AWS (`test_shed_demo.py`)
 - **Planning mode**: See task breakdown (`test_shed_detailed.py`)
 - **Single agent test**: Verify AWS setup (`test_agent.py`)
@@ -295,6 +319,7 @@ Pre-configured templates for common construction projects:
 ## Summary Statistics
 
 ### Across All Sessions:
+
 - **Total Commits**: 13+
 - **Files Created**: 30+
 - **Major Features**:
@@ -311,6 +336,7 @@ Pre-configured templates for common construction projects:
 - **Code Quality Issues Fixed**: 19
 
 ### Key Transformations:
+
 - ❌ Manual execution → ✅ Fully autonomous
 - ❌ Template-only → ✅ AI-powered dynamic planning
 - ❌ Incomplete execution → ✅ Runs to 100% completion
@@ -326,6 +352,7 @@ Pre-configured templates for common construction projects:
 ## Technology Stack
 
 ### Backend
+
 - Python 3.13+
 - Strands Agents framework
 - AWS Bedrock (Claude Sonnet 4.5)
@@ -334,6 +361,7 @@ Pre-configured templates for common construction projects:
 - MCP (Model Context Protocol) servers
 
 ### Frontend
+
 - React 18
 - TypeScript
 - Vite (build tool)
@@ -350,14 +378,17 @@ Pre-configured templates for common construction projects:
 ## Breaking Changes
 
 ### Session 4 (Today):
+
 - **Removed manual execution buttons**: System is now fully autonomous by default
 - **Changed default refresh interval**: From 1s to 3s (configurable)
 - **Navigation behavior**: Projects auto-navigate to dashboard on submission
 
 ### Session 3:
+
 - **Added dynamic planning**: New parameter in `/api/projects/start` endpoint
 
 ### Session 2:
+
 - **Project structure reorganization**: Import paths changed
 - **Loop detection**: New configuration variables required
 
@@ -368,12 +399,14 @@ Pre-configured templates for common construction projects:
 ### Upgrading to Session 4 Changes:
 
 1. **Update environment files**:
+
    ```bash
    # Add to .env or frontend/.env
    VITE_UI_REFRESH_INTERVAL_MS=3000
    ```
 
 2. **Run npm install** (if using ESLint):
+
    ```bash
    cd frontend && npm install
    ```
@@ -387,11 +420,13 @@ Pre-configured templates for common construction projects:
 ## Known Issues & Future Enhancements
 
 ### Known Issues:
+
 - Some TypeScript strict mode warnings remain (acceptable)
 - WebSocket reconnection logic has linting warnings (functional)
 - MCP server call logging not visible in UI (planned for future)
 
 ### Planned Enhancements:
+
 - **MCP Activity Logging**: Show materials orders and permit applications in activity feed
 - **Task detail view**: Click tasks to see full execution details
 - **Export functionality**: Download project reports
@@ -404,6 +439,7 @@ Pre-configured templates for common construction projects:
 ## Credits
 
 Built with:
+
 - [Strands Agents](https://strandsagents.com/latest/) framework
 - Claude via AWS Bedrock
 - Modern web technologies (React, TypeScript, FastAPI)
