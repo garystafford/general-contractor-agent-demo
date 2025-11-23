@@ -149,6 +149,8 @@ async def detailed_health_check():
     - Database/Task Manager
     - Agents
     """
+    logger.debug("Performing detailed health check")
+
     health_report = {
         "timestamp": datetime.now().isoformat(),
         "overall_status": "healthy",
@@ -172,6 +174,7 @@ async def detailed_health_check():
             for service_name in ["materials", "permitting"]:
                 if mcp_health.get(service_name, {}).get("status") == "down":
                     health_report["overall_status"] = "degraded"
+                    logger.debug(f"MCP {service_name} service is down")
 
         except Exception as e:
             health_report["components"]["mcp_services"] = {
@@ -179,6 +182,7 @@ async def detailed_health_check():
                 "error": str(e)
             }
             health_report["overall_status"] = "degraded"
+            logger.debug(f"MCP services check failed: {e}")
 
         # Check task manager
         try:
@@ -208,6 +212,8 @@ async def detailed_health_check():
                 "error": str(e)
             }
             health_report["overall_status"] = "unhealthy"
+
+        logger.debug(f"Health check complete: {health_report['overall_status']}")
 
     except Exception as e:
         logger.error(f"Error in detailed health check: {e}")

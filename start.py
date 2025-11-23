@@ -71,6 +71,7 @@ class ApplicationManager:
                     self.host,
                     "--port",
                     str(self.port),
+                    "--no-access-log",  # Disable HTTP access logs (cleaner console output)
                 ],
                 cwd=str(project_root),
                 stdout=sys.stdout,

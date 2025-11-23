@@ -37,6 +37,10 @@ Built with [Strands Agents](https://strandsagents.com/latest/) framework, Amazon
 
 ![Dashboard Preview](docs/images/dashboard-preview.png)
 
+### React System Health Dashboard
+
+![System Health Preview](docs/images/system-health-preview.png)
+
 ### FastAPI Backend API
 
 ![API Preview](docs/images/api-preview.png)
