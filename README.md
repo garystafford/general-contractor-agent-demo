@@ -117,18 +117,11 @@ This starts the React frontend at `http://localhost:5173`
 
 Navigate to `http://localhost:5173` to see the UI!
 
-Try out pre-configured projects or create a custom project description, such as: "Build an 8x10 garden shed with a single window, wood siding, an asphalt shingle roof, and a concrete slab foundation."
+Try out pre-configured projects or create a custom project description, such as:
 
-### Quick Test (No AWS Required)
-
-Want to see how it works without AWS setup?
-
-```bash
-# Run demo with simulated agent output
-uv run tests/test_shed_demo.py
+```text
+Build an 8x10 garden shed with a single window, wood siding, an asphalt shingle roof, and a concrete slab foundation.
 ```
-
-This shows agent reasoning, tool calls, and task execution for building a complete shed!
 
 ---
 
@@ -209,14 +202,14 @@ This system models a construction project where a **General Contractor** agent o
 
 ### Component Details
 
-**General Contractor (Orchestrator)**
+#### General Contractor (Orchestrator)
 
 - Central orchestration agent powered by Claude
 - Manages task sequencing and dependencies
 - Delegates work to specialized trade agents
 - Integrates with MCP servers for materials and permits
 
-**Specialized Trade Agents**
+#### Specialized Trade Agents
 
 - Architect Agent (design & planning)
 - Carpenter Agent (framing, cabinetry, finishing)
@@ -227,7 +220,7 @@ This system models a construction project where a **General Contractor** agent o
 - HVAC Agent (heating, cooling systems)
 - Roofer Agent (roofing, gutters)
 
-**MCP Servers (Model Context Protocol)**
+#### MCP Servers (Model Context Protocol)
 
 Two MCP servers run as separate processes, communicating via stdio:
 
@@ -242,7 +235,7 @@ Two MCP servers run as separate processes, communicating via stdio:
    - Handles construction permits and inspections
    - Permit types: building, electrical, plumbing, mechanical, demolition, roofing
 
-**Task Manager**
+#### Task Manager
 
 - Manages task dependencies and sequencing
 - Tracks task states: pending, ready, in_progress, completed, failed
