@@ -150,7 +150,11 @@ This starts the React frontend at `http://localhost:5173`
 
 Navigate to `http://localhost:5173` to see the UI!
 
-Try out pre-configured projects or create a custom project description, such as:
+Try out pre-configured projects, such as the "Kitchen Remodel (Template)":
+
+"Complete kitchen renovation for a 12x18 feet space in modern style. Install new tile flooring throughout the kitchen. Install light-colored wood cabinets with marble countertops. Construct and install a kitchen island for food preparation. Install modern, stylish overhead lighting fixtures. Supply and install new kitchen appliances, including range, refrigerator, dishwasher, and microwave. All work to follow modern design aesthetic with coordinated finishes across flooring, cabinetry, and countertops. Include adequate electrical and plumbing rough-in for new appliances and island."
+
+Or, use the "Custom Project (Custom)", such as:
 
 ```text
 Build an 8x10 garden shed with a single window, wood siding, an asphalt shingle roof, and a concrete slab foundation.

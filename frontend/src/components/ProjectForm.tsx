@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
-import { useProjectStore } from '../store/projectStore';
+import { useProjectStore, type ErrorDetail } from '../store/projectStore';
 import toast from 'react-hot-toast';
 import { Building2, Hammer, Info } from 'lucide-react';
+import ErrorModal from './ErrorModal';
 
 const PROJECT_TYPES = [
   { value: 'kitchen_remodel', label: 'Kitchen Remodel', template: true },
@@ -14,9 +15,103 @@ const PROJECT_TYPES = [
   { value: 'custom', label: 'Custom Project', template: false },
 ];
 
+function validateProjectDescription(projectType: string, description: string): ErrorDetail | null {
+  const missingFields: string[] = [];
+  const suggestions: string[] = [];
+
+  if (!description.trim()) {
+    return null; // Will be caught by existing validation
+  }
+
+  const lowerDesc = description.toLowerCase();
+
+  switch (projectType) {
+    case 'kitchen_remodel':
+      // Check for dimensions
+      if (!description.match(/\d+\s*[xX×]\s*\d+/) && !lowerDesc.includes('feet') && !lowerDesc.includes('square')) {
+        missingFields.push('Kitchen dimensions (e.g., "12 feet by 15 feet" or "12x15")');
+        suggestions.push('Add the length and width of your kitchen space');
+      }
+
+      // Check for style preference
+      const styles = ['modern', 'traditional', 'transitional', 'farmhouse', 'contemporary', 'rustic'];
+      if (!styles.some(style => lowerDesc.includes(style))) {
+        missingFields.push('Kitchen style preference (modern, traditional, transitional, or farmhouse)');
+        suggestions.push('Specify your preferred kitchen style');
+      }
+      break;
+
+    case 'bathroom_remodel':
+      // Check for dimensions
+      if (!description.match(/\d+\s*[xX×]\s*\d+/) && !lowerDesc.includes('feet') && !lowerDesc.includes('square')) {
+        missingFields.push('Bathroom dimensions (e.g., "8x10 feet")');
+        suggestions.push('Add the dimensions of your bathroom');
+      }
+
+      // Check for fixtures mentioned
+      const fixtures = ['toilet', 'sink', 'shower', 'tub', 'bathtub', 'vanity'];
+      if (!fixtures.some(fixture => lowerDesc.includes(fixture))) {
+        missingFields.push('Fixture requirements (toilet, sink, shower, tub, etc.)');
+        suggestions.push('List which fixtures you want to install or replace');
+      }
+      break;
+
+    case 'addition':
+      // Check for square footage or dimensions
+      if (!lowerDesc.includes('square') && !lowerDesc.includes('sq') && !description.match(/\d+\s*[xX×]\s*\d+/)) {
+        missingFields.push('Size of addition (square footage or dimensions)');
+        suggestions.push('Specify how large the addition should be');
+      }
+
+      // Check for room type
+      if (!lowerDesc.includes('bedroom') && !lowerDesc.includes('room') &&
+          !lowerDesc.includes('office') && !lowerDesc.includes('living') &&
+          !lowerDesc.includes('family')) {
+        missingFields.push('Type of room being added (bedroom, office, family room, etc.)');
+        suggestions.push('Describe what type of space you\'re adding');
+      }
+      break;
+
+    case 'shed_construction':
+      // Check for dimensions
+      if (!description.match(/\d+\s*[xX×]\s*\d+/)) {
+        missingFields.push('Shed dimensions (e.g., "10x12 feet")');
+        suggestions.push('Specify the length and width of the shed');
+      }
+      break;
+
+    case 'new_construction':
+      // Check for square footage
+      if (!lowerDesc.includes('square') && !lowerDesc.includes('sq ft') && !lowerDesc.includes('sqft')) {
+        missingFields.push('Total square footage of the building');
+        suggestions.push('Provide the total size of the construction project');
+      }
+
+      // Check for number of floors/stories
+      if (!lowerDesc.includes('story') && !lowerDesc.includes('stories') &&
+          !lowerDesc.includes('floor') && !lowerDesc.includes('level')) {
+        missingFields.push('Number of floors/stories');
+        suggestions.push('Specify how many floors the building will have');
+      }
+      break;
+  }
+
+  if (missingFields.length > 0) {
+    return {
+      type: 'missing_info',
+      title: 'Missing Required Information',
+      message: `Your ${PROJECT_TYPES.find(pt => pt.value === projectType)?.label || 'project'} description needs additional details to proceed.`,
+      missingFields,
+      suggestions,
+    };
+  }
+
+  return null;
+}
+
 export function ProjectForm() {
   const navigate = useNavigate();
-  const { setLoading, setError } = useProjectStore();
+  const { setLoading, setError, showErrorModal, closeErrorModal, errorModal, isErrorModalOpen } = useProjectStore();
 
   const [formData, setFormData] = useState({
     projectType: 'kitchen_remodel',
@@ -35,6 +130,15 @@ export function ProjectForm() {
     if (!formData.description.trim()) {
       toast.error('Please provide a project description');
       return;
+    }
+
+    // Validate project description for required information (skip for custom projects)
+    if (formData.projectType !== 'custom') {
+      const validationError = validateProjectDescription(formData.projectType, formData.description);
+      if (validationError) {
+        showErrorModal(validationError);
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -75,11 +179,31 @@ export function ProjectForm() {
     } catch (error: any) {
       console.error('Error starting project:', error);
       const errorMessage = error.message || 'Failed to start project';
-      setError(errorMessage);
-      toast.error(errorMessage);
+
+      // Check if this is a structured validation error from backend
+      if (error.detail && typeof error.detail === 'object' && error.detail.missing_fields) {
+        showErrorModal({
+          type: 'missing_info',
+          title: 'Missing Required Information',
+          message: error.detail.message || 'The project description is missing required information.',
+          missingFields: error.detail.missing_fields,
+          suggestions: error.detail.suggestions || [],
+        });
+      } else {
+        setError(errorMessage);
+        toast.error(errorMessage);
+      }
     } finally {
       setIsSubmitting(false);
       setLoading(false);
+    }
+  };
+
+  const handleEditDescription = () => {
+    // Focus on the textarea when user wants to edit
+    const textarea = document.getElementById('description') as HTMLTextAreaElement;
+    if (textarea) {
+      textarea.focus();
     }
   };
 
@@ -252,14 +376,30 @@ export function ProjectForm() {
             <li>• <strong>Real-time tracking:</strong> Watch agents work together on the dashboard</li>
             <li>• <strong>Complete management:</strong> Track materials, permits, and construction progress</li>
           </ul>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="mt-3 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-          >
-            Or click here to go to dashboard manually →
-          </button>
+          <div className="mt-3 flex gap-4 text-sm">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              Go to dashboard →
+            </button>
+            <button
+              onClick={() => navigate('/health')}
+              className="text-green-600 dark:text-green-400 hover:underline"
+            >
+              System health status →
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Error Modal */}
+      <ErrorModal
+        isOpen={isErrorModalOpen}
+        onClose={closeErrorModal}
+        error={errorModal}
+        onEdit={handleEditDescription}
+      />
     </div>
   );
 }

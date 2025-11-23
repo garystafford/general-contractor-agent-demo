@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import { ProjectForm } from './components/ProjectForm';
 import { DashboardSimple } from './components/DashboardSimple';
+import { HealthCheck } from './components/HealthCheck';
 import { apiClient } from './api/client';
 import { AlertCircle, Loader2 } from 'lucide-react';
 
@@ -76,6 +77,7 @@ function App() {
       <Routes>
         <Route path="/" element={<ProjectForm />} />
         <Route path="/dashboard" element={<DashboardSimple />} />
+        <Route path="/health" element={<HealthCheck />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Toaster

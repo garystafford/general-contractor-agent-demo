@@ -15,6 +15,7 @@ import {
   XCircle,
   RefreshCcw,
 } from 'lucide-react';
+import ErrorModal from './ErrorModal';
 
 const PHASES = [
   'planning',
@@ -35,9 +36,15 @@ export function DashboardSimple() {
     setProjectStatus,
     setTasks,
     reset,
+    showErrorModal,
+    closeErrorModal,
+    errorModal,
+    isErrorModalOpen,
   } = useProjectStore();
 
   const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
+  const [stuckStateChecked, setStuckStateChecked] = useState<string>('');
+  const [dashboardLoadTime] = useState<number>(Date.now());
 
   // Fetch project data
   const fetchProjectData = async () => {
@@ -91,6 +98,91 @@ export function DashboardSimple() {
     }
   }, [projectStatus]);
 
+  // Detect stuck state (dependency deadlock or failed tasks blocking progress)
+  useEffect(() => {
+    if (!projectStatus) return;
+
+    const { in_progress, pending, failed, completion_percentage, completed } = projectStatus.task_status;
+
+    // Create a unique key for the current status to detect when it changes
+    const statusKey = `${in_progress}-${pending}-${failed}-${completion_percentage}`;
+
+    // Don't check again if we already showed the modal for this exact state
+    if (stuckStateChecked === statusKey) return;
+
+    // GRACE PERIOD: Don't check for stuck state immediately after dashboard loads
+    // Give tasks at least 15 seconds to start executing
+    const timeElapsedMs = Date.now() - dashboardLoadTime;
+    const GRACE_PERIOD_MS = 15000; // 15 seconds
+
+    if (timeElapsedMs < GRACE_PERIOD_MS) {
+      // Still in grace period - don't check yet
+      return;
+    }
+
+    // ADDITIONAL CHECK: If no tasks have ever completed or failed, and we're in the grace period,
+    // the project is likely still starting up - don't flag as stuck
+    const hasAnyProgress = completed > 0 || failed > 0;
+    if (!hasAnyProgress && timeElapsedMs < GRACE_PERIOD_MS * 2) {
+      // Extended grace period if no progress yet (30 seconds total)
+      return;
+    }
+
+    // Check if backend reported an error_details field (from execute_entire_project)
+    if ((projectStatus as any).error_details) {
+      const errorDetails = (projectStatus as any).error_details;
+      setStuckStateChecked(statusKey);
+      showErrorModal({
+        type: errorDetails.type || 'stuck_state',
+        title: errorDetails.title || 'Project Error',
+        message: errorDetails.message || 'An error occurred during project execution',
+        blockedTasks: errorDetails.blocked_tasks || errorDetails.blockedTasks,
+        suggestions: errorDetails.suggestions || []
+      });
+      return;
+    }
+
+    // Detect stuck state scenarios:
+    // 1. No tasks running + tasks pending + failed tasks exist = likely blocked by failed task
+    // 2. No tasks running + tasks pending + project not complete = dependency deadlock
+    const isStuck = in_progress === 0 && pending > 0 && completion_percentage < 100;
+    const hasFailedTasks = failed > 0;
+
+    if (isStuck) {
+      setStuckStateChecked(statusKey);
+
+      // Get blocked tasks from the tasks list
+      const blockedTasks = tasks
+        .filter(task => task.status === 'pending')
+        .map(task => `${task.description} (assigned to ${task.agent})`);
+
+      // Get failed tasks
+      const failedTasksList = tasks
+        .filter(task => task.status === 'failed')
+        .map(task => task.description);
+
+      let message = 'The project cannot proceed because tasks are waiting for dependencies that will never complete.';
+      const suggestions = [
+        'Check if all assigned agents are properly configured',
+        'Consider resetting the project with more complete details'
+      ];
+
+      if (hasFailedTasks) {
+        message = `${failed} task(s) failed, blocking ${pending} pending task(s) from executing.`;
+        suggestions.unshift(`Retry or skip the failed task(s): ${failedTasksList.join(', ')}`);
+      } else {
+        suggestions.unshift('Some tasks may be missing required information');
+      }
+
+      showErrorModal({
+        type: 'stuck_state',
+        title: 'Project Execution Stuck',
+        message,
+        blockedTasks,
+        suggestions
+      });
+    }
+  }, [projectStatus, tasks, stuckStateChecked, showErrorModal]);
 
   const handleReset = async () => {
     if (!confirm('Are you sure you want to reset the project? All progress will be lost.')) {
@@ -100,6 +192,21 @@ export function DashboardSimple() {
     try {
       await apiClient.resetProject();
       reset();
+      closeErrorModal();
+      setStuckStateChecked('');
+      toast.success('Project reset successfully');
+      navigate('/');
+    } catch {
+      toast.error('Failed to reset project');
+    }
+  };
+
+  const handleResetFromModal = async () => {
+    try {
+      await apiClient.resetProject();
+      reset();
+      closeErrorModal();
+      setStuckStateChecked('');
       toast.success('Project reset successfully');
       navigate('/');
     } catch {
@@ -573,6 +680,14 @@ export function DashboardSimple() {
           </div>
         </div>
       </div>
+
+      {/* Error Modal for Stuck States */}
+      <ErrorModal
+        isOpen={isErrorModalOpen}
+        onClose={closeErrorModal}
+        error={errorModal}
+        onReset={handleResetFromModal}
+      />
     </div>
   );
 }

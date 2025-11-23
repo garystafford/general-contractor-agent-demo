@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import type { Project, ProjectStatus, Task, Agent, AgentActivity } from '../types';
 
+export interface ErrorDetail {
+  type: 'missing_info' | 'configuration' | 'stuck_state';
+  title: string;
+  message: string;
+  missingFields?: string[];
+  blockedTasks?: string[];
+  suggestions?: string[];
+}
+
 interface ProjectState {
   // Project state
   project: Project | null;
@@ -14,6 +23,8 @@ interface ProjectState {
   error: string | null;
   selectedTask: Task | null;
   selectedAgent: string | null;
+  errorModal: ErrorDetail | null;
+  isErrorModalOpen: boolean;
 
   // Actions
   setProject: (project: Project) => void;
@@ -26,6 +37,8 @@ interface ProjectState {
   setSelectedAgent: (agentName: string | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  showErrorModal: (error: ErrorDetail) => void;
+  closeErrorModal: () => void;
   reset: () => void;
 
   // Computed getters
@@ -45,6 +58,8 @@ const initialState = {
   error: null,
   selectedTask: null,
   selectedAgent: null,
+  errorModal: null,
+  isErrorModalOpen: false,
 };
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
@@ -74,6 +89,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   setLoading: (loading) => set({ isLoading: loading }),
 
   setError: (error) => set({ error }),
+
+  showErrorModal: (error) => set({ errorModal: error, isErrorModalOpen: true }),
+
+  closeErrorModal: () => set({ errorModal: null, isErrorModalOpen: false }),
 
   reset: () => set(initialState),
 

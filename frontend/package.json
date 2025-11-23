@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.9",
     "@xyflow/react": "^12.9.3",
     "axios": "^1.13.2",
     "lucide-react": "^0.554.0",

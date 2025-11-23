@@ -4,6 +4,7 @@ FastAPI routes for the General Contractor Agent Demo.
 
 import asyncio
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Set
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -38,6 +39,32 @@ app.add_middleware(
 
 # Initialize General Contractor
 contractor = GeneralContractorAgent()
+
+
+# Startup event to initialize MCP servers
+@app.on_event("startup")
+async def startup_event():
+    """Initialize MCP servers on application startup."""
+    logger.info("Starting up application...")
+    try:
+        logger.info("Initializing MCP clients...")
+        await contractor.initialize_mcp_clients()
+        logger.info("✓ MCP clients initialized successfully on startup")
+    except Exception as e:
+        logger.warning(f"⚠️  MCP clients failed to initialize on startup: {e}")
+        logger.warning("MCP services will be initialized on first use")
+
+
+# Shutdown event to clean up MCP connections
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up MCP connections on application shutdown."""
+    logger.info("Shutting down application...")
+    try:
+        await contractor.close_mcp_clients()
+        logger.info("✓ MCP clients closed successfully")
+    except Exception as e:
+        logger.error(f"Error closing MCP clients: {e}")
 
 
 # WebSocket Connection Manager
@@ -106,8 +133,88 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
+    """Basic health check endpoint."""
     return {"status": "healthy"}
+
+
+@app.get("/api/health/detailed")
+async def detailed_health_check():
+    """
+    Comprehensive health check for all system components.
+
+    Returns status for:
+    - Backend API
+    - MCP Materials Server
+    - MCP Permitting Server
+    - Database/Task Manager
+    - Agents
+    """
+    health_report = {
+        "timestamp": datetime.now().isoformat(),
+        "overall_status": "healthy",
+        "components": {}
+    }
+
+    try:
+        # Check backend API
+        health_report["components"]["backend_api"] = {
+            "status": "up",
+            "details": "API server is running",
+            "version": "1.0.0"
+        }
+
+        # Check MCP servers
+        try:
+            mcp_health = await contractor.check_mcp_health()
+            health_report["components"]["mcp_services"] = mcp_health
+
+            # Update overall status if any MCP service is down
+            for service_name in ["materials", "permitting"]:
+                if mcp_health.get(service_name, {}).get("status") == "down":
+                    health_report["overall_status"] = "degraded"
+
+        except Exception as e:
+            health_report["components"]["mcp_services"] = {
+                "status": "down",
+                "error": str(e)
+            }
+            health_report["overall_status"] = "degraded"
+
+        # Check task manager
+        try:
+            task_count = len(contractor.task_manager.tasks)
+            health_report["components"]["task_manager"] = {
+                "status": "up",
+                "details": f"{task_count} tasks in memory"
+            }
+        except Exception as e:
+            health_report["components"]["task_manager"] = {
+                "status": "down",
+                "error": str(e)
+            }
+            health_report["overall_status"] = "unhealthy"
+
+        # Check agents
+        try:
+            agent_count = len(contractor.agents)
+            health_report["components"]["agents"] = {
+                "status": "up",
+                "details": f"{agent_count} agents available",
+                "agents": list(contractor.agents.keys())
+            }
+        except Exception as e:
+            health_report["components"]["agents"] = {
+                "status": "down",
+                "error": str(e)
+            }
+            health_report["overall_status"] = "unhealthy"
+
+    except Exception as e:
+        logger.error(f"Error in detailed health check: {e}")
+        health_report["overall_status"] = "unhealthy"
+        health_report["error"] = str(e)
+
+    return {"status": "success", "data": health_report}
 
 
 # Project Management Endpoints
@@ -129,6 +236,26 @@ async def start_project(request: ProjectRequest):
             **request.parameters,
         )
         return {"status": "success", "data": result}
+    except ValueError as e:
+        # Handle validation errors with structured response
+        error_message = str(e)
+        if error_message.startswith("Missing required information:"):
+            # Extract validation details from the contractor's validation result
+            validation_result = contractor._validate_project_requirements(
+                request.project_type, request.description, **request.parameters
+            )
+            if not validation_result['valid']:
+                logger.warning(f"Validation error for {request.project_type}: {validation_result['missing_fields']}")
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "message": validation_result['message'],
+                        "missing_fields": validation_result['missing_fields'],
+                        "suggestions": validation_result['suggestions'],
+                    }
+                )
+        logger.error(f"ValueError starting project: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error starting project: {e}")
         raise HTTPException(status_code=500, detail=str(e))

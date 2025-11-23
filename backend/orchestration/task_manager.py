@@ -124,6 +124,17 @@ class TaskManager:
             return True
         return False
 
+    def mark_ready(self, task_id: str) -> bool:
+        """Mark a task as ready (reset from failed state for retry)."""
+        if task_id in self.tasks:
+            self.tasks[task_id].status = TaskStatus.READY
+            self.tasks[task_id].result = None
+            # Remove from failed tasks set if it was there
+            self.failed_tasks.discard(task_id)
+            logger.info(f"Task {task_id} marked as ready for retry")
+            return True
+        return False
+
     def get_parallel_tasks(self) -> List[List[Task]]:
         """
         Group tasks that can run in parallel.
@@ -199,13 +210,13 @@ class TaskManager:
         """Create tasks for a kitchen remodel project."""
         return [
             Task("1", "Architect", "Design kitchen layout", [], "planning"),
-            Task("2", "Permitting", "Apply for building permit", ["1"], "permitting"),
+            Task("2", "Architect", "Apply for building permit", ["1"], "permitting"),
             Task("3", "Carpenter", "Remove old cabinets", ["2"], "demolition"),
             Task("4", "Plumber", "Update plumbing rough-in", ["3"], "rough_in"),
             Task("5", "Electrician", "Update electrical rough-in", ["3"], "rough_in"),
             Task(
                 "6",
-                "Permitting",
+                "Architect",
                 "Schedule rough-in inspection",
                 ["4", "5"],
                 "inspection",
@@ -216,7 +227,7 @@ class TaskManager:
             Task("10", "Painter", "Paint walls", ["7"], "finishing"),
             Task(
                 "11",
-                "Permitting",
+                "Architect",
                 "Final inspection",
                 ["8", "9", "10"],
                 "final_inspection",
@@ -227,13 +238,13 @@ class TaskManager:
         """Create tasks for a bathroom remodel project."""
         return [
             Task("1", "Architect", "Design bathroom layout", [], "planning"),
-            Task("2", "Permitting", "Apply for permits", ["1"], "permitting"),
+            Task("2", "Architect", "Apply for permits", ["1"], "permitting"),
             Task("3", "Carpenter", "Demolition work", ["2"], "demolition"),
             Task("4", "Plumber", "Rough-in plumbing", ["3"], "rough_in"),
             Task("5", "Electrician", "Rough-in electrical", ["3"], "rough_in"),
             Task(
                 "6",
-                "Permitting",
+                "Architect",
                 "Rough-in inspection",
                 ["4", "5"],
                 "inspection",
@@ -244,7 +255,7 @@ class TaskManager:
             Task("10", "Electrician", "Install light fixtures", ["8"], "finishing"),
             Task(
                 "11",
-                "Permitting",
+                "Architect",
                 "Final inspection",
                 ["9", "10"],
                 "final_inspection",
@@ -255,7 +266,7 @@ class TaskManager:
         """Create tasks for a new construction project."""
         return [
             Task("1", "Architect", "Create architectural plans", [], "planning"),
-            Task("2", "Permitting", "Apply for building permits", ["1"], "permitting"),
+            Task("2", "Architect", "Apply for building permits", ["1"], "permitting"),
             Task("3", "Mason", "Pour foundation", ["2"], "foundation"),
             Task("4", "Carpenter", "Frame walls and roof", ["3"], "framing"),
             Task("5", "Roofer", "Install roof", ["4"], "framing"),
@@ -264,7 +275,7 @@ class TaskManager:
             Task("8", "HVAC", "HVAC installation", ["4"], "rough_in"),
             Task(
                 "9",
-                "Permitting",
+                "Architect",
                 "Rough-in inspection",
                 ["6", "7", "8"],
                 "inspection",
@@ -276,7 +287,7 @@ class TaskManager:
             Task("14", "Plumber", "Install fixtures", ["10"], "finishing"),
             Task(
                 "15",
-                "Permitting",
+                "Architect",
                 "Final inspection",
                 ["12", "13", "14"],
                 "final_inspection",
@@ -287,7 +298,7 @@ class TaskManager:
         """Create tasks for a home addition project."""
         return [
             Task("1", "Architect", "Design addition plans", [], "planning"),
-            Task("2", "Permitting", "Apply for permits", ["1"], "permitting"),
+            Task("2", "Architect", "Apply for permits", ["1"], "permitting"),
             Task("3", "Mason", "Pour foundation", ["2"], "foundation"),
             Task("4", "Carpenter", "Frame addition", ["3"], "framing"),
             Task("5", "Roofer", "Extend roof", ["4"], "framing"),
@@ -296,7 +307,7 @@ class TaskManager:
             Task("8", "HVAC", "Extend HVAC", ["4"], "rough_in"),
             Task(
                 "9",
-                "Permitting",
+                "Architect",
                 "Rough-in inspection",
                 ["6", "7", "8"],
                 "inspection",
@@ -305,7 +316,7 @@ class TaskManager:
             Task("11", "Painter", "Paint", ["10"], "finishing"),
             Task(
                 "12",
-                "Permitting",
+                "Architect",
                 "Final inspection",
                 ["11"],
                 "final_inspection",

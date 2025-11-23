@@ -4,6 +4,7 @@ General Contractor orchestration agent.
 
 import asyncio
 import logging
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -70,6 +71,7 @@ class GeneralContractorAgent:
         # Project state
         self.current_project: Optional[Dict[str, Any]] = None
         self.project_phase = "idle"  # idle, planning, in_progress, completed
+        self.last_error: Optional[Dict[str, Any]] = None  # Stores detailed error information
 
         logger.info("General Contractor initialized with 8 specialized Strands agents")
 
@@ -150,6 +152,65 @@ class GeneralContractorAgent:
                     logger.error(f"Error closing {name} MCP client: {e}")
 
         self._mcp_initialized = False
+
+    async def check_mcp_health(self) -> Dict[str, Any]:
+        """
+        Check health status of all MCP clients.
+
+        Returns:
+            Dictionary with health status for each MCP service
+        """
+        health_status = {
+            "materials": {"status": "unknown", "details": None},
+            "permitting": {"status": "unknown", "details": None},
+            "initialized": self._mcp_initialized
+        }
+
+        # If not initialized, try to initialize
+        if not self._mcp_initialized:
+            try:
+                await self.initialize_mcp_clients()
+            except Exception as e:
+                health_status["error"] = f"Failed to initialize MCP clients: {str(e)}"
+                health_status["materials"]["status"] = "down"
+                health_status["materials"]["details"] = "Not initialized"
+                health_status["permitting"]["status"] = "down"
+                health_status["permitting"]["details"] = "Not initialized"
+                return health_status
+
+        # Check each MCP client
+        for service_name in ["materials", "permitting"]:
+            client = self.mcp_clients.get(service_name)
+
+            if not client:
+                health_status[service_name]["status"] = "down"
+                health_status[service_name]["details"] = "Client not initialized"
+                continue
+
+            try:
+                # Simple health check - verify client exists and is initialized
+                # MCPClient doesn't expose list_tools, so we just verify it's ready
+                if client and hasattr(client, 'call_tool_async'):
+                    health_status[service_name]["status"] = "up"
+                    health_status[service_name]["details"] = "Client initialized and ready"
+                    # List known tools for each service
+                    if service_name == "materials":
+                        health_status[service_name]["tools"] = [
+                            "get_catalog", "check_availability", "order_materials", "get_order_status"
+                        ]
+                    elif service_name == "permitting":
+                        health_status[service_name]["tools"] = [
+                            "apply_for_permit", "check_permit_status", "schedule_inspection", "get_required_permits"
+                        ]
+                else:
+                    health_status[service_name]["status"] = "unknown"
+                    health_status[service_name]["details"] = "Client state unclear"
+            except Exception as e:
+                health_status[service_name]["status"] = "down"
+                health_status[service_name]["details"] = f"Error: {str(e)}"
+                logger.warning(f"MCP {service_name} health check failed: {e}")
+
+        return health_status
 
     async def call_mcp_tool(self, service: str, tool_name: str, arguments: Dict[str, Any]) -> Any:
         """
@@ -359,6 +420,87 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
         logger.error(f"Failed to parse planning result: {result_text[:500]}")
         raise ValueError("Could not parse planning agent output into task list")
 
+    def _validate_project_requirements(
+        self, project_type: str, description: str, **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Validate that required information is present for the project type.
+
+        Returns:
+            Dictionary with validation result:
+            - valid: bool
+            - missing_fields: List[str] (if not valid)
+            - suggestions: List[str] (if not valid)
+        """
+        missing_fields = []
+        suggestions = []
+        description_lower = description.lower()
+
+        # Validation rules by project type
+        if project_type == "kitchen_remodel":
+            # Check for dimensions
+            if not re.search(r'\d+\s*[xX×]\s*\d+', description) and 'feet' not in description_lower and 'square' not in description_lower:
+                missing_fields.append('Kitchen dimensions (e.g., "12 feet by 15 feet" or "12x15")')
+                suggestions.append('Add the length and width of your kitchen space')
+
+            # Check for style
+            styles = ['modern', 'traditional', 'transitional', 'farmhouse', 'contemporary', 'rustic']
+            if not any(style in description_lower for style in styles):
+                missing_fields.append('Kitchen style preference (modern, traditional, transitional, or farmhouse)')
+                suggestions.append('Specify your preferred kitchen style')
+
+        elif project_type == "bathroom_remodel":
+            # Check for dimensions
+            if not re.search(r'\d+\s*[xX×]\s*\d+', description) and 'feet' not in description_lower and 'square' not in description_lower:
+                missing_fields.append('Bathroom dimensions (e.g., "8x10 feet")')
+                suggestions.append('Add the dimensions of your bathroom')
+
+            # Check for fixtures
+            fixtures = ['toilet', 'sink', 'shower', 'tub', 'bathtub', 'vanity']
+            if not any(fixture in description_lower for fixture in fixtures):
+                missing_fields.append('Fixture requirements (toilet, sink, shower, tub, etc.)')
+                suggestions.append('List which fixtures you want to install or replace')
+
+        elif project_type == "addition":
+            # Check for size
+            if 'square' not in description_lower and 'sq' not in description_lower and not re.search(r'\d+\s*[xX×]\s*\d+', description):
+                missing_fields.append('Size of addition (square footage or dimensions)')
+                suggestions.append('Specify how large the addition should be')
+
+            # Check for room type
+            room_types = ['bedroom', 'room', 'office', 'living', 'family', 'kitchen', 'bathroom']
+            if not any(room_type in description_lower for room_type in room_types):
+                missing_fields.append('Type of room being added (bedroom, office, family room, etc.)')
+                suggestions.append('Describe what type of space you\'re adding')
+
+        elif project_type == "shed_construction":
+            # Check for dimensions
+            if not re.search(r'\d+\s*[xX×]\s*\d+', description):
+                missing_fields.append('Shed dimensions (e.g., "10x12 feet")')
+                suggestions.append('Specify the length and width of the shed')
+
+        elif project_type == "new_construction":
+            # Check for square footage
+            if 'square' not in description_lower and 'sq ft' not in description_lower and 'sqft' not in description_lower:
+                missing_fields.append('Total square footage of the building')
+                suggestions.append('Provide the total size of the construction project')
+
+            # Check for number of floors
+            if 'story' not in description_lower and 'stories' not in description_lower and 'floor' not in description_lower and 'level' not in description_lower:
+                missing_fields.append('Number of floors/stories')
+                suggestions.append('Specify how many floors the building will have')
+
+        # Return validation result
+        if missing_fields:
+            return {
+                'valid': False,
+                'missing_fields': missing_fields,
+                'suggestions': suggestions,
+                'message': f'The {project_type.replace("_", " ")} description needs additional details to proceed.'
+            }
+
+        return {'valid': True}
+
     async def start_project(
         self,
         project_description: str,
@@ -377,8 +519,20 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
 
         Returns:
             Dictionary with project details and initial status
+
+        Raises:
+            ValueError: If required project information is missing
         """
         logger.info(f"Starting new project: {project_type}")
+
+        # Validate project requirements (skip for custom projects or dynamic planning)
+        if not use_dynamic_planning and project_type != "custom_project":
+            validation_result = self._validate_project_requirements(
+                project_type, project_description, **kwargs
+            )
+            if not validation_result['valid']:
+                logger.warning(f"Project validation failed for {project_type}: {validation_result['missing_fields']}")
+                raise ValueError(f"Missing required information: {', '.join(validation_result['missing_fields'])}")
 
         # Create project record
         self.current_project = {
@@ -621,7 +775,28 @@ Complete this task using your specialized tools efficiently."""
 
                 if in_progress == 0 and pending > 0:
                     # No tasks running but some are pending - this is a dependency deadlock
-                    logger.error(f"Dependency deadlock detected: {pending} pending tasks but none can execute")
+                    # Gather information about blocked tasks
+                    blocked_tasks = []
+                    for task in self.task_manager.tasks:
+                        if task.status == "pending":
+                            blocked_tasks.append(f"{task.description} (assigned to {task.agent})")
+
+                    error_msg = f"Dependency deadlock detected: {pending} pending tasks but none can execute"
+                    logger.error(error_msg)
+                    logger.error(f"Blocked tasks: {blocked_tasks}")
+
+                    # Store detailed error information for API response
+                    self.last_error = {
+                        "type": "stuck_state",
+                        "title": "Project Execution Stuck",
+                        "message": "The project cannot proceed because tasks are waiting for dependencies that will never complete.",
+                        "blocked_tasks": blocked_tasks,
+                        "suggestions": [
+                            "Some tasks may be missing required information",
+                            "Check if all assigned agents are properly configured",
+                            "Consider resetting the project with more complete details"
+                        ]
+                    }
                     break
                 elif in_progress == 0 and pending == 0:
                     # Nothing running and nothing pending - we're done
@@ -638,13 +813,19 @@ Complete this task using your specialized tools efficiently."""
 
         final_status = self.task_manager.get_project_status()
 
-        return {
+        result = {
             "status": "completed" if self.project_phase == "completed" else "partial",
             "project": self.current_project,
             "final_status": final_status,
             "total_iterations": iteration,
             "execution_summary": all_results,
         }
+
+        # Include error details if project got stuck
+        if self.last_error:
+            result["error_details"] = self.last_error
+
+        return result
 
     def get_project_status(self) -> Dict[str, Any]:
         """Get current project status."""
