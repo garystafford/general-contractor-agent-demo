@@ -35,7 +35,9 @@ Built with [Strands Agents](https://strandsagents.com/latest/) framework, Amazon
 
 ### React Frontend Dashboard
 
-![Dashboard Preview](docs/images/dashboard-preview.png)
+![Dashboard Preview 1](docs/images/dashboard-preview-2.png)
+
+![Dashboard Preview 2](docs/images/dashboard-preview.png)
 
 ### React System Health Dashboard
 
@@ -47,7 +49,9 @@ Built with [Strands Agents](https://strandsagents.com/latest/) framework, Amazon
 
 ### Backend Logs
 
-![Logs Preview](docs/images/logs-preview.png)
+![Logs Preview 1](docs/images/logs-preview.png)
+
+![Logs Preview 2](docs/images/logs-preview-2.png)
 
 ---
 
@@ -59,7 +63,6 @@ Get the system running locally in under 5 minutes!
 
 - **Python 3.13+** with [uv package manager](https://docs.astral.sh/uv/getting-started/installation/)
 - **Node.js 18+** with npm
-- **AWS Account** with Bedrock access ([setup guide](#aws-bedrock-setup))
 - **AWS Credentials** configured (access keys or AWS profile)
 
 ### Setup
@@ -154,14 +157,16 @@ This starts the React frontend at `http://localhost:5173`
 
 Navigate to `http://localhost:5173` to see the UI!
 
-Try out pre-configured projects, such as the "Kitchen Remodel (Template)":
-
-"Complete kitchen renovation for a 12x18 feet space in modern style. Install new tile flooring throughout the kitchen. Install light-colored wood cabinets with marble countertops. Construct and install a kitchen island for food preparation. Install modern, stylish overhead lighting fixtures. Supply and install new kitchen appliances, including range, refrigerator, dishwasher, and microwave. All work to follow modern design aesthetic with coordinated finishes across flooring, cabinetry, and countertops. Include adequate electrical and plumbing rough-in for new appliances and island."
-
-Or, use the "Custom Project (Custom)", such as:
+Try out pre-configured projects, such as the **Kitchen Remodel (Template)**:
 
 ```text
-Build an 8x10 garden shed with a single window, wood siding, an asphalt shingle roof, and a concrete slab foundation.
+Complete kitchen renovation for a 12x18 feet space in modern style. Install new tile flooring throughout the kitchen. Install light-colored wood cabinets with marble countertops. Construct and install a kitchen island for food preparation. Install modern, stylish overhead lighting fixtures. Supply and install new kitchen appliances, including range, refrigerator, dishwasher, and microwave. All work to follow modern design aesthetic with coordinated finishes across flooring, cabinetry, and countertops. Include adequate electrical and plumbing rough-in for new appliances and island.
+```
+
+Or, use the **Custom Project (Custom)**, such as:
+
+```text
+Build an 8x10 garden shed with a single window, wood siding, an asphalt shingle roof, and a concrete slab foundation. Siding should be painted light green. Include electrical wiring for one outlet and one overhead light fixture.
 ```
 
 ---

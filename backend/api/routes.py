@@ -154,7 +154,7 @@ async def detailed_health_check():
     health_report = {
         "timestamp": datetime.now().isoformat(),
         "overall_status": "healthy",
-        "components": {}
+        "components": {},
     }
 
     try:
@@ -162,7 +162,7 @@ async def detailed_health_check():
         health_report["components"]["backend_api"] = {
             "status": "up",
             "details": "API server is running",
-            "version": "1.0.0"
+            "version": "1.0.0",
         }
 
         # Check MCP servers
@@ -177,10 +177,7 @@ async def detailed_health_check():
                     logger.debug(f"MCP {service_name} service is down")
 
         except Exception as e:
-            health_report["components"]["mcp_services"] = {
-                "status": "down",
-                "error": str(e)
-            }
+            health_report["components"]["mcp_services"] = {"status": "down", "error": str(e)}
             health_report["overall_status"] = "degraded"
             logger.debug(f"MCP services check failed: {e}")
 
@@ -189,13 +186,10 @@ async def detailed_health_check():
             task_count = len(contractor.task_manager.tasks)
             health_report["components"]["task_manager"] = {
                 "status": "up",
-                "details": f"{task_count} tasks in memory"
+                "details": f"{task_count} tasks in memory",
             }
         except Exception as e:
-            health_report["components"]["task_manager"] = {
-                "status": "down",
-                "error": str(e)
-            }
+            health_report["components"]["task_manager"] = {"status": "down", "error": str(e)}
             health_report["overall_status"] = "unhealthy"
 
         # Check agents
@@ -204,13 +198,10 @@ async def detailed_health_check():
             health_report["components"]["agents"] = {
                 "status": "up",
                 "details": f"{agent_count} agents available",
-                "agents": list(contractor.agents.keys())
+                "agents": list(contractor.agents.keys()),
             }
         except Exception as e:
-            health_report["components"]["agents"] = {
-                "status": "down",
-                "error": str(e)
-            }
+            health_report["components"]["agents"] = {"status": "down", "error": str(e)}
             health_report["overall_status"] = "unhealthy"
 
         logger.debug(f"Health check complete: {health_report['overall_status']}")
@@ -250,15 +241,17 @@ async def start_project(request: ProjectRequest):
             validation_result = contractor._validate_project_requirements(
                 request.project_type, request.description, **request.parameters
             )
-            if not validation_result['valid']:
-                logger.warning(f"Validation error for {request.project_type}: {validation_result['missing_fields']}")
+            if not validation_result["valid"]:
+                logger.warning(
+                    f"Validation error for {request.project_type}: {validation_result['missing_fields']}"
+                )
                 raise HTTPException(
                     status_code=400,
                     detail={
-                        "message": validation_result['message'],
-                        "missing_fields": validation_result['missing_fields'],
-                        "suggestions": validation_result['suggestions'],
-                    }
+                        "message": validation_result["message"],
+                        "missing_fields": validation_result["missing_fields"],
+                        "suggestions": validation_result["suggestions"],
+                    },
                 )
         logger.error(f"ValueError starting project: {e}")
         raise HTTPException(status_code=400, detail=str(e))

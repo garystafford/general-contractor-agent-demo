@@ -163,7 +163,7 @@ class GeneralContractorAgent:
         health_status = {
             "materials": {"status": "unknown", "details": None},
             "permitting": {"status": "unknown", "details": None},
-            "initialized": self._mcp_initialized
+            "initialized": self._mcp_initialized,
         }
 
         # If not initialized, try to initialize
@@ -190,17 +190,23 @@ class GeneralContractorAgent:
             try:
                 # Simple health check - verify client exists and is initialized
                 # MCPClient doesn't expose list_tools, so we just verify it's ready
-                if client and hasattr(client, 'call_tool_async'):
+                if client and hasattr(client, "call_tool_async"):
                     health_status[service_name]["status"] = "up"
                     health_status[service_name]["details"] = "Client initialized and ready"
                     # List known tools for each service
                     if service_name == "materials":
                         health_status[service_name]["tools"] = [
-                            "get_catalog", "check_availability", "order_materials", "get_order_status"
+                            "get_catalog",
+                            "check_availability",
+                            "order_materials",
+                            "get_order_status",
                         ]
                     elif service_name == "permitting":
                         health_status[service_name]["tools"] = [
-                            "apply_for_permit", "check_permit_status", "schedule_inspection", "get_required_permits"
+                            "apply_for_permit",
+                            "check_permit_status",
+                            "schedule_inspection",
+                            "get_required_permits",
                         ]
                 else:
                     health_status[service_name]["status"] = "unknown"
@@ -439,67 +445,99 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
         # Validation rules by project type
         if project_type == "kitchen_remodel":
             # Check for dimensions
-            if not re.search(r'\d+\s*[xX×]\s*\d+', description) and 'feet' not in description_lower and 'square' not in description_lower:
+            if (
+                not re.search(r"\d+\s*[xX×]\s*\d+", description)
+                and "feet" not in description_lower
+                and "square" not in description_lower
+            ):
                 missing_fields.append('Kitchen dimensions (e.g., "12 feet by 15 feet" or "12x15")')
-                suggestions.append('Add the length and width of your kitchen space')
+                suggestions.append("Add the length and width of your kitchen space")
 
             # Check for style
-            styles = ['modern', 'traditional', 'transitional', 'farmhouse', 'contemporary', 'rustic']
+            styles = [
+                "modern",
+                "traditional",
+                "transitional",
+                "farmhouse",
+                "contemporary",
+                "rustic",
+            ]
             if not any(style in description_lower for style in styles):
-                missing_fields.append('Kitchen style preference (modern, traditional, transitional, or farmhouse)')
-                suggestions.append('Specify your preferred kitchen style')
+                missing_fields.append(
+                    "Kitchen style preference (modern, traditional, transitional, or farmhouse)"
+                )
+                suggestions.append("Specify your preferred kitchen style")
 
         elif project_type == "bathroom_remodel":
             # Check for dimensions
-            if not re.search(r'\d+\s*[xX×]\s*\d+', description) and 'feet' not in description_lower and 'square' not in description_lower:
+            if (
+                not re.search(r"\d+\s*[xX×]\s*\d+", description)
+                and "feet" not in description_lower
+                and "square" not in description_lower
+            ):
                 missing_fields.append('Bathroom dimensions (e.g., "8x10 feet")')
-                suggestions.append('Add the dimensions of your bathroom')
+                suggestions.append("Add the dimensions of your bathroom")
 
             # Check for fixtures
-            fixtures = ['toilet', 'sink', 'shower', 'tub', 'bathtub', 'vanity']
+            fixtures = ["toilet", "sink", "shower", "tub", "bathtub", "vanity"]
             if not any(fixture in description_lower for fixture in fixtures):
-                missing_fields.append('Fixture requirements (toilet, sink, shower, tub, etc.)')
-                suggestions.append('List which fixtures you want to install or replace')
+                missing_fields.append("Fixture requirements (toilet, sink, shower, tub, etc.)")
+                suggestions.append("List which fixtures you want to install or replace")
 
         elif project_type == "addition":
             # Check for size
-            if 'square' not in description_lower and 'sq' not in description_lower and not re.search(r'\d+\s*[xX×]\s*\d+', description):
-                missing_fields.append('Size of addition (square footage or dimensions)')
-                suggestions.append('Specify how large the addition should be')
+            if (
+                "square" not in description_lower
+                and "sq" not in description_lower
+                and not re.search(r"\d+\s*[xX×]\s*\d+", description)
+            ):
+                missing_fields.append("Size of addition (square footage or dimensions)")
+                suggestions.append("Specify how large the addition should be")
 
             # Check for room type
-            room_types = ['bedroom', 'room', 'office', 'living', 'family', 'kitchen', 'bathroom']
+            room_types = ["bedroom", "room", "office", "living", "family", "kitchen", "bathroom"]
             if not any(room_type in description_lower for room_type in room_types):
-                missing_fields.append('Type of room being added (bedroom, office, family room, etc.)')
-                suggestions.append('Describe what type of space you\'re adding')
+                missing_fields.append(
+                    "Type of room being added (bedroom, office, family room, etc.)"
+                )
+                suggestions.append("Describe what type of space you're adding")
 
         elif project_type == "shed_construction":
             # Check for dimensions
-            if not re.search(r'\d+\s*[xX×]\s*\d+', description):
+            if not re.search(r"\d+\s*[xX×]\s*\d+", description):
                 missing_fields.append('Shed dimensions (e.g., "10x12 feet")')
-                suggestions.append('Specify the length and width of the shed')
+                suggestions.append("Specify the length and width of the shed")
 
         elif project_type == "new_construction":
             # Check for square footage
-            if 'square' not in description_lower and 'sq ft' not in description_lower and 'sqft' not in description_lower:
-                missing_fields.append('Total square footage of the building')
-                suggestions.append('Provide the total size of the construction project')
+            if (
+                "square" not in description_lower
+                and "sq ft" not in description_lower
+                and "sqft" not in description_lower
+            ):
+                missing_fields.append("Total square footage of the building")
+                suggestions.append("Provide the total size of the construction project")
 
             # Check for number of floors
-            if 'story' not in description_lower and 'stories' not in description_lower and 'floor' not in description_lower and 'level' not in description_lower:
-                missing_fields.append('Number of floors/stories')
-                suggestions.append('Specify how many floors the building will have')
+            if (
+                "story" not in description_lower
+                and "stories" not in description_lower
+                and "floor" not in description_lower
+                and "level" not in description_lower
+            ):
+                missing_fields.append("Number of floors/stories")
+                suggestions.append("Specify how many floors the building will have")
 
         # Return validation result
         if missing_fields:
             return {
-                'valid': False,
-                'missing_fields': missing_fields,
-                'suggestions': suggestions,
-                'message': f'The {project_type.replace("_", " ")} description needs additional details to proceed.'
+                "valid": False,
+                "missing_fields": missing_fields,
+                "suggestions": suggestions,
+                "message": f'The {project_type.replace("_", " ")} description needs additional details to proceed.',
             }
 
-        return {'valid': True}
+        return {"valid": True}
 
     async def start_project(
         self,
@@ -530,9 +568,13 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
             validation_result = self._validate_project_requirements(
                 project_type, project_description, **kwargs
             )
-            if not validation_result['valid']:
-                logger.warning(f"Project validation failed for {project_type}: {validation_result['missing_fields']}")
-                raise ValueError(f"Missing required information: {', '.join(validation_result['missing_fields'])}")
+            if not validation_result["valid"]:
+                logger.warning(
+                    f"Project validation failed for {project_type}: {validation_result['missing_fields']}"
+                )
+                raise ValueError(
+                    f"Missing required information: {', '.join(validation_result['missing_fields'])}"
+                )
 
         # Create project record
         self.current_project = {
@@ -794,8 +836,8 @@ Complete this task using your specialized tools efficiently."""
                         "suggestions": [
                             "Some tasks may be missing required information",
                             "Check if all assigned agents are properly configured",
-                            "Consider resetting the project with more complete details"
-                        ]
+                            "Consider resetting the project with more complete details",
+                        ],
                     }
                     break
                 elif in_progress == 0 and pending == 0:
