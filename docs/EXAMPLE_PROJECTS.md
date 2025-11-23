@@ -7,7 +7,7 @@ This document contains example project descriptions you can use to test the Gene
 ### 1. Garden Shed with Window
 
 ```text
-Build an 8x10 garden shed with a single window, wood siding, asphalt shingle roof, and a concrete slab foundation.
+Build an 8x10 garden shed with a single window, wood siding, an asphalt shingle roof, and a concrete slab foundation.
 ```
 
 **Expected Output**: Basic structure with foundation, framing, exterior finishing, roofing, and window installation tasks.

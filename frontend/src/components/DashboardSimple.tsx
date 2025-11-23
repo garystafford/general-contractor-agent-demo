@@ -150,27 +150,81 @@ export function DashboardSimple() {
 
   // Calculate ACTUAL construction phase from tasks, not project status
   const getActualPhase = () => {
+    // Helper to normalize phase for comparison and return normalized phase name
+    const normalizeAndGetPhase = (phase: string): { index: number; normalized: string } => {
+      // Check if phase is already in PHASES
+      if (PHASES.includes(phase)) {
+        return { index: PHASES.indexOf(phase), normalized: phase };
+      }
+
+      // Map common variations to standard phases
+      const phaseMap: Record<string, string> = {
+        'construction': 'framing',
+        'demolition': 'framing',
+        'build': 'framing',
+        'install': 'finishing',
+        'interior': 'finishing',
+        'exterior': 'finishing',
+      };
+
+      const normalized = phaseMap[phase] || 'planning';
+      return { index: PHASES.indexOf(normalized), normalized };
+    };
+
     // If project is 100% complete, show final_inspection as completed
     if (task_status.completion_percentage >= 100) {
       return 'final_inspection';
     }
 
-    // Find the phase of tasks currently in progress
+    // Find the furthest phase among in-progress tasks
     const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
     if (inProgressTasks.length > 0) {
-      return inProgressTasks[0].phase;
+      let maxPhaseIndex = -1;
+      let maxPhaseNormalized = 'planning';
+
+      inProgressTasks.forEach(task => {
+        const { index, normalized } = normalizeAndGetPhase(task.phase);
+        if (index > maxPhaseIndex) {
+          maxPhaseIndex = index;
+          maxPhaseNormalized = normalized;
+        }
+      });
+
+      return maxPhaseNormalized;
     }
 
-    // Find the phase of the last completed task
+    // Find the furthest phase among completed tasks
     const completedTasks = tasks.filter(t => t.status === 'completed');
     if (completedTasks.length > 0) {
-      return completedTasks[completedTasks.length - 1].phase;
+      let maxPhaseIndex = -1;
+      let maxPhaseNormalized = 'planning';
+
+      completedTasks.forEach(task => {
+        const { index, normalized } = normalizeAndGetPhase(task.phase);
+        if (index > maxPhaseIndex) {
+          maxPhaseIndex = index;
+          maxPhaseNormalized = normalized;
+        }
+      });
+
+      return maxPhaseNormalized;
     }
 
-    // Find the phase of ready tasks
+    // Find the furthest phase among ready tasks
     const readyTasks = tasks.filter(t => t.status === 'ready');
     if (readyTasks.length > 0) {
-      return readyTasks[0].phase;
+      let maxPhaseIndex = -1;
+      let maxPhaseNormalized = 'planning';
+
+      readyTasks.forEach(task => {
+        const { index, normalized } = normalizeAndGetPhase(task.phase);
+        if (index > maxPhaseIndex) {
+          maxPhaseIndex = index;
+          maxPhaseNormalized = normalized;
+        }
+      });
+
+      return maxPhaseNormalized;
     }
 
     return 'planning';

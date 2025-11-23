@@ -117,6 +117,8 @@ This starts the React frontend at `http://localhost:5173`
 
 Navigate to `http://localhost:5173` to see the UI!
 
+Try out pre-configured projects or create a custom project description, such as: "Build an 8x10 garden shed with a single window, wood siding, an asphalt shingle roof, and a concrete slab foundation."
+
 ### Quick Test (No AWS Required)
 
 Want to see how it works without AWS setup?
