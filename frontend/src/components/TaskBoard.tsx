@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useProjectStore } from '../store/projectStore';
 import { apiClient } from '../api/client';
-import { Task, TaskStatus } from '../types';
+import type { Task, TaskStatus } from '../types';
 import { CheckCircle2, Circle, Clock, XCircle, AlertTriangle } from 'lucide-react';
 
 const STATUS_COLUMNS: { status: TaskStatus; label: string; color: string }[] = [

@@ -14,6 +14,7 @@ import {
   RefreshCw,
   XCircle,
   RefreshCcw,
+  Network,
 } from 'lucide-react';
 import ErrorModal from './ErrorModal';
 
@@ -383,8 +384,8 @@ export function DashboardSimple() {
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex-1 min-w-0">
             <button
               onClick={() => navigate('/')}
               className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white mb-4 transition"
@@ -395,25 +396,35 @@ export function DashboardSimple() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               Project Dashboard
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
               {projectData.description}
             </p>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => navigate('/graph')}
+              className="flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition whitespace-nowrap"
+              title="View agent network graph"
+            >
+              <Network className="w-4 h-4" />
+              <span className="hidden sm:inline">Network Graph</span>
+              <span className="sm:hidden">Graph</span>
+            </button>
             <button
               onClick={fetchProjectData}
-              className="flex items-center space-x-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition"
+              className="flex items-center gap-2 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition whitespace-nowrap"
               title="Manually refresh data from backend"
             >
               <RefreshCw className="w-4 h-4" />
-              <span>Refresh</span>
+              <span className="hidden sm:inline">Refresh</span>
             </button>
             <button
               onClick={handleReset}
-              className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
+              className="flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition whitespace-nowrap"
+              title="Reset project"
             >
               <RotateCcw className="w-4 h-4" />
-              <span>Reset</span>
+              <span className="hidden sm:inline">Reset</span>
             </button>
           </div>
         </div>

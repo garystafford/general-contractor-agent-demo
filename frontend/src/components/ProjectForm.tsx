@@ -384,6 +384,12 @@ export function ProjectForm() {
               Go to dashboard →
             </button>
             <button
+              onClick={() => navigate('/graph')}
+              className="text-indigo-600 dark:text-indigo-400 hover:underline"
+            >
+              View network graph →
+            </button>
+            <button
               onClick={() => navigate('/health')}
               className="text-green-600 dark:text-green-400 hover:underline"
             >

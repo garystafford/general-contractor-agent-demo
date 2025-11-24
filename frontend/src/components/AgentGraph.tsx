@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   ReactFlow,
-  Node,
-  Edge,
+  type Node,
+  type Edge,
   Controls,
   Background,
   useNodesState,
@@ -12,7 +12,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { useProjectStore } from '../store/projectStore';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { AgentActivityMessage } from '../types';
+import type { AgentActivityMessage } from '../types';
 
 const AGENT_NAMES = [
   'Architect',
@@ -78,8 +78,8 @@ const nodeTypes = {
 
 export function AgentGraph() {
   const { agentActivity } = useProjectStore();
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [activeAgents, setActiveAgents] = useState<Set<string>>(new Set());
 
   // Handle WebSocket messages for agent activity
