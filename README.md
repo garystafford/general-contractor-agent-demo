@@ -29,17 +29,21 @@ Built with [Strands Agents](https://strandsagents.com/latest/) framework, Amazon
 
 ## Previews
 
-### React Frontend Project Submission Form
+### Frontend: Project Submission Form
 
 ![Form Preview](docs/images/form-preview.png)
 
-### React Frontend Dashboard
+### Frontend: Project Dashboard
 
 ![Dashboard Preview 1](docs/images/dashboard-preview-2.png)
 
 ![Dashboard Preview 2](docs/images/dashboard-preview.png)
 
-### React System Health Dashboard
+### Frontend: Network Graph
+
+![Network Graph Preview](docs/images/network-graph-preview.png)
+
+### Frontend: System Health Status
 
 ![System Health Preview](docs/images/system-health-preview.png)
 
