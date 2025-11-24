@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { useProjectStore, type ErrorDetail } from '../store/projectStore';
 import toast from 'react-hot-toast';
-import { Building2, Hammer, Info } from 'lucide-react';
+import { Building2, Hammer, Info, LayoutDashboard, Network, Activity } from 'lucide-react';
 import ErrorModal from './ErrorModal';
 
 const PROJECT_TYPES = [
@@ -379,21 +379,24 @@ export function ProjectForm() {
           <div className="mt-3 flex gap-4 text-sm">
             <button
               onClick={() => navigate('/dashboard')}
-              className="text-blue-600 dark:text-blue-400 hover:underline"
+              className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 hover:underline"
             >
-              Go to dashboard →
+              <LayoutDashboard className="w-4 h-4" />
+              <span>Go to dashboard →</span>
             </button>
             <button
               onClick={() => navigate('/graph')}
-              className="text-indigo-600 dark:text-indigo-400 hover:underline"
+              className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 hover:underline"
             >
-              View network graph →
+              <Network className="w-4 h-4" />
+              <span>View network graph →</span>
             </button>
             <button
               onClick={() => navigate('/health')}
-              className="text-green-600 dark:text-green-400 hover:underline"
+              className="flex items-center gap-1.5 text-green-600 dark:text-green-400 hover:underline"
             >
-              System health status →
+              <Activity className="w-4 h-4" />
+              <span>System health status →</span>
             </button>
           </div>
         </div>
