@@ -27,6 +27,8 @@ Built with [Strands Agents](https://strandsagents.com/latest/) framework, Amazon
 - React Hot Toast (notifications)
 - Lucide React (icons)
 
+See the [Architecture](docs/ARCHITECTURE.md) document for detailed system architecture diagrams and component details 🏗️
+
 ## Previews
 
 ### Frontend: Project Submission Form
@@ -778,7 +780,7 @@ cd frontend && npm run lint:fix
 
 ## Documentation
 
-- **[ARCHITECTURE.md](docs/architecture.md)** - System architecture diagrams and component details 🏗️
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture diagrams and component details 🏗️
 - **[SUMMARY.md](docs/SUMMARY.md)** - Project overview and quick reference ⭐
 - **[QUICKSTART.md](docs/QUICKSTART.md)** - Quick start guide and test script overview
 - **[EXAMPLE_PROJECTS.md](docs/EXAMPLE_PROJECTS.md)** - Sample project descriptions to test with 📝
