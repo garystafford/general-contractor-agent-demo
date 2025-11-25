@@ -35,6 +35,7 @@ const AGENTS = [
   'Painter',
   'HVAC',
   'Roofer',
+  'Project Planning',
 ];
 
 const MCP_SERVERS = [

@@ -29,6 +29,7 @@ def initialize_all_agents():
         "Painter": create_painter_agent(),
         "HVAC": create_hvac_agent(),
         "Roofer": create_roofer_agent(),
+        "Project Planning": create_project_planner_agent(),
     }
 
     return agents
