@@ -143,7 +143,7 @@ npm run lint
 
 Write clear, descriptive commit messages:
 
-```
+```text
 <type>: <subject>
 
 <body>
@@ -163,7 +163,7 @@ Write clear, descriptive commit messages:
 
 **Example:**
 
-```
+```text
 feat: Add retry logic for failed tasks
 
 Implement automatic retry mechanism for tasks that fail due to

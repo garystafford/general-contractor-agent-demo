@@ -445,7 +445,7 @@ graph TB
 
 ## File Structure
 
-```
+```text
 general-contractor-agent-demo/
 ├── backend/
 │   ├── agents/
