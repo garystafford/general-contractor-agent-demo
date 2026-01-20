@@ -45,7 +45,7 @@ git clone https://github.com/YOUR_USERNAME/general-contractor-agent-demo.git
 cd general-contractor-agent-demo
 ```
 
-2. **Set up Python environment:**
+1. **Set up Python environment:**
 
 ```bash
 # Install uv if not already installed
@@ -58,7 +58,7 @@ uv sync
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
 
-3. **Set up frontend:**
+1. **Set up frontend:**
 
 ```bash
 cd frontend
@@ -66,14 +66,14 @@ npm install
 cd ..
 ```
 
-4. **Configure environment:**
+1. **Configure environment:**
 
 ```bash
 cp .env.example .env
 # Edit .env with your AWS credentials
 ```
 
-5. **Verify setup:**
+1. **Verify setup:**
 
 ```bash
 # Terminal 1: Start backend
@@ -83,7 +83,7 @@ python start.py
 cd frontend && npm run dev
 ```
 
-Visit http://localhost:5173 to verify the application is running.
+Visit <http://localhost:5173> to verify the application is running.
 
 ## How to Contribute
 
@@ -222,33 +222,33 @@ git checkout -b feature/your-feature-name
 git checkout -b fix/issue-number-description
 ```
 
-2. **Make your changes:**
+1. **Make your changes:**
 
    - Write clean, documented code
    - Follow coding standards
    - Add tests for new functionality
    - Update documentation as needed
 
-3. **Test thoroughly:**
+2. **Test thoroughly:**
 
    - Run all tests
    - Verify linting passes
    - Test manually
 
-4. **Commit your changes:**
+3. **Commit your changes:**
 
 ```bash
 git add .
 git commit -m "feat: your descriptive commit message"
 ```
 
-5. **Push to your fork:**
+1. **Push to your fork:**
 
 ```bash
 git push origin feature/your-feature-name
 ```
 
-6. **Open a Pull Request:**
+1. **Open a Pull Request:**
    - Go to the original repository
    - Click "New Pull Request"
    - Select your branch

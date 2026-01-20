@@ -36,6 +36,7 @@ result = await asyncio.wait_for(
 ```
 
 **Benefits:**
+
 - ✅ **GUARANTEED** to prevent infinite loops
 - Fails gracefully with informative error message
 - Configurable via `TASK_TIMEOUT_SECONDS` environment variable
@@ -61,6 +62,7 @@ IMPORTANT GUIDELINES:
 ```
 
 **Benefits:**
+
 - Provides clear instructions to LLM about when to stop
 - Reduces likelihood of repeated tool calls
 - Makes completion criteria explicit
@@ -77,6 +79,7 @@ with your tools, provide a summary and finish. Do not repeat tool calls unnecess
 ```
 
 **Benefits:**
+
 - Reinforces completion behavior at task level
 - Works in conjunction with system prompt
 - Applies to all tasks uniformly
@@ -117,6 +120,7 @@ logging.basicConfig(level=logging.DEBUG)
 ```
 
 Watch for patterns like:
+
 ```
 Tool #1: install_underlayment
 Tool #2: install_shingles
@@ -198,6 +202,7 @@ Modify a task to explicitly request repeated actions and verify agent stops appr
 ### Issue: Agent Still Repeating After Prompt Updates
 
 **Possible Causes:**
+
 1. Tool results not being properly returned
 2. Agent receiving ambiguous task description
 3. Task requirements unclear (e.g., "install roof" vs "install underlayment and shingles")

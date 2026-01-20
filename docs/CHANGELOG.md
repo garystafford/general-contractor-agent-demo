@@ -318,7 +318,7 @@ Pre-configured templates for common construction projects:
 
 ## Summary Statistics
 
-### Across All Sessions:
+### Across All Sessions
 
 - **Total Commits**: 13+
 - **Files Created**: 30+
@@ -335,7 +335,7 @@ Pre-configured templates for common construction projects:
 - **Lines of Code**: 10,000+
 - **Code Quality Issues Fixed**: 19
 
-### Key Transformations:
+### Key Transformations
 
 - ❌ Manual execution → ✅ Fully autonomous
 - ❌ Template-only → ✅ AI-powered dynamic planning
@@ -377,17 +377,17 @@ Pre-configured templates for common construction projects:
 
 ## Breaking Changes
 
-### Session 4 (Today):
+### Session 4 (Today)
 
 - **Removed manual execution buttons**: System is now fully autonomous by default
 - **Changed default refresh interval**: From 1s to 3s (configurable)
 - **Navigation behavior**: Projects auto-navigate to dashboard on submission
 
-### Session 3:
+### Session 3
 
 - **Added dynamic planning**: New parameter in `/api/projects/start` endpoint
 
-### Session 2:
+### Session 2
 
 - **Project structure reorganization**: Import paths changed
 - **Loop detection**: New configuration variables required
@@ -396,7 +396,7 @@ Pre-configured templates for common construction projects:
 
 ## Migration Guide
 
-### Upgrading to Session 4 Changes:
+### Upgrading to Session 4 Changes
 
 1. **Update environment files**:
 
@@ -419,13 +419,13 @@ Pre-configured templates for common construction projects:
 
 ## Known Issues & Future Enhancements
 
-### Known Issues:
+### Known Issues
 
 - Some TypeScript strict mode warnings remain (acceptable)
 - WebSocket reconnection logic has linting warnings (functional)
 - MCP server call logging not visible in UI (planned for future)
 
-### Planned Enhancements:
+### Planned Enhancements
 
 - **MCP Activity Logging**: Show materials orders and permit applications in activity feed
 - **Task detail view**: Click tasks to see full execution details

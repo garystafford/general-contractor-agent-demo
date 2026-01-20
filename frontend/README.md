@@ -117,23 +117,27 @@ VITE_API_URL=http://localhost:8000
 ## Features Overview
 
 ### 1. Project Form
+
 - Select from predefined templates (Kitchen, Bathroom, etc.) or custom projects
 - Option to use AI-powered dynamic planning
 - Detailed project description input
 
 ### 2. Dashboard
+
 - Real-time project statistics (completion %, tasks in progress, etc.)
 - Construction phase progress bar
 - Agent collaboration graph showing active agents and MCP servers
 - Execute controls (Next Phase, Execute All, Reset)
 
 ### 3. Agent Graph
+
 - Visual representation of all agents and MCP servers
 - Nodes light up when agents are active
 - Animated edges show task delegation
 - Real-time updates via WebSocket
 
 ### 4. Task Board
+
 - Kanban board with columns: Pending, Ready, In Progress, Completed, Failed
 - Task cards showing agent, description, phase, and dependencies
 - Real-time task status updates
@@ -144,6 +148,7 @@ VITE_API_URL=http://localhost:8000
 ### WebSocket Connection Issues
 
 If WebSocket connections fail:
+
 1. Ensure backend is running on `http://localhost:8000`
 2. Check browser console for connection errors
 3. WebSocket connections will auto-reconnect (max 5 attempts)
@@ -151,6 +156,7 @@ If WebSocket connections fail:
 ### CORS Issues
 
 If you see CORS errors:
+
 1. Backend CORS is configured to allow all origins
 2. Check that backend is running and accessible
 3. Verify API URL in the API client (`src/api/client.ts`)
@@ -158,6 +164,7 @@ If you see CORS errors:
 ### Build Errors
 
 If you encounter TypeScript errors:
+
 ```bash
 npm run build -- --mode development
 ```

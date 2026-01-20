@@ -275,7 +275,6 @@ This system models a construction project where a **General Contractor** agent o
 Two MCP servers run as separate processes, communicating via `stdio`:
 
 1. **Materials Supplier Server** (`backend/mcp_servers/materials_supplier.py`)
-
    - Tools: `check_availability`, `order_materials`, `get_catalog`, `get_order`
    - Manages inventory, pricing, and material ordering
    - Categories: lumber, electrical, plumbing, masonry, paint, HVAC, roofing
@@ -308,26 +307,22 @@ The React frontend provides a comprehensive real-time view of your construction 
 **Dashboard Components**
 
 1. **Auto-Refresh Indicator**
-
    - Shows "🔴 LIVE" when tasks are in progress
    - Updates every few seconds for real-time feedback
    - Manual refresh button available
 
 2. **Stats Cards**
-
    - Completion percentage
    - Tasks in progress
    - Completed/Total tasks
    - Failed tasks count
 
 3. **Phase Progress Bar**
-
    - Visual representation of 8 construction phases
    - Color-coded: green (completed), blue (current), gray (upcoming)
    - Shows current phase name
 
 4. **Live Activity Feed** (scrollable, 600px height)
-
    - **Blue cards (pulsing)**: Agents currently working
    - **Green cards**: Completed tasks (most recent first)
    - **Yellow cards**: Queued tasks waiting to start
