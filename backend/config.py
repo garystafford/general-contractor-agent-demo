@@ -26,12 +26,20 @@ class Settings(BaseSettings):
     api_port: int = 8000
 
     # MCP Server configuration
-    # Paths to MCP server Python scripts (for stdio communication)
+    # Mode: "stdio" (local subprocess) or "http" (remote AgentCore Gateway)
+    mcp_mode: str = "stdio"
+
+    # Stdio mode: Paths to MCP server Python scripts (for local subprocess communication)
     materials_mcp_path: str = "backend/mcp_servers/materials_supplier.py"
     permitting_mcp_path: str = "backend/mcp_servers/permitting.py"
 
     # Python executable to use for MCP servers (defaults to current interpreter)
     mcp_python_executable: str = "python"
+
+    # HTTP mode: URLs for remote MCP servers (AgentCore Gateway endpoints)
+    # Set these when mcp_mode="http" to connect to deployed MCP servers
+    materials_mcp_url: Optional[str] = None  # e.g., "http://materials-mcp-alb.us-east-1.elb.amazonaws.com/mcp"
+    permitting_mcp_url: Optional[str] = None  # e.g., "http://permitting-mcp-alb.us-east-1.elb.amazonaws.com/mcp"
 
     # Project settings
     max_parallel_tasks: int = 3

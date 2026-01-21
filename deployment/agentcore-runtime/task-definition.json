@@ -1,0 +1,90 @@
+{
+  "family": "agentcore-runtime-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "executionRoleArn": "EXECUTION_ROLE_ARN_PLACEHOLDER",
+  "taskRoleArn": "TASK_ROLE_ARN_PLACEHOLDER",
+  "containerDefinitions": [
+    {
+      "name": "agentcore-runtime",
+      "image": "IMAGE_URI_PLACEHOLDER",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "hostPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "API_HOST",
+          "value": "0.0.0.0"
+        },
+        {
+          "name": "API_PORT",
+          "value": "8000"
+        },
+        {
+          "name": "LOG_LEVEL",
+          "value": "INFO"
+        },
+        {
+          "name": "MCP_MODE",
+          "value": "http"
+        },
+        {
+          "name": "MATERIALS_MCP_URL",
+          "value": "MATERIALS_MCP_URL_PLACEHOLDER"
+        },
+        {
+          "name": "PERMITTING_MCP_URL",
+          "value": "PERMITTING_MCP_URL_PLACEHOLDER"
+        },
+        {
+          "name": "TASK_TIMEOUT_SECONDS",
+          "value": "120"
+        },
+        {
+          "name": "MAX_CONSECUTIVE_TOOL_CALLS",
+          "value": "3"
+        },
+        {
+          "name": "MAX_TOTAL_TOOL_CALLS",
+          "value": "20"
+        },
+        {
+          "name": "AWS_REGION",
+          "value": "AWS_REGION_PLACEHOLDER"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "AWS_ACCESS_KEY_ID",
+          "valueFrom": "AWS_ACCESS_KEY_ARN_PLACEHOLDER"
+        },
+        {
+          "name": "AWS_SECRET_ACCESS_KEY",
+          "valueFrom": "AWS_SECRET_KEY_ARN_PLACEHOLDER"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/agentcore-runtime",
+          "awslogs-region": "AWS_REGION_PLACEHOLDER",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"],
+        "interval": 30,
+        "timeout": 10,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}

@@ -1,6 +1,9 @@
-# MCP Server Deployment to Amazon Bedrock AgentCore Gateways
+# AWS Deployment for Amazon Bedrock AgentCore
 
-This directory contains deployment code for deploying the two MCP servers (Materials Supplier and Permitting Service) to Amazon Bedrock AgentCore Gateways.
+This directory contains deployment code for the General Contractor system on AWS:
+
+1. **MCP Servers** - Materials Supplier and Permitting Service (ECS + AgentCore Gateway)
+2. **AgentCore Runtime** - Agent orchestration system connecting to MCP servers via HTTP
 
 ## Architecture
 
@@ -37,6 +40,10 @@ This directory contains deployment code for deploying the two MCP servers (Mater
 ```text
 deployment/
 ├── README.md                    # This file
+├── agentcore-runtime/           # Agent Runtime (connects to MCP via HTTP)
+│   ├── Dockerfile              # Container build configuration
+│   ├── task-definition.json    # ECS task definition
+│   └── deploy.sh               # Deployment script
 ├── materials-supplier/          # Materials Supplier MCP Server
 │   ├── Dockerfile              # Container build configuration
 │   ├── requirements.txt        # Python dependencies
@@ -57,7 +64,8 @@ deployment/
 │       └── server.py           # HTTP MCP server
 └── scripts/
     ├── create-gateway.sh       # Register with AgentCore Gateway
-    └── cleanup.sh              # Remove AWS resources
+    ├── cleanup.sh              # Remove AWS resources
+    └── update-ip.sh            # Update security groups with current IP
 ```
 
 ## Prerequisites
@@ -74,11 +82,17 @@ deployment/
 
 ## Quick Start
 
+### Make All Scripts Executable (One-Time Setup)
+
+```bash
+# From project root, make all deployment scripts executable
+chmod +x deployment/**/*.sh
+```
+
 ### Deploy Materials Supplier MCP Server
 
 ```bash
 cd deployment/materials-supplier
-chmod +x deploy.sh
 ./deploy.sh
 ```
 
@@ -86,7 +100,6 @@ chmod +x deploy.sh
 
 ```bash
 cd deployment/permitting-service
-chmod +x deploy.sh
 ./deploy.sh
 ```
 
@@ -96,12 +109,28 @@ After deployment, register each server with AgentCore:
 
 ```bash
 cd deployment/scripts
-chmod +x create-gateway.sh
 
 # Get the ALB DNS from deployment output, then:
 ./create-gateway.sh materials-supplier-mcp <alb-dns>
 ./create-gateway.sh permitting-service-mcp <alb-dns>
 ```
+
+### Deploy AgentCore Runtime (Full Stack)
+
+After MCP servers are deployed, deploy the agent runtime:
+
+```bash
+cd deployment/agentcore-runtime
+
+# Set MCP server URLs (from MCP deployment output)
+export MATERIALS_MCP_URL="http://materials-supplier-mcp-alb-xxx.us-east-1.elb.amazonaws.com/mcp"
+export PERMITTING_MCP_URL="http://permitting-service-mcp-alb-xxx.us-east-1.elb.amazonaws.com/mcp"
+
+# Deploy
+./deploy.sh
+```
+
+This deploys the General Contractor orchestration system with all 8 trade agents, configured to connect to MCP servers via HTTP instead of local subprocesses.
 
 ## Deployment Options
 
@@ -251,19 +280,37 @@ aws ecs describe-services \
 aws elbv2 describe-target-health --target-group-arn <tg-arn>
 ```
 
+## Update Security Group IP
+
+If your IP address changes, update the ALB security groups to allow access from your new IP:
+
+```bash
+cd deployment/scripts
+
+# Preview changes (dry run)
+./update-ip.sh --dry-run
+
+# Apply changes
+./update-ip.sh
+```
+
+This updates the security groups for all deployed services (materials-supplier-mcp, permitting-service-mcp, agentcore-runtime) to allow access from your current public IP.
+
 ## Cleanup
 
 Remove all AWS resources for a service:
 
 ```bash
 cd deployment/scripts
-chmod +x cleanup.sh
 
 # Remove Materials Supplier
 ./cleanup.sh materials-supplier-mcp
 
 # Remove Permitting Service
 ./cleanup.sh permitting-service-mcp
+
+# Remove AgentCore Runtime
+./cleanup.sh agentcore-runtime
 ```
 
 ## MCP Server Tools

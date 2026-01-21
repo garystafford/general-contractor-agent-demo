@@ -55,8 +55,8 @@
 
 9. Ways to Interact with Project Code
    - Deploy and run the project locally (what I am doing today)
-   - Deploy and run the project locally using Docker
-   - Deploy and run the project on AWS using EC2, ECS, EKS, or Fargate
+   - Deploy and run the project locally using Docker (code in project repo)
+   - Deploy and run the project on AWS using EC2, ECS, EKS, or Fargate  (code in project repo for ECS/Fargate)
    - Deploy and run the project using AWS Bedrock AgentCore (Runtime, Gateway, Identity, Observability, etc.)
 
 10. Wrap Up and Next Steps

@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 
 from mcp import StdioServerParameters
 from mcp.client.stdio import stdio_client
+from mcp.client.sse import sse_client
 from strands.tools.mcp import MCPClient
 
 from backend.agents import (
@@ -89,48 +90,15 @@ class GeneralContractorAgent:
             return
 
         try:
-            # Get the project root directory
-            project_root = Path.cwd()
+            mcp_mode = settings.mcp_mode.lower()
+            logger.info(f"Initializing MCP clients in {mcp_mode} mode")
 
-            # Use the same Python executable that's running this process
-            python_exe = sys.executable
-
-            logger.info(f"Initializing MCP clients using Python: {python_exe}")
-            logger.info(f"Project root: {project_root}")
-
-            # Initialize Materials Supplier MCP client
-            materials_path = project_root / settings.materials_mcp_path
-            logger.info(f"Materials MCP server path: {materials_path}")
-
-            materials_server_params = StdioServerParameters(
-                command=python_exe,
-                args=[str(materials_path)],
-                env=None,
-            )
-            # Create a callable that returns the stdio transport
-            materials_transport = lambda: stdio_client(materials_server_params)
-            materials_client = MCPClient(materials_transport)
-            logger.info("Starting Materials Supplier MCP client...")
-            materials_client.start()  # Note: start() is NOT async
-            self.mcp_clients["materials"] = materials_client
-            logger.info("✓ Materials Supplier MCP client initialized")
-
-            # Initialize Permitting Service MCP client
-            permitting_path = project_root / settings.permitting_mcp_path
-            logger.info(f"Permitting MCP server path: {permitting_path}")
-
-            permitting_server_params = StdioServerParameters(
-                command=python_exe,
-                args=[str(permitting_path)],
-                env=None,
-            )
-            # Create a callable that returns the stdio transport
-            permitting_transport = lambda: stdio_client(permitting_server_params)
-            permitting_client = MCPClient(permitting_transport)
-            logger.info("Starting Permitting Service MCP client...")
-            permitting_client.start()  # Note: start() is NOT async
-            self.mcp_clients["permitting"] = permitting_client
-            logger.info("✓ Permitting Service MCP client initialized")
+            if mcp_mode == "http":
+                # HTTP mode: Connect to remote MCP servers via HTTP/SSE
+                await self._initialize_http_mcp_clients()
+            else:
+                # Stdio mode: Launch MCP servers as local subprocesses
+                await self._initialize_stdio_mcp_clients()
 
             self._mcp_initialized = True
             logger.info("✓ All MCP clients initialized successfully")
@@ -138,6 +106,77 @@ class GeneralContractorAgent:
         except Exception as e:
             logger.error(f"❌ Error initializing MCP clients: {e}", exc_info=True)
             raise
+
+    async def _initialize_stdio_mcp_clients(self) -> None:
+        """Initialize MCP clients in stdio mode (local subprocesses)."""
+        project_root = Path.cwd()
+        python_exe = sys.executable
+
+        logger.info(f"Initializing MCP clients using Python: {python_exe}")
+        logger.info(f"Project root: {project_root}")
+
+        # Initialize Materials Supplier MCP client
+        materials_path = project_root / settings.materials_mcp_path
+        logger.info(f"Materials MCP server path: {materials_path}")
+
+        materials_server_params = StdioServerParameters(
+            command=python_exe,
+            args=[str(materials_path)],
+            env=None,
+        )
+        # Create a callable that returns the stdio transport
+        materials_transport = lambda: stdio_client(materials_server_params)
+        materials_client = MCPClient(materials_transport)
+        logger.info("Starting Materials Supplier MCP client...")
+        materials_client.start()  # Note: start() is NOT async
+        self.mcp_clients["materials"] = materials_client
+        logger.info("✓ Materials Supplier MCP client initialized (stdio)")
+
+        # Initialize Permitting Service MCP client
+        permitting_path = project_root / settings.permitting_mcp_path
+        logger.info(f"Permitting MCP server path: {permitting_path}")
+
+        permitting_server_params = StdioServerParameters(
+            command=python_exe,
+            args=[str(permitting_path)],
+            env=None,
+        )
+        # Create a callable that returns the stdio transport
+        permitting_transport = lambda: stdio_client(permitting_server_params)
+        permitting_client = MCPClient(permitting_transport)
+        logger.info("Starting Permitting Service MCP client...")
+        permitting_client.start()  # Note: start() is NOT async
+        self.mcp_clients["permitting"] = permitting_client
+        logger.info("✓ Permitting Service MCP client initialized (stdio)")
+
+    async def _initialize_http_mcp_clients(self) -> None:
+        """Initialize MCP clients in HTTP mode (remote servers via SSE)."""
+        # Validate HTTP URLs are configured
+        if not settings.materials_mcp_url:
+            raise ValueError("materials_mcp_url must be set when mcp_mode=http")
+        if not settings.permitting_mcp_url:
+            raise ValueError("permitting_mcp_url must be set when mcp_mode=http")
+
+        logger.info(f"Materials MCP server URL: {settings.materials_mcp_url}")
+        logger.info(f"Permitting MCP server URL: {settings.permitting_mcp_url}")
+
+        # Initialize Materials Supplier MCP client via HTTP/SSE
+        materials_url = settings.materials_mcp_url
+        materials_transport = lambda: sse_client(materials_url)
+        materials_client = MCPClient(materials_transport)
+        logger.info("Starting Materials Supplier MCP client (HTTP)...")
+        materials_client.start()
+        self.mcp_clients["materials"] = materials_client
+        logger.info(f"✓ Materials Supplier MCP client initialized (HTTP: {materials_url})")
+
+        # Initialize Permitting Service MCP client via HTTP/SSE
+        permitting_url = settings.permitting_mcp_url
+        permitting_transport = lambda: sse_client(permitting_url)
+        permitting_client = MCPClient(permitting_transport)
+        logger.info("Starting Permitting Service MCP client (HTTP)...")
+        permitting_client.start()
+        self.mcp_clients["permitting"] = permitting_client
+        logger.info(f"✓ Permitting Service MCP client initialized (HTTP: {permitting_url})")
 
     async def close_mcp_clients(self) -> None:
         """Close MCP client connections."""
