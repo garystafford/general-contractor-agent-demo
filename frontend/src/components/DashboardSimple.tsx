@@ -15,6 +15,7 @@ import {
   XCircle,
   RefreshCcw,
   Network,
+  Terminal,
 } from 'lucide-react';
 import ErrorModal from './ErrorModal';
 
@@ -401,6 +402,14 @@ export function DashboardSimple() {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => navigate('/activity')}
+              className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition whitespace-nowrap"
+              title="View agent activity monitor"
+            >
+              <Terminal className="w-4 h-4" />
+              <span className="hidden sm:inline">Activity</span>
+            </button>
             <button
               onClick={() => navigate('/graph')}
               className="flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition whitespace-nowrap"

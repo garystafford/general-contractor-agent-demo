@@ -32,7 +32,7 @@
    - Amazon Bedrock Foundation Models: Amazon Bedrock Foundation Models (LLM/VLM) provides access to leading foundation models from Anthropic, Meta, Amazon and other through a fully managed service.
    - Amazon Bedrock AgentCore: Amazon Bedrock AgentCore is an agentic platform on Bedrock for building, deploying, and operating production-grade AI agents with managed runtime, memory, policy, and observability services.
    - MCP (Model Context Protocol): MCP is an open standard from Anthropic that defines how AI applications (LLM “hosts”) connect to external tools, data sources, and prompts over a unified client–server protocol.
-   - Kiro: Kiro is an agentic AI IDE from AWS that uses AI agents, specs, and hooks to help you go from prompt to production, with deep integration into AWS workflows and tooling.
+   - Kiro: Kiro is an agentic AI IDE from AWS that uses AI agents, specs, and hooks to help you go from prompt to production, with deep integration into AWS workflows and tooling. It uses spec-driven development to help you build, test, and deploy AI applications faster.
 
 6. Relate Back to AI Agents
    - The General Contractor is a primary "orchestrator agent" who handles user interaction and determines which tradespeople to "specialized agents" to call

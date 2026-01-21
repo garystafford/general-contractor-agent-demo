@@ -2,7 +2,8 @@
 Project Planning agent for dynamic task generation using LLM knowledge.
 """
 
-from typing import Any, Dict, List
+import logging
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 from strands import Agent, tool
@@ -10,177 +11,134 @@ from strands.models import BedrockModel
 
 from backend.config import settings
 
+logger = logging.getLogger(__name__)
 
-# Tool Input Models
+# Global storage for the last finalized plan (thread-safe for single-threaded async)
+_last_finalized_plan: Optional[Dict[str, Any]] = None
+
+
+def get_last_finalized_plan() -> Optional[Dict[str, Any]]:
+    """Get the last finalized plan from the planning agent."""
+    global _last_finalized_plan
+    return _last_finalized_plan
+
+
+def clear_last_finalized_plan():
+    """Clear the stored plan."""
+    global _last_finalized_plan
+    _last_finalized_plan = None
+
+
+# Tool Input Models - Using simple confirmations to avoid LLM looping
 class AnalyzeProjectInput(BaseModel):
     """Input for analyzing project requirements."""
 
-    project_type: str = Field(
-        description="Type of construction project (e.g., dog_house, deck, treehouse)"
-    )
-    description: str = Field(description="Detailed project description")
-    parameters: Dict[str, Any] = Field(default={}, description="Additional project parameters")
+    confirmation: str = Field(default="ready", description="Confirm ready to analyze")
 
 
 class GenerateTasksInput(BaseModel):
     """Input for generating task breakdown."""
 
-    project_analysis: Dict[str, Any] = Field(description="Analysis from analyze_project_scope")
+    confirmation: str = Field(default="ready", description="Confirm ready to generate tasks")
 
 
 class ValidateDependenciesInput(BaseModel):
     """Input for validating task dependencies."""
 
-    tasks: List[Dict[str, Any]] = Field(description="List of generated tasks with dependencies")
+    confirmation: str = Field(default="ready", description="Confirm ready to validate")
 
 
 class AssignPhasesInput(BaseModel):
     """Input for assigning construction phases."""
 
-    tasks: List[Dict[str, Any]] = Field(description="List of tasks to assign to phases")
+    confirmation: str = Field(default="ready", description="Confirm ready to assign phases")
 
 
 # Tool Implementations
 @tool
 def analyze_project_scope(input: AnalyzeProjectInput) -> dict:
     """
-    Analyze project requirements and scope.
-
-    Returns project characteristics like:
-    - Scale (small, medium, large)
-    - Complexity (simple, moderate, complex)
-    - Required trades (list of specialist agents needed)
-    - Key phases (planning, construction, finishing, etc.)
-    - Estimated task count
-    - Special considerations (permits, inspections, safety)
+    Analyze project requirements. Call ONCE, then call generate_task_breakdown.
+    The project details are in the conversation - use your construction knowledge.
+    DO NOT call this tool again after receiving a response.
     """
     return {
-        "status": "analyzed",
-        "project_type": input.project_type,
-        "description": input.description,
-        "parameters": input.parameters,
-        "analysis": {
-            "scale": "determined_by_llm",
-            "complexity": "determined_by_llm",
-            "required_trades": [],  # LLM will populate
-            "key_phases": [],  # LLM will populate
-            "estimated_tasks": 0,  # LLM will estimate
-            "special_considerations": [],  # LLM will identify
-        },
-        "message": "Project scope analyzed. Ready for task generation.",
+        "status": "complete",
+        "instruction": "STOP calling analyze_project_scope. Call generate_task_breakdown NOW.",
     }
 
 
 @tool
 def generate_task_breakdown(input: GenerateTasksInput) -> dict:
     """
-    Generate detailed task breakdown based on project analysis.
-
-    Each task should include:
-    - task_id: Unique identifier (use sequential numbers: "1", "2", etc.)
-    - agent: Which specialized agent performs this task
-    - description: Clear, specific task description
-    - dependencies: List of task_ids that must complete first (empty list if none)
-    - phase: Construction phase (planning, foundation, construction, finishing, etc.)
-    - requirements: Specific requirements or notes
-    - materials: List of materials needed
-
-    Available agents:
-    - Architect: Design, planning, specifications
-    - Carpenter: Framing, woodwork, doors, cabinets
-    - Electrician: Wiring, outlets, fixtures
-    - Plumber: Pipes, fixtures, water systems
-    - Mason: Concrete, foundations, masonry
-    - Painter: Painting, staining, finishing
-    - HVAC: Heating, cooling, ventilation
-    - Roofer: Roofing, waterproofing, gutters
-
-    Return structured JSON with task list.
+    Generate task breakdown. Call ONCE, then call validate_task_dependencies.
+    Use your construction knowledge to create the task list.
+    DO NOT call this tool again after receiving a response.
     """
     return {
-        "status": "generated",
-        "tasks": [],  # LLM will populate with structured tasks
-        "task_count": 0,
-        "message": "Task breakdown generated. Ready for validation.",
+        "status": "complete",
+        "instruction": "STOP calling generate_task_breakdown. Call validate_task_dependencies NOW.",
     }
 
 
 @tool
 def validate_task_dependencies(input: ValidateDependenciesInput) -> dict:
     """
-    Validate that task dependencies form a valid directed acyclic graph (DAG).
-
-    Checks:
-    - No circular dependencies
-    - All dependency task_ids exist
-    - Dependencies are logical (e.g., can't paint before walls are built)
-    - Tasks are properly sequenced
-
-    Returns validation status and any issues found.
+    Validate task dependencies. Call ONCE, then call assign_construction_phases.
+    DO NOT call this tool again after receiving a response.
     """
     return {
-        "status": "validated",
-        "is_valid": True,  # LLM will determine
-        "issues": [],  # LLM will list any problems
-        "message": "Dependencies validated successfully.",
+        "status": "complete",
+        "instruction": "STOP calling validate_task_dependencies. Call assign_construction_phases NOW.",
     }
 
 
 @tool
 def assign_construction_phases(input: AssignPhasesInput) -> dict:
     """
-    Assign tasks to appropriate construction phases.
-
-    Common phases:
-    - planning: Design, permits, preparation
-    - foundation: Site work, footings, slabs
-    - framing: Structural framework
-    - rough_in: Electrical, plumbing rough-in
-    - inspection: Mid-project inspections
-    - finishing: Trim, paint, final details
-    - final_inspection: Final approval
-
-    Returns tasks with assigned phases.
+    Assign construction phases. Call ONCE, then call finalize_project_plan WITH YOUR JSON TASK LIST.
     """
     return {
-        "status": "assigned",
-        "tasks_with_phases": [],  # LLM will populate
-        "phase_summary": {},  # Count of tasks per phase
-        "message": "Construction phases assigned.",
+        "status": "complete",
+        "instruction": "Call finalize_project_plan NOW. Pass your complete task list as JSON input with 'tasks' array and 'summary' object.",
     }
 
 
 @tool
 def finalize_project_plan(input: dict) -> dict:
     """
-    Finalize the complete project plan with all tasks structured for execution.
+    FINAL TOOL - Pass your complete task list as JSON input.
 
-    Returns the complete plan in the exact format needed by TaskManager:
+    Required input format:
     {
-        "tasks": [
-            {
-                "task_id": "1",
-                "agent": "Architect",
-                "description": "Design dog house structure",
-                "dependencies": [],
-                "phase": "planning",
-                "requirements": "Create scaled drawings with dimensions",
-                "materials": ["paper", "pencils", "measuring tools"]
-            },
-            ...
-        ],
-        "summary": {
-            "total_tasks": 10,
-            "phases": ["planning", "construction", "finishing"],
-            "agents_needed": ["Architect", "Carpenter", "Painter"]
-        }
+        "tasks": [{"task_id": "1", "agent": "...", "description": "...", "dependencies": [], "phase": "...", "requirements": "...", "materials": [...]}],
+        "summary": {"total_tasks": N, "phases": [...], "agents_needed": [...]}
     }
     """
+    global _last_finalized_plan
+
+    tasks = input.get("tasks", [])
+    summary = input.get("summary", {})
+
+    # Validate we got actual tasks
+    if not tasks:
+        logger.warning("finalize_project_plan called without tasks")
+        return {
+            "status": "error",
+            "message": "No tasks provided. You must pass your task list as JSON input to this tool.",
+        }
+
+    # Store the plan globally so it can be retrieved after agent completes
+    _last_finalized_plan = {
+        "tasks": tasks,
+        "summary": summary,
+    }
+    logger.info(f"finalize_project_plan: Stored {len(tasks)} tasks")
+
     return {
         "status": "finalized",
-        "tasks": [],  # LLM will populate final task list
-        "summary": {},
-        "message": "Project plan finalized and ready for execution.",
+        "tasks": tasks,
+        "summary": summary,
     }
 
 
@@ -209,125 +167,30 @@ def create_project_planner_agent() -> Agent:
         boto_session=boto_session,
     )
 
-    system_prompt = """You are an expert Construction Project Planning Agent with deep knowledge of:
-- Building construction processes and sequencing
-- Trade coordination and dependencies
-- Building codes and permit requirements
-- Material requirements and lead times
-- Safety standards and best practices
-- Structural engineering principles
-- Construction phasing and scheduling
+    system_prompt = """You are a Construction Project Planner.
 
-Your job is to break down ANY construction project into a structured, executable task plan.
+WORKFLOW - Call each tool EXACTLY ONCE in order:
+1. analyze_project_scope - Start here
+2. generate_task_breakdown - Build your task list mentally
+3. validate_task_dependencies - Check your dependencies
+4. assign_construction_phases - Finalize phases
+5. finalize_project_plan - PASS YOUR COMPLETE JSON HERE
 
-CRITICAL INSTRUCTIONS:
+CRITICAL: The finalize_project_plan tool MUST receive your complete task list as JSON input.
+Do NOT just describe the plan in text. You MUST pass the actual JSON data to the tool.
 
-1. **Use ALL tools in sequence** to create a complete plan:
-   - First: analyze_project_scope - Analyze the project
-   - Second: generate_task_breakdown - Create task list
-   - Third: validate_task_dependencies - Check dependencies
-   - Fourth: assign_construction_phases - Assign phases
-   - Fifth: finalize_project_plan - Output final structured plan
+AGENTS: Architect, Carpenter, Electrician, Plumber, Mason, Painter, HVAC, Roofer
+PHASES: planning, permitting, foundation, framing, rough_in, inspection, finishing, final_inspection
 
-2. **Task Structure Requirements**:
-   - task_id: Use sequential numbers as strings ("1", "2", "3", ...)
-   - agent: Must be one of: Architect, Carpenter, Electrician, Plumber, Mason, Painter, HVAC, Roofer
-   - description: Clear, specific, actionable task description
-   - dependencies: Array of task_id strings (e.g., ["1", "2"]) - tasks that must complete first
-   - phase: One of: planning, permitting, foundation, framing, rough_in, inspection, finishing, final_inspection
-   - requirements: Specific requirements or quality standards
-   - materials: Array of material names needed
+REQUIRED JSON FORMAT for finalize_project_plan input:
+{
+  "tasks": [
+    {"task_id": "1", "agent": "Architect", "description": "Design shed layout", "dependencies": [], "phase": "planning", "requirements": "Include dimensions", "materials": ["paper"]}
+  ],
+  "summary": {"total_tasks": 10, "phases": ["planning", "framing"], "agents_needed": ["Architect", "Carpenter"]}
+}
 
-3. **Dependency Rules**:
-   - Planning and design tasks come first (no dependencies)
-   - Permits require completed plans
-   - Foundation work requires permits
-   - Structural work requires foundation
-   - Rough-in (electrical/plumbing) requires structure
-   - Inspections require completed work
-   - Finishing requires passed inspections
-   - Dependencies MUST form a valid DAG (no circular references)
-
-4. **Agent Selection Guidelines**:
-   - **Architect**: All design, planning, specifications, layouts
-   - **Carpenter**: All woodwork, framing, doors, trim, cabinetry, decks
-   - **Electrician**: Wiring, outlets, switches, fixtures, panels
-   - **Plumber**: Water supply, drains, fixtures, appliances
-   - **Mason**: Concrete, foundations, footings, masonry, stonework
-   - **Painter**: All painting, staining, sealing, protective coatings
-   - **HVAC**: Heating, cooling, ventilation systems
-   - **Roofer**: Roofing, shingles, waterproofing, gutters
-
-5. **Common Project Patterns**:
-
-   **Small outdoor structures (shed, dog house, playhouse)**:
-   - Architect: Design structure
-   - Mason: Pour foundation/footings (if needed)
-   - Carpenter: Build frame, walls, roof structure
-   - Roofer: Install roofing (if separate roof)
-   - Carpenter: Install doors/windows
-   - Painter: Protective finish
-
-   **Decks and patios**:
-   - Architect: Design layout and structure
-   - Mason: Pour footings
-   - Carpenter: Install posts, beams, joists, decking, stairs, railings
-   - Painter: Seal/stain
-
-   **Fences**:
-   - Architect: Design and layout
-   - Mason: Set posts in concrete
-   - Carpenter: Install rails and pickets
-   - Painter: Stain or paint
-
-   **Pools**:
-   - Architect: Design pool and surroundings
-   - Mason: Excavation and concrete work
-   - Plumber: Plumbing systems
-   - Electrician: Electrical and filtration
-   - Mason: Decking and finishing
-
-6. **Output Format**:
-   When you call finalize_project_plan, structure the output EXACTLY like this:
-   ```json
-   {
-     "tasks": [
-       {
-         "task_id": "1",
-         "agent": "Architect",
-         "description": "Design dog house structure with scaled drawings",
-         "dependencies": [],
-         "phase": "planning",
-         "requirements": "Create floor plan and elevation drawings showing dimensions, door placement, and roof design",
-         "materials": ["drafting tools", "measuring tape"]
-       },
-       {
-         "task_id": "2",
-         "agent": "Carpenter",
-         "description": "Build base frame and floor",
-         "dependencies": ["1"],
-         "phase": "framing",
-         "requirements": "Use pressure-treated lumber, ensure level installation",
-         "materials": ["pressure-treated 2x4s", "plywood", "wood screws", "level"]
-       }
-     ],
-     "summary": {
-       "total_tasks": 6,
-       "phases": ["planning", "framing", "finishing"],
-       "agents_needed": ["Architect", "Carpenter", "Painter"]
-     }
-   }
-   ```
-
-7. **Quality Standards**:
-   - Include safety considerations in requirements
-   - Specify material quality when important (e.g., "pressure-treated" for outdoor projects)
-   - Consider weatherproofing for outdoor structures
-   - Include proper permits when legally required
-   - Add inspections for structural or safety-critical work
-
-USE YOUR TOOLS TO CREATE A COMPLETE, WELL-STRUCTURED PROJECT PLAN.
-Call all tools in order to produce the final plan."""
+NEVER call the same tool twice. After tool returns, call the NEXT tool immediately."""
 
     agent = Agent(
         model=model,

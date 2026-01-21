@@ -3,15 +3,18 @@ FastAPI routes for the General Contractor Agent Demo.
 """
 
 import asyncio
+import json
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Set
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from backend.agents.general_contractor import GeneralContractorAgent
+from backend.utils.activity_logger import get_activity_logger
 
 # Configure logging
 logging.basicConfig(
@@ -763,6 +766,95 @@ async def websocket_agent_activity(websocket: WebSocket):
     except Exception as e:
         logger.error(f"Agent activity WebSocket error: {e}")
         manager.disconnect(websocket)
+
+
+# Activity Monitor Endpoints
+@app.get("/api/activity/stream")
+async def stream_activity():
+    """
+    Server-Sent Events endpoint for streaming agent activity in real-time.
+
+    Returns a stream of activity events including:
+    - Agent reasoning/thinking
+    - Tool calls and results
+    - Task state changes
+    - Planning events
+
+    Usage: Connect via EventSource in JavaScript:
+        const eventSource = new EventSource('/api/activity/stream');
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            console.log(data);
+        };
+    """
+    activity_logger = get_activity_logger()
+
+    async def event_generator():
+        """Generate SSE events from activity queue."""
+        queue = activity_logger.subscribe()
+
+        try:
+            # Send recent events first (last 20)
+            recent_events = activity_logger.get_recent_events(20)
+            for event in recent_events:
+                yield f"data: {json.dumps(event)}\n\n"
+
+            # Stream new events
+            while True:
+                try:
+                    # Wait for new events with timeout
+                    event = await asyncio.wait_for(queue.get(), timeout=30.0)
+                    yield f"data: {json.dumps(event.to_dict())}\n\n"
+                except asyncio.TimeoutError:
+                    # Send keepalive ping
+                    yield f": keepalive\n\n"
+
+        except asyncio.CancelledError:
+            pass
+        finally:
+            activity_logger.unsubscribe(queue)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+        },
+    )
+
+
+@app.get("/api/activity/recent")
+async def get_recent_activity(count: int = 50):
+    """
+    Get recent activity events (non-streaming).
+
+    Args:
+        count: Number of recent events to return (default: 50, max: 500)
+
+    Returns:
+        List of recent activity events
+    """
+    activity_logger = get_activity_logger()
+    count = min(count, 500)  # Cap at 500
+
+    events = activity_logger.get_recent_events(count)
+    return {
+        "status": "success",
+        "data": {
+            "events": events,
+            "total": len(events),
+        },
+    }
+
+
+@app.post("/api/activity/clear")
+async def clear_activity():
+    """Clear all activity logs."""
+    activity_logger = get_activity_logger()
+    activity_logger.clear()
+    return {"status": "success", "message": "Activity log cleared"}
 
 
 if __name__ == "__main__":

@@ -11,8 +11,21 @@ from typing import Any, Dict, List, Optional
 
 from mcp import StdioServerParameters
 from mcp.client.stdio import stdio_client
-from mcp.client.sse import sse_client
 from strands.tools.mcp import MCPClient
+
+# Try to import streamable HTTP client for Docker/AWS deployments
+# Falls back to SSE client if not available
+try:
+    from mcp.client.streamable_http import streamablehttp_client
+except ImportError:
+    try:
+        from mcp.client.sse import sse_client as streamablehttp_client
+        import logging
+        logging.getLogger(__name__).warning(
+            "streamablehttp_client not available, using sse_client as fallback"
+        )
+    except ImportError:
+        streamablehttp_client = None
 
 from backend.agents import (
     create_architect_agent,
@@ -27,6 +40,7 @@ from backend.agents import (
 )
 from backend.config import settings
 from backend.orchestration.task_manager import Task, TaskManager
+from backend.utils.activity_logger import get_activity_logger
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +164,13 @@ class GeneralContractorAgent:
         logger.info("✓ Permitting Service MCP client initialized (stdio)")
 
     async def _initialize_http_mcp_clients(self) -> None:
-        """Initialize MCP clients in HTTP mode (remote servers via SSE)."""
+        """Initialize MCP clients in HTTP mode (remote servers via HTTP/SSE)."""
+        # Check that HTTP client is available
+        if streamablehttp_client is None:
+            raise ValueError(
+                "HTTP MCP client not available. Install mcp with HTTP support or use mcp_mode=stdio"
+            )
+
         # Validate HTTP URLs are configured
         if not settings.materials_mcp_url:
             raise ValueError("materials_mcp_url must be set when mcp_mode=http")
@@ -160,18 +180,18 @@ class GeneralContractorAgent:
         logger.info(f"Materials MCP server URL: {settings.materials_mcp_url}")
         logger.info(f"Permitting MCP server URL: {settings.permitting_mcp_url}")
 
-        # Initialize Materials Supplier MCP client via HTTP/SSE
+        # Initialize Materials Supplier MCP client via HTTP (streamable-http transport)
         materials_url = settings.materials_mcp_url
-        materials_transport = lambda: sse_client(materials_url)
+        materials_transport = lambda: streamablehttp_client(materials_url)
         materials_client = MCPClient(materials_transport)
         logger.info("Starting Materials Supplier MCP client (HTTP)...")
         materials_client.start()
         self.mcp_clients["materials"] = materials_client
         logger.info(f"✓ Materials Supplier MCP client initialized (HTTP: {materials_url})")
 
-        # Initialize Permitting Service MCP client via HTTP/SSE
+        # Initialize Permitting Service MCP client via HTTP (streamable-http transport)
         permitting_url = settings.permitting_mcp_url
-        permitting_transport = lambda: sse_client(permitting_url)
+        permitting_transport = lambda: streamablehttp_client(permitting_url)
         permitting_client = MCPClient(permitting_transport)
         logger.info("Starting Permitting Service MCP client (HTTP)...")
         permitting_client.start()
@@ -375,6 +395,14 @@ class GeneralContractorAgent:
             List of Task objects
         """
         logger.info(f"Using dynamic planning for project type: {project_type}")
+        activity_logger = get_activity_logger()
+
+        # Clear any stored plan from previous runs
+        from backend.agents.project_planner import clear_last_finalized_plan
+        clear_last_finalized_plan()
+
+        # Log planning start
+        await activity_logger.log_planning_start(project_type)
 
         # Prepare prompt for planning agent
         planning_prompt = f"""Create a complete construction project plan for the following:
@@ -393,9 +421,11 @@ Use ALL your tools in sequence to create a comprehensive, executable plan:
 Remember to output the final plan in exact JSON format with the 'tasks' and 'summary' fields."""
 
         try:
-            # Call planning agent with timeout
+            # Call planning agent with timeout and streaming for activity logging
+            await activity_logger.log_info("Planning agent starting...", "Planner")
+
             result = await asyncio.wait_for(
-                self.planning_agent.invoke_async(planning_prompt),
+                self._execute_planning_with_streaming(planning_prompt),
                 timeout=120,  # 2 minute timeout for planning
             )
 
@@ -407,14 +437,19 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
             # Create tasks from the plan
             tasks = self.task_manager.create_tasks_from_plan(task_plan)
 
+            # Log planning complete
+            await activity_logger.log_planning_complete(len(tasks))
+
             logger.info(f"Created {len(tasks)} tasks from dynamic planning")
             return tasks
 
         except asyncio.TimeoutError:
             logger.error("Planning agent timed out")
+            await activity_logger.log_error("Planning timed out after 120 seconds", "Planner")
             raise Exception("Dynamic planning timed out after 120 seconds")
         except Exception as e:
             logger.error(f"Error in dynamic planning: {e}")
+            await activity_logger.log_error(f"Planning failed: {str(e)}", "Planner")
             raise
 
     def _parse_planning_result(self, planning_result: Any) -> List[Dict[str, Any]]:
@@ -430,38 +465,103 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
         import json
         import re
 
+        # Log what we received
+        logger.info(f"Planning result type: {type(planning_result).__name__}")
+        logger.info(f"Planning result attributes: {[a for a in dir(planning_result) if not a.startswith('_')]}")
+
+        # First, check if finalize_project_plan stored the tasks globally
+        from backend.agents.project_planner import get_last_finalized_plan, clear_last_finalized_plan
+
+        stored_plan = get_last_finalized_plan()
+        if stored_plan and stored_plan.get("tasks"):
+            tasks = stored_plan["tasks"]
+            logger.info(f"Retrieved {len(tasks)} tasks from stored finalize_project_plan result")
+            clear_last_finalized_plan()  # Clear for next run
+            return tasks
+
+        # First, try to extract tasks from tool results (finalize_project_plan)
+        if hasattr(planning_result, "messages"):
+            logger.info(f"Checking {len(planning_result.messages)} messages for tool results")
+            for i, msg in enumerate(planning_result.messages):
+                # Log message structure for debugging
+                msg_type = type(msg).__name__
+                logger.info(f"Message {i}: type={msg_type}, role={getattr(msg, 'role', 'N/A')}")
+
+                # Check for tool results in content
+                if hasattr(msg, "content"):
+                    content = msg.content
+                    if isinstance(content, list):
+                        for j, content_block in enumerate(content):
+                            block_type = type(content_block).__name__
+                            logger.info(f"  Content block {j}: type={block_type}")
+
+                            # Try to get tool result content
+                            try:
+                                tool_content = None
+
+                                # Check various ways tool results might be structured
+                                if hasattr(content_block, "content"):
+                                    tool_content = content_block.content
+                                elif hasattr(content_block, "result"):
+                                    tool_content = content_block.result
+                                elif isinstance(content_block, dict):
+                                    tool_content = content_block.get("content") or content_block.get("result")
+
+                                if tool_content is None:
+                                    continue
+
+                                # Parse the content
+                                if isinstance(tool_content, str):
+                                    parsed = json.loads(tool_content)
+                                elif isinstance(tool_content, dict):
+                                    parsed = tool_content
+                                else:
+                                    continue
+
+                                # Check if this has tasks
+                                if "tasks" in parsed and isinstance(parsed["tasks"], list):
+                                    if len(parsed["tasks"]) > 0:
+                                        logger.info(f"Found {len(parsed['tasks'])} tasks from tool result")
+                                        return parsed["tasks"]
+                            except (json.JSONDecodeError, TypeError, AttributeError) as e:
+                                logger.info(f"  Could not parse content block: {e}")
+                                continue
+                    elif isinstance(content, str):
+                        # Content might be a JSON string directly
+                        try:
+                            parsed = json.loads(content)
+                            if "tasks" in parsed and isinstance(parsed["tasks"], list):
+                                if len(parsed["tasks"]) > 0:
+                                    logger.info(f"Found {len(parsed['tasks'])} tasks from message content")
+                                    return parsed["tasks"]
+                        except (json.JSONDecodeError, TypeError):
+                            pass
+
         # Extract text from AgentResult if needed
         if hasattr(planning_result, "text"):
-            # Strands AgentResult object
             result_text = planning_result.text
         elif isinstance(planning_result, str):
-            # Already a string
             result_text = planning_result
         else:
-            # Try to convert to string
             result_text = str(planning_result)
 
         logger.info(f"Parsing planning result (first 500 chars): {result_text[:500]}")
 
-        # Try to extract JSON from the result
-        # Look for JSON blocks in the result
+        # Try to extract JSON from the text result
         json_pattern = r'\{[\s\S]*"tasks"[\s\S]*\}'
         matches = re.findall(json_pattern, result_text)
 
         if matches:
-            # Try to parse the first (likely best) match
             for match in matches:
                 try:
                     parsed = json.loads(match)
-                    if "tasks" in parsed:
-                        return parsed["tasks"]
+                    if "tasks" in parsed and isinstance(parsed["tasks"], list):
+                        if len(parsed["tasks"]) > 0:
+                            return parsed["tasks"]
                 except json.JSONDecodeError:
                     continue
 
-        # Fallback: look for task list pattern
         logger.warning("Could not find structured JSON in planning result, attempting manual parse")
-
-        # If we can't parse, return empty list and log error
         logger.error(f"Failed to parse planning result: {result_text[:500]}")
         raise ValueError("Could not parse planning agent output into task list")
 
@@ -723,6 +823,8 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
         """
         Execute a single task by delegating to the appropriate agent.
 
+        Uses streaming to capture and log agent reasoning and tool calls in real-time.
+
         Args:
             task: Task object to execute
 
@@ -730,11 +832,13 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
             Dictionary with execution results
         """
         agent_name = task.agent
+        activity_logger = get_activity_logger()
 
         # Check if agent exists
         if agent_name not in self.agents:
             error_msg = f"Agent {agent_name} not found"
             logger.error(error_msg)
+            await activity_logger.log_error(error_msg, agent_name)
             self.task_manager.mark_failed(task.task_id, error_msg)
             return {
                 "status": "error",
@@ -744,6 +848,9 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
 
         # Mark task as in progress
         self.task_manager.mark_in_progress(task.task_id)
+
+        # Log task start
+        await activity_logger.log_task_start(agent_name, task.task_id, task.description)
 
         # Get the agent
         agent = self.agents[agent_name]
@@ -765,16 +872,17 @@ IMPORTANT CONSTRAINTS:
 Complete this task using your specialized tools efficiently."""
 
         try:
-            # Execute task with Strands agent using invoke_async
-            # Add timeout protection to prevent infinite loops
+            # Execute task with Strands agent using streaming for real-time activity
             logger.info(f"Delegating task {task.task_id} to {agent_name}")
 
             # Set a timeout per task - catch infinite loops faster
             timeout_seconds = getattr(settings, "task_timeout_seconds", 300)
 
             try:
+                # Try streaming first for real-time activity logging
                 result = await asyncio.wait_for(
-                    agent.invoke_async(task_prompt), timeout=timeout_seconds
+                    self._execute_with_streaming(agent, agent_name, task.task_id, task_prompt),
+                    timeout=timeout_seconds
                 )
             except asyncio.TimeoutError:
                 error_msg = (
@@ -784,6 +892,7 @@ Complete this task using your specialized tools efficiently."""
                 )
                 logger.error(error_msg)
                 logger.error(f"Task description: {task.description}")
+                await activity_logger.log_task_failed(agent_name, task.task_id, error_msg)
                 self.task_manager.mark_failed(task.task_id, error_msg)
                 return {
                     "status": "failed",
@@ -800,6 +909,9 @@ Complete this task using your specialized tools efficiently."""
                 "result": result,
             }
 
+            # Log task completion
+            await activity_logger.log_task_complete(agent_name, task.task_id, result)
+
             # Mark task as completed
             self.task_manager.mark_completed(task.task_id, task_result)
 
@@ -808,12 +920,120 @@ Complete this task using your specialized tools efficiently."""
         except Exception as e:
             error_msg = f"Error executing task {task.task_id}: {str(e)}"
             logger.error(error_msg)
+            await activity_logger.log_task_failed(agent_name, task.task_id, str(e))
             self.task_manager.mark_failed(task.task_id, error_msg)
             return {
                 "status": "error",
                 "task_id": task.task_id,
                 "error": error_msg,
             }
+
+    async def _execute_with_streaming(
+        self,
+        agent: Any,
+        agent_name: str,
+        task_id: str,
+        prompt: str
+    ) -> Any:
+        """
+        Execute agent with streaming to capture real-time activity.
+
+        Attempts to use stream_async for real-time logging of reasoning and tool calls.
+        Falls back to invoke_async if streaming is not available.
+        """
+        activity_logger = get_activity_logger()
+
+        # Check if agent supports streaming
+        if hasattr(agent, "stream_async"):
+            try:
+                result_text = ""
+                async for event in agent.stream_async(prompt):
+                    # Process streaming events
+                    if hasattr(event, "event_type"):
+                        event_type = event.event_type
+
+                        if event_type == "text":
+                            # Agent is generating text (reasoning)
+                            text = getattr(event, "text", "")
+                            result_text += text
+
+                        elif event_type == "tool_use":
+                            # Agent is calling a tool
+                            tool_name = getattr(event, "name", "unknown")
+                            tool_input = getattr(event, "input", {})
+                            await activity_logger.log_tool_call(
+                                agent_name, task_id, tool_name, tool_input
+                            )
+
+                        elif event_type == "tool_result":
+                            # Tool returned a result
+                            tool_name = getattr(event, "name", "unknown")
+                            tool_output = getattr(event, "output", None)
+                            await activity_logger.log_tool_result(
+                                agent_name, task_id, tool_name, tool_output
+                            )
+
+                    elif hasattr(event, "content"):
+                        # Handle content blocks
+                        content = event.content
+                        if isinstance(content, str):
+                            result_text += content
+
+                # Log final reasoning if we captured any
+                if result_text:
+                    await activity_logger.log_thinking(agent_name, task_id, result_text[:500])
+
+                return result_text or "Task completed"
+
+            except Exception as e:
+                logger.warning(f"Streaming failed for {agent_name}, falling back to invoke: {e}")
+                # Fall through to invoke_async
+
+        # Fallback to regular invoke_async
+        result = await agent.invoke_async(prompt)
+
+        # Try to extract tool calls from the result for logging
+        if hasattr(result, "messages"):
+            for msg in result.messages:
+                if hasattr(msg, "tool_calls"):
+                    for tool_call in msg.tool_calls:
+                        tool_name = getattr(tool_call, "name", "unknown")
+                        tool_args = getattr(tool_call, "arguments", {})
+                        await activity_logger.log_tool_call(
+                            agent_name, task_id, tool_name, tool_args
+                        )
+
+        # Log the result text if available
+        result_text = ""
+        if hasattr(result, "text"):
+            result_text = result.text
+        elif isinstance(result, str):
+            result_text = result
+
+        if result_text:
+            await activity_logger.log_thinking(agent_name, task_id, result_text[:300])
+
+        return result
+
+    async def _execute_planning_with_streaming(self, prompt: str) -> Any:
+        """
+        Execute planning agent and capture activity.
+
+        Uses invoke_async for reliable results - Strands agents don't support
+        the expected streaming interface, so we log activity after completion.
+        """
+        activity_logger = get_activity_logger()
+        agent = self.planning_agent
+
+        # Fallback to regular invoke_async
+        await activity_logger.log_info("Using non-streaming planning mode", "Planner")
+        result = await agent.invoke_async(prompt)
+
+        # Log final result
+        if hasattr(result, "text"):
+            await activity_logger.log_thinking("Planner", None, result.text[:500])
+
+        return result
 
     async def execute_entire_project(self) -> Dict[str, Any]:
         """
