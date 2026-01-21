@@ -1,5 +1,5 @@
 {
-  "family": "agentcore-runtime-task",
+  "family": "backend-runtime-task",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "1024",
@@ -8,7 +8,7 @@
   "taskRoleArn": "TASK_ROLE_ARN_PLACEHOLDER",
   "containerDefinitions": [
     {
-      "name": "agentcore-runtime",
+      "name": "backend-runtime",
       "image": "IMAGE_URI_PLACEHOLDER",
       "essential": true,
       "portMappings": [
@@ -73,7 +73,7 @@
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/agentcore-runtime",
+          "awslogs-group": "/ecs/backend-runtime",
           "awslogs-region": "AWS_REGION_PLACEHOLDER",
           "awslogs-stream-prefix": "ecs"
         }

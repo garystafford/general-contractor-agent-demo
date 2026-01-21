@@ -1,38 +1,33 @@
-# AWS Deployment for Amazon Bedrock AgentCore
+# AWS ECS Deployment
 
-This directory contains deployment code for the General Contractor system on AWS:
+This directory contains deployment code for the General Contractor system on AWS ECS (Elastic Container Service):
 
-1. **MCP Servers** - Materials Supplier and Permitting Service (ECS + AgentCore Gateway)
-2. **AgentCore Runtime** - Agent orchestration system connecting to MCP servers via HTTP
+1. **MCP Servers** - Materials Supplier and Permitting Service (ECS Fargate + ALB)
+2. **Backend Runtime** - Agent orchestration system connecting to MCP servers via HTTP
 
 ## Architecture
 
 ```text
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────────┐
-│                 │     │                  │     │                     │
-│  Bedrock Agent  │────▶│  AgentCore       │────▶│  Materials Supplier │
-│                 │     │  Gateway         │     │  MCP Server         │
-│                 │     │                  │     │  (ECS Fargate)      │
-└─────────────────┘     └──────────────────┘     └─────────────────────┘
-        │                                                   │
-        │                                                   ▼
-        │                                        ┌─────────────────────┐
-        │                                        │  ALB + ECR          │
-        │                                        │  CloudWatch         │
-        │                                        └─────────────────────┘
-        │
-        │               ┌──────────────────┐     ┌─────────────────────┐
-        │               │                  │     │                     │
-        └──────────────▶│  AgentCore       │────▶│  Permitting Service │
-                        │  Gateway         │     │  MCP Server         │
-                        │                  │     │  (ECS Fargate)      │
-                        └──────────────────┘     └─────────────────────┘
-                                                            │
-                                                            ▼
-                                                 ┌─────────────────────┐
-                                                 │  ALB + ECR          │
-                                                 │  CloudWatch         │
-                                                 └─────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                         AWS ECS                              │
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │  Backend Runtime (ECS Fargate)                         │ │
+│  │  - FastAPI (port 8000)                                 │ │
+│  │  - 8 Trade Agents                                      │ │
+│  │  - General Contractor Orchestration                    │ │
+│  │  - Connects to MCP servers via HTTP                    │ │
+│  └──────────────┬─────────────────┬───────────────────────┘ │
+│                 │                 │                          │
+│                 ▼                 ▼                          │
+│  ┌──────────────────────┐  ┌──────────────────────┐        │
+│  │ Materials MCP        │  │ Permitting MCP       │        │
+│  │ (ECS Fargate + ALB)  │  │ (ECS Fargate + ALB)  │        │
+│  │ - Port 80 (ALB)      │  │ - Port 80 (ALB)      │        │
+│  │ - Port 8080 (ECS)    │  │ - Port 8080 (ECS)    │        │
+│  └──────────────────────┘  └──────────────────────┘        │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Directory Structure
@@ -40,7 +35,7 @@ This directory contains deployment code for the General Contractor system on AWS
 ```text
 deployment/
 ├── README.md                    # This file
-├── agentcore-runtime/           # Agent Runtime (connects to MCP via HTTP)
+├── backend-runtime/             # Backend with agents (connects to MCP via HTTP)
 │   ├── Dockerfile              # Container build configuration
 │   ├── task-definition.json    # ECS task definition
 │   └── deploy.sh               # Deployment script
@@ -63,7 +58,6 @@ deployment/
 │       ├── main.py             # Entry point
 │       └── server.py           # HTTP MCP server
 └── scripts/
-    ├── create-gateway.sh       # Register with AgentCore Gateway
     ├── cleanup.sh              # Remove AWS resources
     └── update-ip.sh            # Update security groups with current IP
 ```
@@ -78,7 +72,7 @@ deployment/
   - ELB (Elastic Load Balancing)
   - IAM (Identity and Access Management)
   - CloudWatch Logs
-  - Bedrock AgentCore
+  - Bedrock (for AI model access)
 
 ## Quick Start
 
@@ -103,24 +97,12 @@ cd deployment/permitting-service
 ./deploy.sh
 ```
 
-### Register with AgentCore Gateway
+### Deploy Backend Runtime (Full Stack)
 
-After deployment, register each server with AgentCore:
-
-```bash
-cd deployment/scripts
-
-# Get the ALB DNS from deployment output, then:
-./create-gateway.sh materials-supplier-mcp <alb-dns>
-./create-gateway.sh permitting-service-mcp <alb-dns>
-```
-
-### Deploy AgentCore Runtime (Full Stack)
-
-After MCP servers are deployed, deploy the agent runtime:
+After MCP servers are deployed, deploy the backend runtime:
 
 ```bash
-cd deployment/agentcore-runtime
+cd deployment/backend-runtime
 
 # Set MCP server URLs (from MCP deployment output)
 export MATERIALS_MCP_URL="http://materials-supplier-mcp-alb-xxx.us-east-1.elb.amazonaws.com/mcp"
@@ -257,6 +239,9 @@ aws logs tail /ecs/materials-supplier-mcp --follow
 
 # Permitting Service
 aws logs tail /ecs/permitting-service-mcp --follow
+
+# Backend Runtime
+aws logs tail /ecs/backend-runtime --follow
 ```
 
 ### Check Service Status
@@ -271,6 +256,11 @@ aws ecs describe-services \
 aws ecs describe-services \
   --cluster permitting-service-mcp-cluster \
   --services permitting-service-mcp-service
+
+# Backend Runtime
+aws ecs describe-services \
+  --cluster backend-runtime-cluster \
+  --services backend-runtime-service
 ```
 
 ### Check Target Health
@@ -294,7 +284,7 @@ cd deployment/scripts
 ./update-ip.sh
 ```
 
-This updates the security groups for all deployed services (materials-supplier-mcp, permitting-service-mcp, agentcore-runtime) to allow access from your current public IP.
+This updates the security groups for all deployed services (materials-supplier-mcp, permitting-service-mcp, backend-runtime) to allow access from your current public IP.
 
 ## Cleanup
 
@@ -309,8 +299,8 @@ cd deployment/scripts
 # Remove Permitting Service
 ./cleanup.sh permitting-service-mcp
 
-# Remove AgentCore Runtime
-./cleanup.sh agentcore-runtime
+# Remove Backend Runtime
+./cleanup.sh backend-runtime
 ```
 
 ## MCP Server Tools
@@ -346,6 +336,16 @@ Per MCP server (approximate monthly costs):
 | CloudWatch Logs                | Variable          |
 | **Total per server**           | **~$25-30/month** |
 
+Backend Runtime:
+
+| Resource                     | Estimated Cost    |
+| ---------------------------- | ----------------- |
+| ECS Fargate (1 vCPU, 2GB)    | ~$36/month        |
+| CloudWatch Logs              | Variable          |
+| **Total**                    | **~$36-40/month** |
+
+**Complete Stack**: ~$86-100/month + Bedrock API usage
+
 ## Troubleshooting
 
 ### Service Not Starting
@@ -376,12 +376,6 @@ Per MCP server (approximate monthly costs):
    ```bash
    aws elbv2 describe-target-health --target-group-arn <tg-arn>
    ```
-
-### Gateway Registration Issues
-
-1. Verify MCP server is healthy before registering
-2. Check IAM role trust policy includes `bedrock.amazonaws.com`
-3. Ensure endpoint URL is accessible from AWS
 
 ### ECR Pull Errors (Private Subnets)
 
@@ -422,4 +416,4 @@ When modifying the MCP servers:
 1. Test locally with Docker first
 2. Update the server code in `app/server.py`
 3. Run deployment with `--skip-infrastructure` to update only the code
-4. Verify health check passes before updating gateway registration
+4. Verify health check passes before updating backend runtime configuration

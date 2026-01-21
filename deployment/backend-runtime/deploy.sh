@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-# Deploy General Contractor AgentCore Runtime to AWS
+# Deploy General Contractor Backend Runtime to AWS
 #
 # This script deploys the agent runtime container that connects to
-# MCP servers via AgentCore Gateway (HTTP mode).
+# MCP servers via HTTP.
 #
 # Prerequisites:
 # - AWS CLI v2 configured with appropriate permissions
@@ -35,7 +35,7 @@ set -euo pipefail
 # Configuration
 # =============================================================================
 
-SERVICE_NAME="agentcore-runtime"
+SERVICE_NAME="backend-runtime"
 AWS_REGION="${AWS_REGION:-us-east-1}"
 
 # MCP Server URLs (required)
@@ -151,7 +151,7 @@ ECR_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${SERVICE_NAME}"
 if [ "$SKIP_BUILD" = false ]; then
     log_step "Building and Pushing Docker Image"
 
-    # Navigate to project root (two levels up from deployment/agentcore-runtime)
+    # Navigate to project root (two levels up from deployment/backend-runtime)
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
@@ -375,7 +375,7 @@ fi
 log_step "Deployment Complete"
 
 echo ""
-echo "AgentCore Runtime deployed successfully!"
+echo "Backend Runtime deployed successfully!"
 echo ""
 echo "Configuration:"
 echo "  Cluster: ${SERVICE_NAME}-cluster"

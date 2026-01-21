@@ -5,7 +5,7 @@ This MCP server provides tools for managing construction permits and inspections
 including permit applications, status checking, inspection scheduling, and
 determining required permits for projects.
 
-Refactored from stdio transport to streamable HTTP for AgentCore Gateway deployment.
+Refactored from stdio transport to streamable HTTP for ECS deployment.
 """
 
 import logging

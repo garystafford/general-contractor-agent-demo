@@ -57,7 +57,7 @@ deployment/**/*.sh
 deployment/**/task-definition.json
 deployment/**/Dockerfile
 deployment/scripts/
-deployment/agentcore-runtime/
+deployment/backend-runtime/
 
 # Misc
 .DS_Store

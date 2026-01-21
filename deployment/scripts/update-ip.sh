@@ -27,7 +27,7 @@ DRY_RUN=false
 SG_NAMES=(
     "materials-supplier-mcp-sg"
     "permitting-service-mcp-sg"
-    "agentcore-runtime-sg"
+    "backend-runtime-sg"
 )
 
 # Colors for output

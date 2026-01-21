@@ -1,7 +1,7 @@
 """
 Entry point for the Permitting Service MCP Server.
 
-Runs the MCP server with streamable HTTP transport for AgentCore Gateway deployment.
+Runs the MCP server with streamable HTTP transport for ECS deployment.
 """
 
 import logging
@@ -28,6 +28,7 @@ def main():
     logger.info("Health check: /health")
 
     # Get MCP server and run with streamable HTTP transport
+    # Note: host and port are already set in the FastMCP constructor in server.py
     mcp = get_mcp_server()
 
     # Use FastMCP's native run method for streamable HTTP

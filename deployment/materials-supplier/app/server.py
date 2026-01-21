@@ -4,7 +4,7 @@ Building Materials Supplier MCP Server - HTTP Transport Version.
 This MCP server provides tools for managing building materials inventory,
 checking availability, ordering materials, and retrieving catalog information.
 
-Refactored from stdio transport to streamable HTTP for AgentCore Gateway deployment.
+Refactored from stdio transport to streamable HTTP for ECS deployment.
 """
 
 import logging

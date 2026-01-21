@@ -1,7 +1,7 @@
-# AgentCore Runtime Dockerfile
-# Packages the General Contractor agents for deployment to Amazon Bedrock AgentCore Runtime
+# Backend Runtime Dockerfile
+# Packages the General Contractor agents for deployment to AWS ECS
 #
-# This container connects to MCP servers deployed via AgentCore Gateway (HTTP mode)
+# This container connects to MCP servers via HTTP
 # rather than running MCP servers as local subprocesses.
 
 FROM python:3.13-slim
@@ -35,7 +35,7 @@ ENV API_HOST=0.0.0.0
 ENV API_PORT=8000
 ENV LOG_LEVEL=INFO
 
-# MCP configuration - HTTP mode for AgentCore Gateway
+# MCP configuration - HTTP mode for ECS deployment
 ENV MCP_MODE=http
 # These must be set at runtime to point to deployed MCP servers
 # ENV MATERIALS_MCP_URL=http://materials-mcp-alb.us-east-1.elb.amazonaws.com/mcp

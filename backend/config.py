@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     api_port: int = 8000
 
     # MCP Server configuration
-    # Mode: "stdio" (local subprocess) or "http" (remote AgentCore Gateway)
+    # Mode: "stdio" (local subprocess) or "http" (remote HTTP endpoints)
     mcp_mode: str = "stdio"
 
     # Stdio mode: Paths to MCP server Python scripts (for local subprocess communication)
@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     # Python executable to use for MCP servers (defaults to current interpreter)
     mcp_python_executable: str = "python"
 
-    # HTTP mode: URLs for remote MCP servers (AgentCore Gateway endpoints)
+    # HTTP mode: URLs for remote MCP servers (ECS ALB endpoints)
     # Set these when mcp_mode="http" to connect to deployed MCP servers
     materials_mcp_url: Optional[str] = None  # e.g., "http://materials-mcp-alb.us-east-1.elb.amazonaws.com/mcp"
     permitting_mcp_url: Optional[str] = None  # e.g., "http://permitting-mcp-alb.us-east-1.elb.amazonaws.com/mcp"

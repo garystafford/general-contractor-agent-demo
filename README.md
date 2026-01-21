@@ -304,14 +304,14 @@ For detailed Docker documentation, see **[DOCKER.md](docs/DOCKER.md)**.
 
 ## ☁️ AWS Deployment
 
-Deploy the MCP servers and agents to AWS using Amazon Bedrock AgentCore.
+Deploy the MCP servers and agents to AWS ECS (Elastic Container Service).
 
 ### Deployment Options
 
 | Component   | Deployment Target | Description                                       |
 | ----------- | ----------------- | ------------------------------------------------- |
-| MCP Servers | AgentCore Gateway | HTTP-accessible MCP servers via ECS Fargate + ALB |
-| Agents      | AgentCore Runtime | Full agent stack connecting to remote MCP servers |
+| MCP Servers | ECS Fargate + ALB | HTTP-accessible MCP servers via ECS Fargate + ALB |
+| Agents      | ECS Fargate       | Full agent stack connecting to remote MCP servers |
 
 ### Quick Deploy MCP Servers
 
@@ -839,7 +839,7 @@ general-contractor-agent-demo/
 ├── deployment/
 │   ├── materials-supplier/  # AWS deployment for Materials MCP
 │   ├── permitting-service/  # AWS deployment for Permitting MCP
-│   ├── agentcore-runtime/   # AWS AgentCore Runtime deployment
+│   ├── backend-runtime/     # AWS ECS backend deployment
 │   ├── scripts/             # Utility scripts (update-ip.sh)
 │   └── README.md            # Deployment documentation
 ├── tests/                   # Test scripts and demos
@@ -975,7 +975,7 @@ cd frontend && npm run lint:fix
 | **Local Development** | Python + Node.js, MCP via stdio  | Active development, debugging |
 | **Docker Compose**    | 4 containers, MCP via HTTP       | Workshops, demos, CI/CD       |
 | **AWS (MCP Only)**    | MCP servers on ECS, local agents | Hybrid development            |
-| **AWS (Full Stack)**  | AgentCore Runtime + Gateway      | Production deployment         |
+| **AWS (Full Stack)**  | ECS Fargate (all services)       | Production deployment         |
 
 See [🐳 Running with Docker](#-running-with-docker) and [☁️ AWS Deployment](#️-aws-deployment) for details.
 
