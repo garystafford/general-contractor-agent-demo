@@ -38,8 +38,12 @@ class Settings(BaseSettings):
 
     # HTTP mode: URLs for remote MCP servers (ECS ALB endpoints)
     # Set these when mcp_mode="http" to connect to deployed MCP servers
-    materials_mcp_url: Optional[str] = None  # e.g., "http://materials-mcp-alb.us-east-1.elb.amazonaws.com/mcp"
-    permitting_mcp_url: Optional[str] = None  # e.g., "http://permitting-mcp-alb.us-east-1.elb.amazonaws.com/mcp"
+    materials_mcp_url: Optional[str] = (
+        None  # e.g., "http://materials-mcp-alb.us-east-1.elb.amazonaws.com/mcp"
+    )
+    permitting_mcp_url: Optional[str] = (
+        None  # e.g., "http://permitting-mcp-alb.us-east-1.elb.amazonaws.com/mcp"
+    )
 
     # Project settings
     max_parallel_tasks: int = 3

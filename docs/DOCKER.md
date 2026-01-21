@@ -71,12 +71,12 @@ docker-compose up --build -d
 
 | Service | URL |
 |---------|-----|
-| Frontend (React) | http://localhost:3000 |
-| Backend API | http://localhost:8000 |
-| API Documentation | http://localhost:8000/docs |
-| Health Check | http://localhost:8000/health |
-| Materials MCP Server | http://localhost:8081/health |
-| Permitting MCP Server | http://localhost:8082/health |
+| Frontend (React) | <http://localhost:3000> |
+| Backend API | <http://localhost:8000> |
+| API Documentation | <http://localhost:8000/docs> |
+| Health Check | <http://localhost:8000/health> |
+| Materials MCP Server | <http://localhost:8081/health> |
+| Permitting MCP Server | <http://localhost:8082/health> |
 
 ---
 
@@ -152,8 +152,8 @@ The backend container reads configuration from environment variables defined in 
 | `AWS_SESSION_TOKEN` | (optional) | Temporary session token |
 | `DEFAULT_MODEL` | us.anthropic.claude-sonnet-4-5-20250929-v1:0 | Bedrock model ID |
 | `MCP_MODE` | http | MCP connection mode (http for Docker) |
-| `MATERIALS_MCP_URL` | http://materials:8080/mcp | Materials MCP endpoint |
-| `PERMITTING_MCP_URL` | http://permitting:8080/mcp | Permitting MCP endpoint |
+| `MATERIALS_MCP_URL` | <http://materials:8080/mcp> | Materials MCP endpoint |
+| `PERMITTING_MCP_URL` | <http://permitting:8080/mcp> | Permitting MCP endpoint |
 | `TASK_TIMEOUT_SECONDS` | 60 | Timeout per task |
 | `MAX_CONSECUTIVE_TOOL_CALLS` | 3 | Loop detection threshold |
 | `MAX_TOTAL_TOOL_CALLS` | 20 | Max tool calls per task |
@@ -272,6 +272,7 @@ CMD ["python", "-m", "app.main"]
 ```
 
 **Key Features:**
+
 - FastMCP with streamable HTTP transport
 - Health check endpoint at `/health`
 - MCP endpoint at `/mcp`
@@ -307,6 +308,7 @@ CMD ["python", "-m", "uvicorn", "backend.api.routes:app", "--host", "0.0.0.0", "
 ```
 
 **Key Features:**
+
 - Python 3.13 slim image
 - Runs as non-root user for security
 - 60-second startup period for initialization
@@ -337,6 +339,7 @@ CMD ["nginx", "-g", "daemon off;"]
 ```
 
 **Key Features:**
+
 - Multi-stage build (Node.js → nginx)
 - Production-optimized nginx configuration
 - SPA routing support (all routes → index.html)
@@ -412,6 +415,7 @@ curl -X POST http://localhost:8082/mcp \
 **Error:** `AWS credentials not found`
 
 **Solution:**
+
 1. Ensure `.env` file exists with valid credentials
 2. Verify credentials are not expired
 3. Docker cannot use AWS SSO profiles - use explicit keys
@@ -424,6 +428,7 @@ docker-compose exec backend env | grep AWS
 **Error:** `Port 8000 already in use`
 
 **Solution:**
+
 ```bash
 # Find process using port
 lsof -i :8000
@@ -436,6 +441,7 @@ lsof -i :8000
 **Symptoms:** Backend logs show connection errors to MCP servers
 
 **Solution:**
+
 1. Check MCP server logs: `docker-compose logs materials`
 2. Verify health endpoints: `curl http://localhost:8081/health`
 3. Ensure MCP servers started before backend (check startup order)
@@ -453,6 +459,7 @@ docker-compose logs -f materials permitting
 **Symptoms:** API calls fail, blank dashboard
 
 **Solution:**
+
 1. Check backend is healthy: `docker-compose ps`
 2. Verify backend logs: `docker-compose logs backend`
 3. Test backend directly: `curl http://localhost:8000/health`
@@ -461,6 +468,7 @@ docker-compose logs -f materials permitting
 ### Container Keeps Restarting
 
 **Solution:**
+
 ```bash
 # Check logs for error
 docker-compose logs backend
@@ -475,6 +483,7 @@ docker events --filter container=gc-backend
 ### Slow Container Builds
 
 **Solution:**
+
 ```bash
 # Use BuildKit for faster builds
 DOCKER_BUILDKIT=1 docker-compose build
@@ -486,6 +495,7 @@ docker builder prune
 ### Memory Issues
 
 **Solution:**
+
 ```bash
 # Check container memory usage
 docker stats

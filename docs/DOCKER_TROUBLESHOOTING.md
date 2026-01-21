@@ -3,18 +3,22 @@
 ## Issues Fixed
 
 ### 1. MCP Server Host/Port Configuration ✅
+
 **Problem**: MCP servers weren't passing host and port to the `run()` method.
 
 **Fixed in**:
+
 - `deployment/materials-supplier/app/main.py`
 - `deployment/permitting-service/app/main.py`
 
 Changed from:
+
 ```python
 mcp.run(transport="streamable-http")
 ```
 
 To:
+
 ```python
 mcp.run(transport="streamable-http", host=HOST, port=PORT)
 ```
@@ -35,6 +39,7 @@ AWS_SECRET_ACCESS_KEY=your-actual-secret-key
 ```
 
 **To get credentials**:
+
 ```bash
 # If using SSO, get temporary credentials:
 aws sso login --profile your-profile
@@ -111,6 +116,7 @@ docker-compose exec backend env | grep AWS
 **Symptoms**: Backend logs show "Failed to initialize MCP clients"
 
 **Check**:
+
 ```bash
 # View MCP server logs
 docker-compose logs materials
@@ -123,6 +129,7 @@ docker-compose logs permitting
 ```
 
 **Solution**:
+
 ```bash
 # Rebuild MCP services
 docker-compose up --build materials permitting
@@ -133,6 +140,7 @@ docker-compose up --build materials permitting
 **Symptoms**: Frontend shows connection errors or API calls fail
 
 **Check**:
+
 ```bash
 # Verify backend is accessible from host
 curl http://localhost:8000/health
@@ -148,6 +156,7 @@ docker-compose ps backend
 **Symptoms**: "port is already allocated" error
 
 **Solution**:
+
 ```bash
 # Check what's using the ports
 lsof -i :8000  # Backend
@@ -161,6 +170,7 @@ lsof -i :3000  # Frontend
 ### Issue: Services keep restarting
 
 **Check health checks**:
+
 ```bash
 docker-compose ps
 
@@ -195,7 +205,7 @@ curl http://localhost:8000/api/agents
 
 ### 3. Test Full Stack
 
-Open browser to: http://localhost:3000
+Open browser to: <http://localhost:3000>
 
 ## Cleanup
 
@@ -234,20 +244,24 @@ docker-compose down --rmi all
 ## Network Configuration
 
 All services run on the `gc-network` bridge network:
+
 - Services can communicate using container names (e.g., `http://materials:8080`)
 - Host can access via localhost ports (e.g., `http://localhost:8081`)
 
 ## Environment Variables
 
 ### Backend
+
 - `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` - AWS credentials
 - `MCP_MODE=http` - Use HTTP transport for MCP
 - `MATERIALS_MCP_URL=http://materials:8080/mcp` - Materials server URL
 - `PERMITTING_MCP_URL=http://permitting:8080/mcp` - Permitting server URL
 
 ### MCP Servers
+
 - `HOST=0.0.0.0` - Listen on all interfaces
 - `PORT=8080` - Internal port (mapped to 8081/8082 on host)
 
 ### Frontend
+
 - `VITE_API_URL=http://localhost:8000` - Backend API URL (build-time)

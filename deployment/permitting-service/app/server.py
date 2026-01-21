@@ -36,17 +36,20 @@ mcp = FastMCP(
 async def health_check(request):
     """Health check endpoint for ALB/ECS."""
     from starlette.responses import JSONResponse
-    return JSONResponse({
-        "status": "healthy",
-        "service": "permitting-service",
-        "tools": [
-            "apply_for_permit",
-            "check_permit_status",
-            "schedule_inspection",
-            "get_required_permits",
-            "get_inspection",
-        ],
-    })
+
+    return JSONResponse(
+        {
+            "status": "healthy",
+            "service": "permitting-service",
+            "tools": [
+                "apply_for_permit",
+                "check_permit_status",
+                "schedule_inspection",
+                "get_required_permits",
+                "get_inspection",
+            ],
+        }
+    )
 
 
 # Pydantic models for input validation
@@ -264,9 +267,7 @@ def apply_for_permit(
     applicant: str,
 ) -> Dict[str, Any]:
     """Apply for a construction permit."""
-    return service.apply_for_permit(
-        permit_type, project_address, project_description, applicant
-    )
+    return service.apply_for_permit(permit_type, project_address, project_description, applicant)
 
 
 @mcp.tool(

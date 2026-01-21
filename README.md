@@ -214,11 +214,11 @@ docker-compose up --build -d
 
 | Service               | URL                          |
 | --------------------- | ---------------------------- |
-| Frontend (React)      | http://localhost:3000        |
-| Backend API           | http://localhost:8000        |
-| API Docs              | http://localhost:8000/docs   |
-| Materials MCP Server  | http://localhost:8081/health |
-| Permitting MCP Server | http://localhost:8082/health |
+| Frontend (React)      | <http://localhost:3000>        |
+| Backend API           | <http://localhost:8000>        |
+| API Docs              | <http://localhost:8000/docs>   |
+| Materials MCP Server  | <http://localhost:8081/health> |
+| Permitting MCP Server | <http://localhost:8082/health> |
 
 ### Docker Commands
 

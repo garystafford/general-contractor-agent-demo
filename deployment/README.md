@@ -373,6 +373,7 @@ Backend Runtime:
    ```
 
 2. Check target group health:
+
    ```bash
    aws elbv2 describe-target-health --target-group-arn <tg-arn>
    ```

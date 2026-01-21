@@ -34,11 +34,14 @@ mcp = FastMCP(
 async def health_check(request):
     """Health check endpoint for ALB/ECS."""
     from starlette.responses import JSONResponse
-    return JSONResponse({
-        "status": "healthy",
-        "service": "building-materials-supplier",
-        "tools": ["check_availability", "order_materials", "get_catalog", "get_order"],
-    })
+
+    return JSONResponse(
+        {
+            "status": "healthy",
+            "service": "building-materials-supplier",
+            "tools": ["check_availability", "order_materials", "get_catalog", "get_order"],
+        }
+    )
 
 
 # Pydantic models for input validation

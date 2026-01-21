@@ -21,6 +21,7 @@ except ImportError:
     try:
         from mcp.client.sse import sse_client as streamablehttp_client
         import logging
+
         logging.getLogger(__name__).warning(
             "streamablehttp_client not available, using sse_client as fallback"
         )
@@ -399,6 +400,7 @@ class GeneralContractorAgent:
 
         # Clear any stored plan from previous runs
         from backend.agents.project_planner import clear_last_finalized_plan
+
         clear_last_finalized_plan()
 
         # Log planning start
@@ -469,7 +471,10 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
         logger.debug(f"Planning result type: {type(planning_result).__name__}")
 
         # First, check if finalize_project_plan stored the tasks globally
-        from backend.agents.project_planner import get_last_finalized_plan, clear_last_finalized_plan
+        from backend.agents.project_planner import (
+            get_last_finalized_plan,
+            clear_last_finalized_plan,
+        )
 
         stored_plan = get_last_finalized_plan()
         if stored_plan and stored_plan.get("tasks"):
@@ -504,7 +509,9 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
                                 elif hasattr(content_block, "result"):
                                     tool_content = content_block.result
                                 elif isinstance(content_block, dict):
-                                    tool_content = content_block.get("content") or content_block.get("result")
+                                    tool_content = content_block.get(
+                                        "content"
+                                    ) or content_block.get("result")
 
                                 if tool_content is None:
                                     continue
@@ -520,7 +527,9 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
                                 # Check if this has tasks
                                 if "tasks" in parsed and isinstance(parsed["tasks"], list):
                                     if len(parsed["tasks"]) > 0:
-                                        logger.info(f"Found {len(parsed['tasks'])} tasks from tool result")
+                                        logger.info(
+                                            f"Found {len(parsed['tasks'])} tasks from tool result"
+                                        )
                                         return parsed["tasks"]
                             except (json.JSONDecodeError, TypeError, AttributeError) as e:
                                 logger.debug(f"  Could not parse content block: {e}")
@@ -531,7 +540,9 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
                             parsed = json.loads(content)
                             if "tasks" in parsed and isinstance(parsed["tasks"], list):
                                 if len(parsed["tasks"]) > 0:
-                                    logger.info(f"Found {len(parsed['tasks'])} tasks from message content")
+                                    logger.info(
+                                        f"Found {len(parsed['tasks'])} tasks from message content"
+                                    )
                                     return parsed["tasks"]
                         except (json.JSONDecodeError, TypeError):
                             pass
@@ -881,7 +892,7 @@ Complete this task using your specialized tools efficiently."""
                 # Try streaming first for real-time activity logging
                 result = await asyncio.wait_for(
                     self._execute_with_streaming(agent, agent_name, task.task_id, task_prompt),
-                    timeout=timeout_seconds
+                    timeout=timeout_seconds,
                 )
             except asyncio.TimeoutError:
                 error_msg = (
@@ -928,11 +939,7 @@ Complete this task using your specialized tools efficiently."""
             }
 
     async def _execute_with_streaming(
-        self,
-        agent: Any,
-        agent_name: str,
-        task_id: str,
-        prompt: str
+        self, agent: Any, agent_name: str, task_id: str, prompt: str
     ) -> Any:
         """
         Execute agent with streaming to capture real-time activity.

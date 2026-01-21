@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class ActivityType(str, Enum):
     """Types of activity events."""
+
     TASK_START = "task_start"
     TASK_COMPLETE = "task_complete"
     TASK_FAILED = "task_failed"
@@ -39,6 +40,7 @@ class ActivityType(str, Enum):
 @dataclass
 class ActivityEvent:
     """Represents a single activity event."""
+
     timestamp: str
     type: ActivityType
     agent: Optional[str]
@@ -180,11 +182,7 @@ class ActivityLogger:
         logger.debug(f"[{agent}] Thinking: {display_thinking[:100]}...")
 
     async def log_tool_call(
-        self,
-        agent: str,
-        task_id: Optional[str],
-        tool_name: str,
-        arguments: Dict[str, Any]
+        self, agent: str, task_id: Optional[str], tool_name: str, arguments: Dict[str, Any]
     ):
         """Log a tool call."""
         # Format arguments for display
@@ -201,11 +199,7 @@ class ActivityLogger:
         logger.info(f"[{agent}] Tool call: {tool_name}")
 
     async def log_tool_result(
-        self,
-        agent: str,
-        task_id: Optional[str],
-        tool_name: str,
-        result: Any
+        self, agent: str, task_id: Optional[str], tool_name: str, result: Any
     ):
         """Log a tool result."""
         result_str = str(result)[:200] if result else "None"
