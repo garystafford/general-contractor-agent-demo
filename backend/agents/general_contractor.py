@@ -39,7 +39,7 @@ from backend.agents import (
     create_roofer_agent,
 )
 from backend.config import settings
-from backend.orchestration.task_manager import Task, TaskManager
+from backend.orchestration.task_manager import Task, TaskManager, TaskStatus
 from backend.utils.activity_logger import get_activity_logger
 
 logger = logging.getLogger(__name__)
@@ -465,9 +465,8 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
         import json
         import re
 
-        # Log what we received
-        logger.info(f"Planning result type: {type(planning_result).__name__}")
-        logger.info(f"Planning result attributes: {[a for a in dir(planning_result) if not a.startswith('_')]}")
+        # Log what we received (debug level)
+        logger.debug(f"Planning result type: {type(planning_result).__name__}")
 
         # First, check if finalize_project_plan stored the tasks globally
         from backend.agents.project_planner import get_last_finalized_plan, clear_last_finalized_plan
@@ -485,7 +484,7 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
             for i, msg in enumerate(planning_result.messages):
                 # Log message structure for debugging
                 msg_type = type(msg).__name__
-                logger.info(f"Message {i}: type={msg_type}, role={getattr(msg, 'role', 'N/A')}")
+                logger.debug(f"Message {i}: type={msg_type}, role={getattr(msg, 'role', 'N/A')}")
 
                 # Check for tool results in content
                 if hasattr(msg, "content"):
@@ -493,7 +492,7 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
                     if isinstance(content, list):
                         for j, content_block in enumerate(content):
                             block_type = type(content_block).__name__
-                            logger.info(f"  Content block {j}: type={block_type}")
+                            logger.debug(f"  Content block {j}: type={block_type}")
 
                             # Try to get tool result content
                             try:
@@ -524,7 +523,7 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
                                         logger.info(f"Found {len(parsed['tasks'])} tasks from tool result")
                                         return parsed["tasks"]
                             except (json.JSONDecodeError, TypeError, AttributeError) as e:
-                                logger.info(f"  Could not parse content block: {e}")
+                                logger.debug(f"  Could not parse content block: {e}")
                                 continue
                     elif isinstance(content, str):
                         # Content might be a JSON string directly
@@ -1078,8 +1077,8 @@ Complete this task using your specialized tools efficiently."""
                     # No tasks running but some are pending - this is a dependency deadlock
                     # Gather information about blocked tasks
                     blocked_tasks = []
-                    for task in self.task_manager.tasks:
-                        if task.status == "pending":
+                    for task in self.task_manager.tasks.values():
+                        if task.status == TaskStatus.PENDING:
                             blocked_tasks.append(f"{task.description} (assigned to {task.agent})")
 
                     error_msg = f"Dependency deadlock detected: {pending} pending tasks but none can execute"
