@@ -8,8 +8,8 @@
 
 **Fixed in**:
 
-- `deployment/materials-supplier/app/main.py`
-- `deployment/permitting-service/app/main.py`
+- `deployment-ecs/materials-supplier/app/main.py`
+- `deployment-ecs/permitting-service/app/main.py`
 
 Changed from:
 

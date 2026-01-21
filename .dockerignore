@@ -53,11 +53,11 @@ tests/
 .env.*.local
 
 # Deployment scripts (keep app code for Docker builds)
-deployment/**/*.sh
-deployment/**/task-definition.json
-deployment/**/Dockerfile
-deployment/scripts/
-deployment/backend-runtime/
+deployment-ecs/**/*.sh
+deployment-ecs/**/task-definition.json
+deployment-ecs/**/Dockerfile
+deployment-ecs/scripts/
+deployment-ecs/backend-runtime/
 
 # Misc
 .DS_Store

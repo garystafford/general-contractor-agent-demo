@@ -317,14 +317,14 @@ Deploy the MCP servers and agents to AWS ECS (Elastic Container Service).
 
 ```bash
 # Make scripts executable (one-time)
-chmod +x deployment/**/*.sh
+chmod +x deployment-ecs/**/*.sh
 
 # Deploy Materials Supplier MCP to AWS
-cd deployment/materials-supplier
+cd deployment-ecs/materials-supplier
 ./deploy.sh
 
 # Deploy Permitting Service MCP to AWS
-cd deployment/permitting-service
+cd deployment-ecs/permitting-service
 ./deploy.sh
 ```
 
@@ -334,10 +334,10 @@ When your IP address changes, update all security groups:
 
 ```bash
 # Dry run (preview changes)
-./deployment/scripts/update-ip.sh --dry-run
+./deployment-ecs/scripts/update-ip.sh --dry-run
 
 # Apply changes
-./deployment/scripts/update-ip.sh
+./deployment-ecs/scripts/update-ip.sh
 ```
 
 ### Connect Local Backend to AWS MCP Servers
@@ -349,7 +349,7 @@ MATERIALS_MCP_URL=http://your-materials-alb.us-east-1.elb.amazonaws.com/mcp
 PERMITTING_MCP_URL=http://your-permitting-alb.us-east-1.elb.amazonaws.com/mcp
 ```
 
-For detailed AWS deployment documentation, see **[deployment/README.md](deployment/README.md)**.
+For detailed AWS deployment documentation, see **[deployment-ecs/README.md](deployment-ecs/README.md)**.
 
 ---
 
@@ -466,7 +466,7 @@ Two MCP servers provide external service integration:
 | Mode  | Local File                 | Transport          | Use Case               |
 | ----- | -------------------------- | ------------------ | ---------------------- |
 | stdio | `backend/mcp_servers/*.py` | Subprocess         | Local development      |
-| http  | `deployment/*/app/`        | HTTP/SSE (FastMCP) | Docker, AWS deployment |
+| http  | `deployment-ecs/*/app/`    | HTTP/SSE (FastMCP) | Docker, AWS deployment |
 
 #### Task Manager
 
@@ -836,7 +836,7 @@ general-contractor-agent-demo/
 ├── docker/
 │   ├── materials-mcp/       # Materials MCP Docker build
 │   └── permitting-mcp/      # Permitting MCP Docker build
-├── deployment/
+├── deployment-ecs/
 │   ├── materials-supplier/  # AWS deployment for Materials MCP
 │   ├── permitting-service/  # AWS deployment for Permitting MCP
 │   ├── backend-runtime/     # AWS ECS backend deployment
@@ -985,7 +985,7 @@ See [🐳 Running with Docker](#-running-with-docker) and [☁️ AWS Deployment
 
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture diagrams and component details 🏗️
 - **[DOCKER.md](docs/DOCKER.md)** - Docker deployment guide 🐳
-- **[deployment/README.md](deployment/README.md)** - AWS deployment guide ☁️
+- **[deployment-ecs/README.md](deployment-ecs/README.md)** - AWS deployment guide ☁️
 - **[SUMMARY.md](docs/SUMMARY.md)** - Project overview and quick reference ⭐
 - **[QUICKSTART.md](docs/QUICKSTART.md)** - Quick start guide and test script overview
 - **[EXAMPLE_PROJECTS.md](docs/EXAMPLE_PROJECTS.md)** - Sample project descriptions to test with 📝

@@ -9,8 +9,8 @@ This directory contains deployment code for the General Contractor system on AWS
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│                         AWS ECS                              │
-│                                                              │
+│                         AWS ECS                             │
+│                                                             │
 │  ┌────────────────────────────────────────────────────────┐ │
 │  │  Backend Runtime (ECS Fargate)                         │ │
 │  │  - FastAPI (port 8000)                                 │ │
@@ -18,22 +18,22 @@ This directory contains deployment code for the General Contractor system on AWS
 │  │  - General Contractor Orchestration                    │ │
 │  │  - Connects to MCP servers via HTTP                    │ │
 │  └──────────────┬─────────────────┬───────────────────────┘ │
-│                 │                 │                          │
-│                 ▼                 ▼                          │
-│  ┌──────────────────────┐  ┌──────────────────────┐        │
-│  │ Materials MCP        │  │ Permitting MCP       │        │
-│  │ (ECS Fargate + ALB)  │  │ (ECS Fargate + ALB)  │        │
-│  │ - Port 80 (ALB)      │  │ - Port 80 (ALB)      │        │
-│  │ - Port 8080 (ECS)    │  │ - Port 8080 (ECS)    │        │
-│  └──────────────────────┘  └──────────────────────┘        │
-│                                                              │
+│                 │                 │                         │
+│                 ▼                 ▼                         │
+│  ┌──────────────────────┐  ┌──────────────────────┐         │
+│  │ Materials MCP        │  │ Permitting MCP       │         │
+│  │ (ECS Fargate + ALB)  │  │ (ECS Fargate + ALB)  │         │
+│  │ - Port 80 (ALB)      │  │ - Port 80 (ALB)      │         │
+│  │ - Port 8080 (ECS)    │  │ - Port 8080 (ECS)    │         │
+│  └──────────────────────┘  └──────────────────────┘         │
+│                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ## Directory Structure
 
 ```text
-deployment/
+deployment-ecs/
 ├── README.md                    # This file
 ├── backend-runtime/             # Backend with agents (connects to MCP via HTTP)
 │   ├── Dockerfile              # Container build configuration
@@ -80,20 +80,20 @@ deployment/
 
 ```bash
 # From project root, make all deployment scripts executable
-chmod +x deployment/**/*.sh
+chmod +x deployment-ecs/**/*.sh
 ```
 
 ### Deploy Materials Supplier MCP Server
 
 ```bash
-cd deployment/materials-supplier
+cd deployment-ecs/materials-supplier
 ./deploy.sh
 ```
 
 ### Deploy Permitting Service MCP Server
 
 ```bash
-cd deployment/permitting-service
+cd deployment-ecs/permitting-service
 ./deploy.sh
 ```
 
@@ -102,7 +102,7 @@ cd deployment/permitting-service
 After MCP servers are deployed, deploy the backend runtime:
 
 ```bash
-cd deployment/backend-runtime
+cd deployment-ecs/backend-runtime
 
 # Set MCP server URLs (from MCP deployment output)
 export MATERIALS_MCP_URL="http://materials-supplier-mcp-alb-xxx.us-east-1.elb.amazonaws.com/mcp"
@@ -190,7 +190,7 @@ Each MCP server deployment creates:
 ### Test Materials Supplier
 
 ```bash
-cd deployment/materials-supplier
+cd deployment-ecs/materials-supplier
 
 # Build container (for ARM Mac, add --platform linux/amd64 for ECS compatibility)
 docker build -t materials-supplier-mcp .
@@ -211,7 +211,7 @@ curl -X POST http://localhost:8080/mcp \
 ### Test Permitting Service
 
 ```bash
-cd deployment/permitting-service
+cd deployment-ecs/permitting-service
 
 # Build container (for ARM Mac, add --platform linux/amd64 for ECS compatibility)
 docker build -t permitting-service-mcp .
@@ -275,7 +275,7 @@ aws elbv2 describe-target-health --target-group-arn <tg-arn>
 If your IP address changes, update the ALB security groups to allow access from your new IP:
 
 ```bash
-cd deployment/scripts
+cd deployment-ecs/scripts
 
 # Preview changes (dry run)
 ./update-ip.sh --dry-run
@@ -291,7 +291,7 @@ This updates the security groups for all deployed services (materials-supplier-m
 Remove all AWS resources for a service:
 
 ```bash
-cd deployment/scripts
+cd deployment-ecs/scripts
 
 # Remove Materials Supplier
 ./cleanup.sh materials-supplier-mcp

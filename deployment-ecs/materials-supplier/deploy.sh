@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Deploy Permitting Service MCP Server to AWS
+# Deploy Materials Supplier MCP Server to AWS
 #
 # Prerequisites:
 # - AWS CLI v2 configured with appropriate permissions
@@ -18,7 +18,7 @@
 set -euo pipefail
 
 # Configuration
-SERVICE_NAME="permitting-service-mcp"
+SERVICE_NAME="materials-supplier-mcp"
 AWS_REGION="${AWS_REGION:-us-east-1}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -464,5 +464,5 @@ echo ""
 echo "Next steps:"
 echo "  1. Wait for the service to become healthy"
 echo "  2. Note the ALB DNS name for connecting the backend runtime"
-echo "  3. See: deployment/backend-runtime/deploy.sh for backend deployment"
+echo "  3. See: deployment-ecs/backend-runtime/deploy.sh for backend deployment"
 echo ""

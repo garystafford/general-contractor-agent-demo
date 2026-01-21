@@ -150,7 +150,7 @@ ECR_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${SERVICE_NAME}"
 if [ "$SKIP_BUILD" = false ]; then
 	log_step "Building and Pushing Docker Image"
 
-	# Navigate to project root (two levels up from deployment/backend-runtime)
+	# Navigate to project root (two levels up from deployment-ecs/backend-runtime)
 	SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 	PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 

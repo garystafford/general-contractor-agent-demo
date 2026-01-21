@@ -11,11 +11,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install dependencies
-COPY deployment/permitting-service/requirements.txt .
+COPY deployment-ecs/permitting-service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code from deployment directory
-COPY deployment/permitting-service/app/ ./app/
+COPY deployment-ecs/permitting-service/app/ ./app/
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1

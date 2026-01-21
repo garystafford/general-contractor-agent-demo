@@ -11,11 +11,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install dependencies
-COPY deployment/materials-supplier/requirements.txt .
+COPY deployment-ecs/materials-supplier/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code from deployment directory
-COPY deployment/materials-supplier/app/ ./app/
+COPY deployment-ecs/materials-supplier/app/ ./app/
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
