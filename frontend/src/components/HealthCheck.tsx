@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, XCircle, AlertCircle, RefreshCw, ArrowLeft, Activity } from 'lucide-react';
+import { config } from '../config';
 
 interface ComponentHealth {
   status: string;
@@ -38,7 +39,7 @@ export function HealthCheck() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:8000/api/health/detailed');
+      const response = await fetch(`${config.apiUrl}/api/health/detailed`);
       const result = await response.json();
 
       if (result.status === 'success') {

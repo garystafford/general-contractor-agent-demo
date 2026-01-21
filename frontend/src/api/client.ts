@@ -12,11 +12,12 @@ import type {
   Inspection,
   APIResponse,
 } from '../types';
+import { config } from '../config';
 
 class APIClient {
   private client: AxiosInstance;
 
-  constructor(baseURL: string = 'http://localhost:8000') {
+  constructor(baseURL: string = config.apiUrl) {
     this.client = axios.create({
       baseURL,
       headers: {

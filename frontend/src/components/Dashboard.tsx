@@ -4,6 +4,7 @@ import { useProjectStore } from '../store/projectStore';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { apiClient } from '../api/client';
 import { AgentGraph } from './AgentGraph';
+import { config } from '../config';
 import toast from 'react-hot-toast';
 import {
   Play,
@@ -57,12 +58,12 @@ export function Dashboard() {
 
   // Connect to WebSockets
   useWebSocket({
-    url: 'ws://localhost:8000/ws/project-updates',
+    url: `${config.wsUrl}/ws/project-updates`,
     onMessage: handleProjectUpdate,
   });
 
   useWebSocket({
-    url: 'ws://localhost:8000/ws/task-updates',
+    url: `${config.wsUrl}/ws/task-updates`,
     onMessage: handleTaskUpdate,
   });
 

@@ -409,6 +409,8 @@ graph LR
 
 ## Deployment Architecture
 
+### Local Development (Without Docker)
+
 ```mermaid
 graph TB
     subgraph "Local Development"
@@ -440,6 +442,53 @@ graph TB
     style MCP2 fill:#9C27B0,color:#fff
     style Bedrock fill:#FF9800,color:#fff
 ```
+
+### Docker Deployment
+
+```mermaid
+graph TB
+    subgraph "Docker Compose"
+        subgraph "gc-frontend Container"
+            Nginx[nginx:80<br/>React SPA]
+        end
+
+        subgraph "gc-backend Container"
+            FastAPI[FastAPI:8000]
+            MCP1[Materials MCP<br/>stdio subprocess]
+            MCP2[Permitting MCP<br/>stdio subprocess]
+        end
+    end
+
+    subgraph "Host Machine"
+        Port3000[localhost:3000]
+        Port8000[localhost:8000]
+    end
+
+    subgraph "AWS Cloud"
+        Bedrock[Amazon Bedrock<br/>Claude Sonnet 4]
+    end
+
+    Port3000 --> Nginx
+    Port8000 --> FastAPI
+    Nginx -->|API calls| FastAPI
+    FastAPI --> MCP1 & MCP2
+    FastAPI -->|boto3 + credentials| Bedrock
+
+    style Nginx fill:#009639,color:#fff
+    style FastAPI fill:#009688,color:#fff
+    style MCP1 fill:#9C27B0,color:#fff
+    style MCP2 fill:#9C27B0,color:#fff
+    style Bedrock fill:#FF9800,color:#fff
+```
+
+**Docker containers:**
+
+| Container      | Image            | Port       | Purpose                |
+| -------------- | ---------------- | ---------- | ---------------------- |
+| `gc-frontend`  | nginx:alpine     | 3000 → 80  | Serves React SPA       |
+| `gc-backend`   | python:3.13-slim | 8000       | FastAPI + Agents + MCP |
+
+See [DOCKER.md](DOCKER.md) for complete Docker deployment guide.
 
 ---
 

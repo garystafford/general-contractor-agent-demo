@@ -12,6 +12,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { useProjectStore } from '../store/projectStore';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { config } from '../config';
 import type { AgentActivityMessage } from '../types';
 
 const AGENT_NAMES = [
@@ -96,7 +97,7 @@ export function AgentGraph() {
 
   // Connect to agent activity WebSocket
   useWebSocket({
-    url: 'ws://localhost:8000/ws/agent-activity',
+    url: `${config.wsUrl}/ws/agent-activity`,
     onMessage: handleAgentActivity,
   });
 

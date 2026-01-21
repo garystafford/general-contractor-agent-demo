@@ -177,6 +177,99 @@ Build an 8x10 garden shed with a single window, wood siding, an asphalt shingle 
 
 ---
 
+## 🐳 Running with Docker
+
+Run the entire stack with Docker Compose - no local Python or Node.js installation required!
+
+### Docker Prerequisites
+
+- **Docker** and **Docker Compose** installed
+- **AWS Credentials** with Bedrock access
+
+### Quick Start with Docker
+
+**1. Configure environment variables:**
+
+```bash
+# Copy example env file
+cp .env.example .env
+
+# Edit .env and add your AWS credentials (required for Docker)
+AWS_ACCESS_KEY_ID=your_access_key_here
+AWS_SECRET_ACCESS_KEY=your_secret_key_here
+AWS_REGION=us-east-1
+```
+
+**2. Build and start containers:**
+
+```bash
+# Build and start all services
+docker-compose up --build
+
+# Or run in detached mode
+docker-compose up --build -d
+```
+
+**3. Access the application:**
+
+- Frontend: `http://localhost:3000`
+- Backend API: `http://localhost:8000`
+- API Docs: `http://localhost:8000/docs`
+
+### Docker Commands
+
+```bash
+# View logs
+docker-compose logs -f
+
+# View specific service logs
+docker-compose logs -f backend
+docker-compose logs -f frontend
+
+# Stop all services
+docker-compose down
+
+# Rebuild after code changes
+docker-compose up --build
+
+# Remove all containers and volumes
+docker-compose down -v
+```
+
+### Container Architecture
+
+```text
+┌─────────────────────────────────────────────────────┐
+│  Docker Compose                                     │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  ┌─────────────────┐     ┌─────────────────┐       │
+│  │    Frontend     │     │     Backend     │       │
+│  │   (nginx:80)    │────▶│  (FastAPI:8000) │       │
+│  │   React App     │     │   + Agents      │       │
+│  └────────┬────────┘     │   + MCP Servers │       │
+│           │              └─────────────────┘       │
+│           │                                        │
+│  localhost:3000          localhost:8000            │
+└─────────────────────────────────────────────────────┘
+```
+
+### Troubleshooting Docker
+
+**Issue**: Backend fails to start with AWS credentials error
+
+- **Solution**: Ensure `.env` file has valid `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. Docker cannot use AWS SSO profiles.
+
+**Issue**: Frontend can't connect to backend
+
+- **Solution**: The frontend is built with `VITE_API_URL=http://localhost:8000`. Ensure backend is running and healthy.
+
+**Issue**: Container keeps restarting
+
+- **Solution**: Check logs with `docker-compose logs backend` to see error messages.
+
+---
+
 ## 📋 Table of Contents
 
 - [Overview](#overview)
@@ -580,7 +673,7 @@ Enable dynamic planning for custom project descriptions.
 
 AI agents can sometimes get stuck in infinite loops, repeatedly calling the same tool with the same parameters. For example:
 
-```
+```text
 Tool #63: frame_walls
 Tool #64: frame_walls
 Tool #65: frame_walls
@@ -776,6 +869,7 @@ cd frontend && npm run lint:fix
 ## Documentation
 
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture diagrams and component details 🏗️
+- **[DOCKER.md](docs/DOCKER.md)** - Docker deployment guide 🐳
 - **[SUMMARY.md](docs/SUMMARY.md)** - Project overview and quick reference ⭐
 - **[QUICKSTART.md](docs/QUICKSTART.md)** - Quick start guide and test script overview
 - **[EXAMPLE_PROJECTS.md](docs/EXAMPLE_PROJECTS.md)** - Sample project descriptions to test with 📝

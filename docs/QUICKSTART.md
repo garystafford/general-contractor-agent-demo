@@ -1,5 +1,26 @@
 # Quick Start Guide
 
+## 🐳 Run with Docker (Easiest!)
+
+No local Python or Node.js installation required:
+
+```bash
+# 1. Configure AWS credentials
+cp .env.example .env
+# Edit .env with your AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+
+# 2. Start the stack
+docker-compose up --build
+
+# 3. Open browser
+# Frontend: http://localhost:3000
+# API Docs: http://localhost:8000/docs
+```
+
+See [DOCKER.md](DOCKER.md) for complete Docker documentation.
+
+---
+
 ## 🎯 Run the Demo NOW (No AWS Required!)
 
 The easiest way to see the detailed agent output:
@@ -162,9 +183,10 @@ A: Update `DEFAULT_MODEL` in `.env` with the correct ID from AWS Console.
 
 ## 📚 More Information
 
+- **[DOCKER.md](DOCKER.md)** - Docker deployment guide
 - **[TESTING.md](TESTING.md)** - Complete testing documentation
 - **[EXECUTION_GUIDE.md](EXECUTION_GUIDE.md)** - Detailed execution mode guide
-- **[README.md](README.md)** - Full project documentation
+- **[README.md](../README.md)** - Full project documentation
 
 ---
 

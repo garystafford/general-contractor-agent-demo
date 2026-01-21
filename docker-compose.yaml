@@ -1,0 +1,64 @@
+# Docker Compose for General Contractor Agent Demo
+# Runs the complete stack locally without installing dependencies
+
+services:
+  # Backend - FastAPI with Strands Agents and MCP servers (stdio mode)
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: gc-backend
+    ports:
+      - "8000:8000"
+    environment:
+      # AWS Bedrock configuration - REQUIRED
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+      # Model configuration
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-us.anthropic.claude-sonnet-4-5-20250929-v1:0}
+      # API configuration
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      # Task configuration
+      - TASK_TIMEOUT_SECONDS=${TASK_TIMEOUT_SECONDS:-60}
+      - MAX_CONSECUTIVE_TOOL_CALLS=${MAX_CONSECUTIVE_TOOL_CALLS:-3}
+      - MAX_TOTAL_TOOL_CALLS=${MAX_TOTAL_TOOL_CALLS:-20}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - gc-network
+
+  # Frontend - React with Vite (served by nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:8000
+    container_name: gc-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - gc-network
+
+networks:
+  gc-network:
+    driver: bridge
