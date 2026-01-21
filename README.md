@@ -172,7 +172,7 @@ Complete kitchen renovation for a 12x18 feet space in modern style. Install new 
 Or, use the **Custom Project (Custom)**, such as:
 
 ```text
-Build an 8x10 garden shed with a single window, wood siding, an asphalt shingle roof, and a concrete slab foundation. Siding should be painted light green. Include electrical wiring for one outlet and one overhead light fixture.
+Build an 8x10 garden shed with a single window, wood siding, an asphalt shingle roof, and a concrete slab foundation. Siding should be painted light green. Include electrical wiring for one outlet and one overhead light fixture. You will need local building permits for the shed construction.
 ```
 
 ---
@@ -212,9 +212,13 @@ docker-compose up --build -d
 
 **3. Access the application:**
 
-- Frontend: `http://localhost:3000`
-- Backend API: `http://localhost:8000`
-- API Docs: `http://localhost:8000/docs`
+| Service               | URL                          |
+| --------------------- | ---------------------------- |
+| Frontend (React)      | http://localhost:3000        |
+| Backend API           | http://localhost:8000        |
+| API Docs              | http://localhost:8000/docs   |
+| Materials MCP Server  | http://localhost:8081/health |
+| Permitting MCP Server | http://localhost:8082/health |
 
 ### Docker Commands
 
@@ -224,6 +228,8 @@ docker-compose logs -f
 
 # View specific service logs
 docker-compose logs -f backend
+docker-compose logs -f materials
+docker-compose logs -f permitting
 docker-compose logs -f frontend
 
 # Stop all services
@@ -236,23 +242,43 @@ docker-compose up --build
 docker-compose down -v
 ```
 
-### Container Architecture
+### Container Architecture (4 Containers)
 
 ```text
-┌─────────────────────────────────────────────────────┐
-│  Docker Compose                                     │
-├─────────────────────────────────────────────────────┤
-│                                                     │
-│  ┌─────────────────┐     ┌─────────────────┐       │
-│  │    Frontend     │     │     Backend     │       │
-│  │   (nginx:80)    │────▶│  (FastAPI:8000) │       │
-│  │   React App     │     │   + Agents      │       │
-│  └────────┬────────┘     │   + MCP Servers │       │
-│           │              └─────────────────┘       │
-│           │                                        │
-│  localhost:3000          localhost:8000            │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  Docker Compose Network (gc-network)                             │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────────┐         ┌─────────────────┐                 │
+│  │    Frontend     │         │     Backend     │                 │
+│  │   (nginx:80)    │────────▶│  (FastAPI:8000) │                 │
+│  │   React App     │         │  Strands Agents │                 │
+│  └────────┬────────┘         └────────┬────────┘                 │
+│           │                           │                          │
+│  localhost:3000                       │ HTTP (MCP Protocol)      │
+│                           ┌───────────┴───────────┐              │
+│                           ▼                       ▼              │
+│              ┌─────────────────────┐ ┌─────────────────────┐     │
+│              │  Materials MCP      │ │  Permitting MCP     │     │
+│              │  (FastMCP:8080)     │ │  (FastMCP:8080)     │     │
+│              └─────────────────────┘ └─────────────────────┘     │
+│                        │                       │                 │
+│               localhost:8081          localhost:8082             │
+└──────────────────────────────────────────────────────────────────┘
 ```
+
+**Startup Order:** MCP Servers → Backend → Frontend
+
+### MCP Connection Modes
+
+The backend supports two modes for connecting to MCP servers:
+
+| Mode    | Description                           | Use Case                         |
+| ------- | ------------------------------------- | -------------------------------- |
+| `stdio` | MCP servers run as local subprocesses | Local development without Docker |
+| `http`  | MCP servers accessed via HTTP/SSE     | Docker, AWS deployment           |
+
+Docker automatically uses `MCP_MODE=http` to connect to the containerized MCP servers.
 
 ### Troubleshooting Docker
 
@@ -264,9 +290,66 @@ docker-compose down -v
 
 - **Solution**: The frontend is built with `VITE_API_URL=http://localhost:8000`. Ensure backend is running and healthy.
 
+**Issue**: MCP servers not starting
+
+- **Solution**: Check MCP server logs with `docker-compose logs materials permitting`. Verify health endpoints respond.
+
 **Issue**: Container keeps restarting
 
 - **Solution**: Check logs with `docker-compose logs backend` to see error messages.
+
+For detailed Docker documentation, see **[DOCKER.md](docs/DOCKER.md)**.
+
+---
+
+## ☁️ AWS Deployment
+
+Deploy the MCP servers and agents to AWS using Amazon Bedrock AgentCore.
+
+### Deployment Options
+
+| Component   | Deployment Target | Description                                       |
+| ----------- | ----------------- | ------------------------------------------------- |
+| MCP Servers | AgentCore Gateway | HTTP-accessible MCP servers via ECS Fargate + ALB |
+| Agents      | AgentCore Runtime | Full agent stack connecting to remote MCP servers |
+
+### Quick Deploy MCP Servers
+
+```bash
+# Make scripts executable (one-time)
+chmod +x deployment/**/*.sh
+
+# Deploy Materials Supplier MCP to AWS
+cd deployment/materials-supplier
+./deploy.sh
+
+# Deploy Permitting Service MCP to AWS
+cd deployment/permitting-service
+./deploy.sh
+```
+
+### Update Security Group IPs
+
+When your IP address changes, update all security groups:
+
+```bash
+# Dry run (preview changes)
+./deployment/scripts/update-ip.sh --dry-run
+
+# Apply changes
+./deployment/scripts/update-ip.sh
+```
+
+### Connect Local Backend to AWS MCP Servers
+
+```bash
+# In .env file
+MCP_MODE=http
+MATERIALS_MCP_URL=http://your-materials-alb.us-east-1.elb.amazonaws.com/mcp
+PERMITTING_MCP_URL=http://your-permitting-alb.us-east-1.elb.amazonaws.com/mcp
+```
+
+For detailed AWS deployment documentation, see **[deployment/README.md](deployment/README.md)**.
 
 ---
 
@@ -282,6 +365,7 @@ docker-compose down -v
 - [Project Types](#project-types)
 - [Development](#development)
 - [Troubleshooting](#common-issues--troubleshooting)
+- [Deployment Summary](#deployment-summary)
 - [Documentation](#documentation)
 
 ---
@@ -365,17 +449,24 @@ This system models a construction project where a **General Contractor** agent o
 
 #### MCP Servers (Model Context Protocol)
 
-Two MCP servers run as separate processes, communicating via `stdio`:
+Two MCP servers provide external service integration:
 
-1. **Materials Supplier Server** (`backend/mcp_servers/materials_supplier.py`)
+1. **Materials Supplier Server**
    - Tools: `check_availability`, `order_materials`, `get_catalog`, `get_order`
    - Manages inventory, pricing, and material ordering
    - Categories: lumber, electrical, plumbing, masonry, paint, HVAC, roofing
 
-2. **Permitting Service Server** (`backend/mcp_servers/permitting.py`)
+2. **Permitting Service Server**
    - Tools: `apply_for_permit`, `check_permit_status`, `schedule_inspection`, `get_required_permits`, `get_inspection`
    - Handles construction permits and inspections
    - Permit types: building, electrical, plumbing, mechanical, demolition, roofing
+
+**Transport Modes:**
+
+| Mode  | Local File                 | Transport          | Use Case               |
+| ----- | -------------------------- | ------------------ | ---------------------- |
+| stdio | `backend/mcp_servers/*.py` | Subprocess         | Local development      |
+| http  | `deployment/*/app/`        | HTTP/SSE (FastMCP) | Docker, AWS deployment |
 
 #### Task Manager
 
@@ -725,11 +816,12 @@ IMPORTANT CONSTRAINTS:
 general-contractor-agent-demo/
 ├── backend/
 │   ├── agents/              # 8 specialized trade agents
-│   ├── mcp_servers/         # MCP servers (materials, permitting)
+│   ├── mcp_servers/         # MCP servers - stdio mode (local dev)
 │   ├── orchestration/       # Task manager and dependencies
-│   ├── api/                 # FastAPI routes and WebSocket
+│   ├── api/                 # FastAPI routes
 │   ├── utils/               # Loop detection utilities
-│   └── config.py            # Configuration settings
+│   ├── config.py            # Configuration settings
+│   └── Dockerfile           # Backend container
 ├── frontend/
 │   ├── src/
 │   │   ├── components/      # React components (Dashboard, Form, etc.)
@@ -738,12 +830,22 @@ general-contractor-agent-demo/
 │   │   ├── store/           # Zustand state management
 │   │   ├── types/           # TypeScript type definitions
 │   │   └── App.tsx          # Main app with routing
-│   ├── package.json
-│   └── vite.config.ts
+│   ├── Dockerfile           # Frontend container
+│   ├── nginx.conf           # nginx configuration
+│   └── package.json
+├── docker/
+│   ├── materials-mcp/       # Materials MCP Docker build
+│   └── permitting-mcp/      # Permitting MCP Docker build
+├── deployment/
+│   ├── materials-supplier/  # AWS deployment for Materials MCP
+│   ├── permitting-service/  # AWS deployment for Permitting MCP
+│   ├── agentcore-runtime/   # AWS AgentCore Runtime deployment
+│   ├── scripts/             # Utility scripts (update-ip.sh)
+│   └── README.md            # Deployment documentation
 ├── tests/                   # Test scripts and demos
 ├── docs/                    # Documentation
-├── start.py                 # Unified startup script
-├── main.py                  # FastAPI entry point
+├── docker-compose.yaml      # 4-container local stack
+├── start.py                 # Unified startup script (local dev)
 ├── pyproject.toml           # Python dependencies
 └── .env                     # Environment configuration
 ```
@@ -866,10 +968,24 @@ cd frontend && npm run lint:fix
 
 ---
 
+## Deployment Summary
+
+| Option                | Description                      | Best For                      |
+| --------------------- | -------------------------------- | ----------------------------- |
+| **Local Development** | Python + Node.js, MCP via stdio  | Active development, debugging |
+| **Docker Compose**    | 4 containers, MCP via HTTP       | Workshops, demos, CI/CD       |
+| **AWS (MCP Only)**    | MCP servers on ECS, local agents | Hybrid development            |
+| **AWS (Full Stack)**  | AgentCore Runtime + Gateway      | Production deployment         |
+
+See [🐳 Running with Docker](#-running-with-docker) and [☁️ AWS Deployment](#️-aws-deployment) for details.
+
+---
+
 ## Documentation
 
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture diagrams and component details 🏗️
 - **[DOCKER.md](docs/DOCKER.md)** - Docker deployment guide 🐳
+- **[deployment/README.md](deployment/README.md)** - AWS deployment guide ☁️
 - **[SUMMARY.md](docs/SUMMARY.md)** - Project overview and quick reference ⭐
 - **[QUICKSTART.md](docs/QUICKSTART.md)** - Quick start guide and test script overview
 - **[EXAMPLE_PROJECTS.md](docs/EXAMPLE_PROJECTS.md)** - Sample project descriptions to test with 📝

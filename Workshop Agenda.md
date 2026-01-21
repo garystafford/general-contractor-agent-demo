@@ -2,14 +2,12 @@
 
 1. Discuss workshop goals
    - Interactive discussion around a simple example scenario that illustrates key concepts of AI Agents (specifically a multi-agent system)
-   - Discuss an example you can use with your technical or non-technical customers, including C-level
-     - How to present it
-     - What to expect from the customer
+   - Introduces an example you can use with your technical or non-technical customers, including C-level
    - A subject 99% of people will be able to relate to without a technical background
 
 2. Discuss workshop format
-   - One hour is not long enough for hands-on
-   - Talk though an example and how it applies or overlays AWS AI technologies
+   - One hour is not long enough for hands-on workshop
+   - Talk though the example and how it correlates AWS AI technologies
    - Will provide all the resources for you to present to your customers (code on GitHub and GitLab)
 
 3. Has anyone had work done around their house recently?
@@ -58,8 +56,3 @@
    - Deploy and run the project locally using Docker (code in project repo)
    - Deploy and run the project on AWS using EC2, ECS, EKS, or Fargate  (code in project repo for ECS/Fargate)
    - Deploy and run the project using AWS Bedrock AgentCore (Runtime, Gateway, Identity, Observability, etc.)
-
-10. Wrap Up and Next Steps
-    - Provide resources for further learning and exploration
-    - Encourage participants to think about how they can apply these concepts in their own contexts
-    - Q&A session to address any remaining questions or concerns

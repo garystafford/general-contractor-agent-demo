@@ -1,8 +1,54 @@
 # Docker Compose for General Contractor Agent Demo
-# Runs the complete stack locally without installing dependencies
+# Runs the complete stack locally with 4 containers:
+# - Frontend (React/Vite served by nginx)
+# - Backend (FastAPI with Strands Agents)
+# - Materials Supplier MCP Server (HTTP transport)
+# - Permitting Service MCP Server (HTTP transport)
 
 services:
-  # Backend - FastAPI with Strands Agents and MCP servers (stdio mode)
+  # Materials Supplier MCP Server
+  materials:
+    build:
+      context: .
+      dockerfile: docker/materials-mcp/Dockerfile
+    container_name: gc-materials
+    ports:
+      - "8081:8080"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - gc-network
+
+  # Permitting Service MCP Server
+  permitting:
+    build:
+      context: .
+      dockerfile: docker/permitting-mcp/Dockerfile
+    container_name: gc-permitting
+    ports:
+      - "8082:8080"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - gc-network
+
+  # Backend - FastAPI with Strands Agents (connects to MCP servers via HTTP)
   backend:
     build:
       context: .
@@ -26,6 +72,15 @@ services:
       - TASK_TIMEOUT_SECONDS=${TASK_TIMEOUT_SECONDS:-60}
       - MAX_CONSECUTIVE_TOOL_CALLS=${MAX_CONSECUTIVE_TOOL_CALLS:-3}
       - MAX_TOTAL_TOOL_CALLS=${MAX_TOTAL_TOOL_CALLS:-20}
+      # MCP Server configuration - HTTP mode for Docker
+      - MCP_MODE=http
+      - MATERIALS_MCP_URL=http://materials:8080/mcp
+      - PERMITTING_MCP_URL=http://permitting:8080/mcp
+    depends_on:
+      materials:
+        condition: service_healthy
+      permitting:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s

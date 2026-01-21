@@ -75,44 +75,66 @@ docker-compose up --build -d
 | Backend API | http://localhost:8000 |
 | API Documentation | http://localhost:8000/docs |
 | Health Check | http://localhost:8000/health |
+| Materials MCP Server | http://localhost:8081/health |
+| Permitting MCP Server | http://localhost:8082/health |
 
 ---
 
 ## Architecture
 
+The Docker Compose stack runs **4 containers** that communicate over an internal network:
+
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                      Docker Compose Network                      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────────────┐       ┌──────────────────────┐       │
-│  │      Frontend        │       │       Backend        │       │
-│  │    (gc-frontend)     │──────▶│     (gc-backend)     │       │
-│  │                      │       │                      │       │
-│  │  - nginx:80          │       │  - FastAPI:8000      │       │
-│  │  - React SPA         │       │  - Strands Agents    │       │
-│  │  - Static assets     │       │  - MCP Servers       │       │
-│  │                      │       │    (stdio mode)      │       │
-│  └──────────┬───────────┘       └──────────┬───────────┘       │
-│             │                              │                    │
-│             │                              │                    │
-│     localhost:3000                 localhost:8000               │
-│                                            │                    │
-└────────────────────────────────────────────│────────────────────┘
-                                             │
-                                             ▼
-                                    ┌────────────────┐
-                                    │  AWS Bedrock   │
-                                    │  (Claude LLM)  │
-                                    └────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                          Docker Compose Network (gc-network)                  │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌────────────────────┐                    ┌────────────────────┐            │
+│  │     Frontend       │                    │      Backend       │            │
+│  │  (gc-frontend)     │───────────────────▶│   (gc-backend)     │            │
+│  │                    │     HTTP API       │                    │            │
+│  │  - nginx:80        │                    │  - FastAPI:8000    │            │
+│  │  - React SPA       │                    │  - Strands Agents  │            │
+│  └────────┬───────────┘                    └─────────┬──────────┘            │
+│           │                                          │                        │
+│   localhost:3000                                     │ HTTP (MCP Protocol)    │
+│                                                      │                        │
+│                         ┌────────────────────────────┼───────────────────┐   │
+│                         │                            │                   │   │
+│                         ▼                            ▼                   │   │
+│           ┌─────────────────────────┐  ┌─────────────────────────┐      │   │
+│           │   Materials MCP Server  │  │  Permitting MCP Server  │      │   │
+│           │   (gc-materials)        │  │  (gc-permitting)        │      │   │
+│           │                         │  │                         │      │   │
+│           │   - FastMCP:8080        │  │   - FastMCP:8080        │      │   │
+│           │   - Streamable HTTP     │  │   - Streamable HTTP     │      │   │
+│           └────────────┬────────────┘  └────────────┬────────────┘      │   │
+│                        │                            │                    │   │
+│                localhost:8081                  localhost:8082            │   │
+│                                                                          │   │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                         │
+                                         ▼
+                                ┌────────────────┐
+                                │  AWS Bedrock   │
+                                │  (Claude LLM)  │
+                                └────────────────┘
 ```
 
 ### Container Summary
 
 | Container | Base Image | Port | Purpose |
 |-----------|------------|------|---------|
-| `gc-backend` | python:3.13-slim | 8000 | FastAPI + Agents + MCP Servers |
+| `gc-materials` | python:3.13-slim | 8081 (→8080) | Materials Supplier MCP Server |
+| `gc-permitting` | python:3.13-slim | 8082 (→8080) | Permitting Service MCP Server |
+| `gc-backend` | python:3.13-slim | 8000 | FastAPI + Strands Agents |
 | `gc-frontend` | nginx:alpine | 3000 (→80) | React SPA served by nginx |
+
+### Startup Order
+
+1. **MCP Servers** start first (materials, permitting)
+2. **Backend** waits for MCP servers to be healthy before starting
+3. **Frontend** waits for backend to be healthy before starting
 
 ---
 
@@ -129,6 +151,9 @@ The backend container reads configuration from environment variables defined in 
 | `AWS_SECRET_ACCESS_KEY` | (required) | AWS secret key |
 | `AWS_SESSION_TOKEN` | (optional) | Temporary session token |
 | `DEFAULT_MODEL` | us.anthropic.claude-sonnet-4-5-20250929-v1:0 | Bedrock model ID |
+| `MCP_MODE` | http | MCP connection mode (http for Docker) |
+| `MATERIALS_MCP_URL` | http://materials:8080/mcp | Materials MCP endpoint |
+| `PERMITTING_MCP_URL` | http://permitting:8080/mcp | Permitting MCP endpoint |
 | `TASK_TIMEOUT_SECONDS` | 60 | Timeout per task |
 | `MAX_CONSECUTIVE_TOOL_CALLS` | 3 | Loop detection threshold |
 | `MAX_TOTAL_TOOL_CALLS` | 20 | Max tool calls per task |
@@ -175,10 +200,10 @@ docker-compose down -v
 # View all logs
 docker-compose logs -f
 
-# View backend logs only
+# View specific service logs
 docker-compose logs -f backend
-
-# View frontend logs only
+docker-compose logs -f materials
+docker-compose logs -f permitting
 docker-compose logs -f frontend
 
 # View last 100 lines
@@ -218,6 +243,39 @@ docker system prune -a
 
 ## Container Details
 
+### MCP Server Containers
+
+**Dockerfiles:** `docker/materials-mcp/Dockerfile`, `docker/permitting-mcp/Dockerfile`
+
+Both MCP servers use the same structure:
+
+```dockerfile
+FROM python:3.13-slim
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends curl
+
+# Install Python dependencies
+COPY deployment/*/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY deployment/*/app/ ./app/
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+EXPOSE 8080
+CMD ["python", "-m", "app.main"]
+```
+
+**Key Features:**
+- FastMCP with streamable HTTP transport
+- Health check endpoint at `/health`
+- MCP endpoint at `/mcp`
+
 ### Backend Container (`gc-backend`)
 
 **Dockerfile:** `backend/Dockerfile`
@@ -251,8 +309,8 @@ CMD ["python", "-m", "uvicorn", "backend.api.routes:app", "--host", "0.0.0.0", "
 **Key Features:**
 - Python 3.13 slim image
 - Runs as non-root user for security
-- 60-second startup period for MCP initialization
-- Health check endpoint at `/health`
+- 60-second startup period for initialization
+- Connects to MCP servers via HTTP (MCP_MODE=http)
 
 ### Frontend Container (`gc-frontend`)
 
@@ -283,7 +341,6 @@ CMD ["nginx", "-g", "daemon off;"]
 - Production-optimized nginx configuration
 - SPA routing support (all routes → index.html)
 - Gzip compression enabled
-- Static asset caching
 
 ---
 
@@ -295,6 +352,9 @@ CMD ["nginx", "-g", "daemon off;"]
 # Rebuild specific service
 docker-compose up --build backend
 
+# Rebuild MCP servers
+docker-compose up --build materials permitting
+
 # Rebuild all services
 docker-compose up --build
 ```
@@ -305,31 +365,42 @@ docker-compose up --build
 # Backend container
 docker-compose exec backend bash
 
+# MCP server container
+docker-compose exec materials bash
+
 # Frontend container (sh only in alpine)
 docker-compose exec frontend sh
-```
-
-### View Real-time Logs
-
-```bash
-# Follow all logs
-docker-compose logs -f
-
-# Follow specific service
-docker-compose logs -f backend
 ```
 
 ### Test Health Endpoints
 
 ```bash
+# MCP servers health
+curl http://localhost:8081/health  # Materials MCP
+curl http://localhost:8082/health  # Permitting MCP
+
 # Backend health
 curl http://localhost:8000/health
 
-# Backend detailed health
+# Backend detailed health (includes MCP status)
 curl http://localhost:8000/api/health/detailed
 
 # Frontend health
 curl http://localhost:3000/health
+```
+
+### Test MCP Endpoints Directly
+
+```bash
+# Test Materials MCP server
+curl -X POST http://localhost:8081/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"method": "tools/list"}'
+
+# Test Permitting MCP server
+curl -X POST http://localhost:8082/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"method": "tools/list"}'
 ```
 
 ---
@@ -360,6 +431,23 @@ lsof -i :8000
 # Kill process or change port in docker-compose.yaml
 ```
 
+### MCP Servers Not Starting
+
+**Symptoms:** Backend logs show connection errors to MCP servers
+
+**Solution:**
+1. Check MCP server logs: `docker-compose logs materials`
+2. Verify health endpoints: `curl http://localhost:8081/health`
+3. Ensure MCP servers started before backend (check startup order)
+
+```bash
+# Check all container statuses
+docker-compose ps
+
+# View MCP server logs
+docker-compose logs -f materials permitting
+```
+
 ### Frontend Can't Connect to Backend
 
 **Symptoms:** API calls fail, blank dashboard
@@ -382,19 +470,6 @@ docker-compose ps
 
 # View container events
 docker events --filter container=gc-backend
-```
-
-### MCP Servers Not Initializing
-
-**Symptoms:** Health check shows MCP services as "down"
-
-**Solution:**
-1. MCP servers initialize as subprocesses on first use
-2. Check backend logs for MCP initialization errors
-3. Verify Python path is correct in container
-
-```bash
-docker-compose exec backend python -c "import backend.mcp_servers.materials_supplier"
 ```
 
 ### Slow Container Builds
@@ -427,6 +502,7 @@ docker stats
 | Setup | `docker-compose up` | Install Python, Node.js, uv |
 | AWS Auth | Explicit credentials only | SSO profiles supported |
 | Isolation | Full container isolation | Uses local environment |
+| MCP Mode | HTTP (separate containers) | stdio (subprocesses) |
 | Rebuild | Container rebuild required | Hot reload available |
 | Best For | Workshops, demos, CI/CD | Active development |
 
