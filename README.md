@@ -175,6 +175,8 @@ Try out pre-configured projects, such as the **Kitchen Remodel (Template)**:
 
 Complete kitchen renovation for a 12x18 feet space in modern style. Install new tile flooring throughout the kitchen. Install light-colored wood cabinets with marble countertops. Construct and install a kitchen island for food preparation. Install modern, stylish overhead lighting fixtures. Supply and install new kitchen appliances, including range, refrigerator, dishwasher, and microwave. All work to follow modern design aesthetic with coordinated finishes across flooring, cabinetry, and countertops. Include adequate electrical and plumbing rough-in for new appliances and island. You will need local permits. You must purchase materials from the materials supplier.
 
+**[View example execution output →](example_output/kitchen_remodel.txt)**
+
 #### Bathroom Remodel Template
 
 Complete bathroom renovation for an 8x10 feet space in contemporary style. Remove all existing fixtures, flooring, and wall finishes. Install large-format porcelain tile flooring with slip-resistant finish. Install a new floating vanity with a light-colored wood finish and a solid-surface countertop with an integrated sink. Install a frameless glass shower enclosure with tiled shower walls and a built-in niche. Install a modern, water-efficient toilet and matching plumbing fixtures in a brushed metal finish. Install recessed ceiling lights and modern vanity lighting for task illumination. All work to follow contemporary design aesthetic with coordinated finishes across flooring, vanity, and fixtures. Include adequate electrical and plumbing rough-in for relocated vanity and shower controls. You will need local permits. You must purchase materials from the materials supplier.
