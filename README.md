@@ -33,31 +33,37 @@ See the [Architecture](docs/ARCHITECTURE.md) document for detailed system archit
 
 ### Frontend: Project Submission Form
 
-![Form Preview](docs/images/form-preview.png)
+![Form Preview](docs/images/previews_00001.png)
 
 ### Frontend: Project Dashboard
 
-![Dashboard Preview 1](docs/images/dashboard-preview-2.png)
+![Dashboard Preview 1](docs/images/previews_00002.png)
 
-![Dashboard Preview 2](docs/images/dashboard-preview.png)
+![Dashboard Preview 2](docs/images/previews_00003.png)
 
 ### Frontend: Network Graph
 
-![Network Graph Preview](docs/images/network-graph-preview.png)
+![Network Graph Preview 1](docs/images/previews_00004.png)
+
+![Network Graph Preview 1](docs/images/previews_00005.png)
+
+### Task Logging
+
+![Network Graph Preview 1](docs/images/previews_00006.png)
 
 ### Frontend: System Health Status
 
-![System Health Preview](docs/images/system-health-preview.png)
+![System Health Preview](docs/images/previews_00009.png)
 
 ### FastAPI Backend API
 
-![API Preview](docs/images/api-preview.png)
+![API Preview](docs/images/previews_00010.png)
 
 ### Backend Logs
 
-![Logs Preview 1](docs/images/logs-preview.png)
+![Logs Preview 1](docs/images/previews_00007.png)
 
-![Logs Preview 2](docs/images/logs-preview-2.png)
+![Logs Preview 2](docs/images/previews_00008.png)
 
 ---
 
