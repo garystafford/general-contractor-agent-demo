@@ -500,13 +500,13 @@ The React frontend provides a comprehensive real-time view of your construction 
 
 ### Features
 
-**Project Form**
+#### Project Form
 
 - Choose from pre-configured project templates (Kitchen, Bathroom, Shed, etc.)
 - Or describe a custom project with dynamic planning
 - Configure project parameters and submit
 
-**Dashboard Components**
+#### Dashboard Components
 
 1. **Auto-Refresh Indicator**
    - Shows "🔴 LIVE" when tasks are in progress
@@ -548,7 +548,7 @@ The backend provides a complete REST API for project management:
 
 ### Key Endpoints
 
-**Project Management**
+#### Project Management
 
 - `POST /api/projects/start` - Start a new project
 - `POST /api/projects/execute-next-phase` - Execute next phase
@@ -556,20 +556,20 @@ The backend provides a complete REST API for project management:
 - `GET /api/projects/status` - Get project status
 - `POST /api/projects/reset` - Reset for new project
 
-**Task Management**
+#### Task Management
 
 - `GET /api/tasks` - Get all tasks
 - `GET /api/tasks/{task_id}` - Get specific task
 - `POST /api/tasks/{task_id}/skip` - Skip failed task
 - `POST /api/tasks/{task_id}/retry` - Retry failed task
 
-**Agent Management**
+#### Agent Management
 
 - `GET /api/agents` - List all agents
 - `GET /api/agents/status` - Get all agents' status
 - `GET /api/agents/{agent_name}` - Get specific agent status
 
-**Materials & Permitting**
+#### Materials & Permitting
 
 - `GET /api/materials/catalog` - Browse materials
 - `POST /api/materials/order` - Order materials
@@ -790,7 +790,7 @@ Tool #72: frame_walls  (Same tool 72 times!)
 
 ### Solution: Multi-Layer Protection
 
-**1. Loop Detection (Configurable in `.env`)**
+#### 1. Loop Detection (Configurable in `.env`)
 
 ```bash
 # Maximum consecutive identical tool calls before stopping
@@ -806,14 +806,14 @@ MAX_IDENTICAL_CALLS=2
 ENABLE_LOOP_DETECTION=true
 ```
 
-**2. Task Timeout**
+#### 2. Task Timeout
 
 ```bash
 # Timeout per task in seconds
 TASK_TIMEOUT_SECONDS=60  # Fast for testing, 300 for production
 ```
 
-**3. Agent Prompt Instructions**
+#### 3. Agent Prompt Instructions
 
 Agents receive explicit loop prevention instructions:
 
@@ -904,7 +904,7 @@ def create_landscaper_agent() -> Agent:
 
 ### Code Quality Tools
 
-**Backend (Python):**
+#### Backend (Python):
 
 Install dev dependencies:
 
@@ -924,7 +924,7 @@ Lint code:
 flake8 backend/ tests/ && mypy backend/
 ```
 
-**Frontend (TypeScript/React):**
+#### Frontend (TypeScript/React):
 
 Lint code:
 
