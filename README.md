@@ -646,8 +646,6 @@ Tests:
 - Permitting service MCP server
 - Full integration scenarios
 
-**See [TESTING.md](docs/TESTING.md) for comprehensive testing documentation.**
-
 ---
 
 ## API Endpoints
@@ -993,16 +991,13 @@ See [🐳 Running with Docker](#-running-with-docker) and [☁️ AWS Deployment
 ## Documentation
 
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture diagrams and component details 🏗️
-- **[DOCKER.md](docs/DOCKER.md)** - Docker deployment guide 🐳
-- **[deployment-ecs/README.md](deployment-ecs/README.md)** - AWS deployment guide ☁️
-- **[SUMMARY.md](docs/SUMMARY.md)** - Project overview and quick reference ⭐
 - **[QUICKSTART.md](docs/QUICKSTART.md)** - Quick start guide and test script overview
-- **[EXAMPLE_PROJECTS.md](docs/EXAMPLE_PROJECTS.md)** - Sample project descriptions to test with 📝
-- **[CHANGELOG.md](docs/CHANGELOG.md)** - Complete history of changes and improvements 📋
-- **[TESTING.md](docs/TESTING.md)** - Comprehensive testing documentation
+- **[DOCKER.md](docs/DOCKER.md)** - Docker deployment guide 🐳
+- **[deployment-ecs/README.md](deployment-ecs/README.md)** - AWS ECS deployment guide ☁️
 - **[EXECUTION_GUIDE.md](docs/EXECUTION_GUIDE.md)** - Detailed execution mode guide
-- **[LOOP_PROTECTION.md](docs/LOOP_PROTECTION.md)** - Loop detection and prevention ⚠️
 - **[DYNAMIC_PLANNING.md](docs/DYNAMIC_PLANNING.md)** - Dynamic task planning for custom projects
+- **[LOOP_PROTECTION.md](docs/LOOP_PROTECTION.md)** - Loop detection and prevention ⚠️
+- **[EXAMPLE_PROJECTS.md](docs/EXAMPLE_PROJECTS.md)** - Sample project descriptions to test with 📝
 - **API Documentation** - <http://localhost:8000/docs> (when server running)
 
 ---

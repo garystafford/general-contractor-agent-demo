@@ -86,9 +86,9 @@ The Docker Compose stack runs **4 containers** that communicate over an internal
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                          Docker Compose Network (gc-network)                  │
+│                          Docker Compose Network (gc-network)                 │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                               │
+│                                                                              │
 │  ┌────────────────────┐                    ┌────────────────────┐            │
 │  │     Frontend       │                    │      Backend       │            │
 │  │  (gc-frontend)     │───────────────────▶│   (gc-backend)     │            │
@@ -96,19 +96,19 @@ The Docker Compose stack runs **4 containers** that communicate over an internal
 │  │  - nginx:80        │                    │  - FastAPI:8000    │            │
 │  │  - React SPA       │                    │  - Strands Agents  │            │
 │  └────────┬───────────┘                    └─────────┬──────────┘            │
-│           │                                          │                        │
-│   localhost:3000                                     │ HTTP (MCP Protocol)    │
-│                                                      │                        │
+│           │                                          │                       │
+│   localhost:3000                                     │ HTTP (MCP Protocol)   │
+│                                                      │                       │
 │                         ┌────────────────────────────┼───────────────────┐   │
 │                         │                            │                   │   │
 │                         ▼                            ▼                   │   │
-│           ┌─────────────────────────┐  ┌─────────────────────────┐      │   │
-│           │   Materials MCP Server  │  │  Permitting MCP Server  │      │   │
-│           │   (gc-materials)        │  │  (gc-permitting)        │      │   │
-│           │                         │  │                         │      │   │
-│           │   - FastMCP:8080        │  │   - FastMCP:8080        │      │   │
-│           │   - Streamable HTTP     │  │   - Streamable HTTP     │      │   │
-│           └────────────┬────────────┘  └────────────┬────────────┘      │   │
+│           ┌─────────────────────────┐  ┌─────────────────────────┐       │   │
+│           │   Materials MCP Server  │  │  Permitting MCP Server  │       │   │
+│           │   (gc-materials)        │  │  (gc-permitting)        │       │   │
+│           │                         │  │                         │       │   │
+│           │   - FastMCP:8080        │  │   - FastMCP:8080        │       │   │
+│           │   - Streamable HTTP     │  │   - Streamable HTTP     │       │   │
+│           └────────────┬────────────┘  └────────────┬────────────┘       │   │
 │                        │                            │                    │   │
 │                localhost:8081                  localhost:8082            │   │
 │                                                                          │   │

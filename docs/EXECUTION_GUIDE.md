@@ -35,11 +35,11 @@ Executes all 10 tasks with AI agents, showing real-time:
 
 ### 1. Task Header
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ TASK #1: Design shed plans (10x12 ft)
-│ Agent: Architect
-│ Phase: PLANNING
+│ TASK #1: Design shed plans (10x12 ft)                                        |
+│ Agent: Architect                                                             |
+│ Phase: PLANNING                                                              |
 └──────────────────────────────────────────────────────────────────────────────┘
 
 📊 Requirements: {
@@ -52,7 +52,7 @@ Executes all 10 tasks with AI agents, showing real-time:
 
 ### 2. Real-Time Agent Reasoning
 
-```
+```text
 🤖 Agent is thinking and using tools...
 --------------------------------------------------------------------------------
 
@@ -62,7 +62,7 @@ Executes all 10 tasks with AI agents, showing real-time:
 
 ### 3. Tool Calls
 
-```
+```text
 🔧 Calling tool: create_floor_plan
    Input: {
       "room_type": "shed",
@@ -78,7 +78,7 @@ Executes all 10 tasks with AI agents, showing real-time:
 
 ### 4. Task Completion
 
-```
+```text
 ✅ TASK COMPLETED
 --------------------------------------------------------------------------------
 📝 Agent Reasoning: I'll create comprehensive shed plans...
@@ -90,7 +90,7 @@ Executes all 10 tasks with AI agents, showing real-time:
 
 The system will execute all 10 tasks in sequence:
 
-```
+```text
 Task 1  → Architect designs plans
 Task 2  → Mason pours foundation
 Task 3  → Carpenter frames walls
@@ -105,7 +105,7 @@ Task 10 → Carpenter final walkthrough
 
 ### 6. Final Summary
 
-```
+```text
 ================================================================================
 📊 PROJECT COMPLETION SUMMARY
 ================================================================================
@@ -153,7 +153,7 @@ Each task shows:
 
 Here's what a complete task execution looks like:
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ TASK #3: Frame walls and install door/window openings
 │ Agent: Carpenter
