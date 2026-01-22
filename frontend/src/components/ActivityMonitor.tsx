@@ -8,6 +8,8 @@ import {
   Pause,
   Play,
   Download,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -19,6 +21,11 @@ interface ActivityEvent {
   task_id: string | null;
   message: string;
   details?: Record<string, any>;
+}
+
+// Expanded event view state
+interface ExpandedEvents {
+  [key: string]: boolean;
 }
 
 // Color mapping for different event types
@@ -44,6 +51,7 @@ export function ActivityMonitor() {
   const [isConnected, setIsConnected] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [filter, setFilter] = useState<string>('all');
+  const [expandedEvents, setExpandedEvents] = useState<ExpandedEvents>({});
   const terminalRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
@@ -151,6 +159,25 @@ export function ActivityMonitor() {
     toast.success('Activity log exported');
   };
 
+  // Toggle event expansion
+  const toggleExpand = (eventKey: string) => {
+    setExpandedEvents(prev => ({
+      ...prev,
+      [eventKey]: !prev[eventKey]
+    }));
+  };
+
+  // Format details for display
+  const formatDetails = (details: Record<string, any> | undefined): string => {
+    if (!details || Object.keys(details).length === 0) return '';
+    return JSON.stringify(details, null, 2);
+  };
+
+  // Check if event has expandable details
+  const hasDetails = (event: ActivityEvent): boolean => {
+    return !!(event.details && Object.keys(event.details).length > 0);
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 p-4 font-mono">
       <div className="max-w-7xl mx-auto space-y-4">
@@ -254,32 +281,72 @@ export function ActivityMonitor() {
             <div className="space-y-1">
               {filteredEvents.map((event, index) => {
                 const style = getEventStyle(event.type);
+                const eventKey = `${event.timestamp}-${index}`;
+                const isExpanded = expandedEvents[eventKey];
+                const showDetails = hasDetails(event);
+
                 return (
                   <div
-                    key={`${event.timestamp}-${index}`}
-                    className={`flex items-start gap-2 py-1 px-2 rounded ${style.bg} hover:bg-gray-800/50 transition`}
+                    key={eventKey}
+                    className={`rounded ${style.bg} transition`}
                   >
-                    {/* Timestamp */}
-                    <span className="text-gray-500 text-xs whitespace-nowrap">
-                      {formatTime(event.timestamp)}
-                    </span>
+                    {/* Main event line */}
+                    <div
+                      className={`flex items-start gap-2 py-1 px-2 ${showDetails ? 'cursor-pointer hover:bg-gray-800/50' : ''}`}
+                      onClick={() => showDetails && toggleExpand(eventKey)}
+                    >
+                      {/* Expand/collapse icon */}
+                      {showDetails && (
+                        <span className="text-gray-500 flex-shrink-0 mt-0.5">
+                          {isExpanded ? (
+                            <ChevronDown className="w-3 h-3" />
+                          ) : (
+                            <ChevronRight className="w-3 h-3" />
+                          )}
+                        </span>
+                      )}
 
-                    {/* Event type prefix */}
-                    <span className={`${style.text} font-bold text-xs whitespace-nowrap`}>
-                      {style.prefix}
-                    </span>
-
-                    {/* Agent name */}
-                    {event.agent && (
-                      <span className="text-blue-300 text-xs whitespace-nowrap">
-                        [{event.agent}]
+                      {/* Timestamp */}
+                      <span className="text-gray-500 text-xs whitespace-nowrap flex-shrink-0">
+                        {formatTime(event.timestamp)}
                       </span>
-                    )}
 
-                    {/* Message */}
-                    <span className={`${style.text} text-sm break-all`}>
-                      {event.message}
-                    </span>
+                      {/* Event type prefix */}
+                      <span className={`${style.text} font-bold text-xs whitespace-nowrap flex-shrink-0`}>
+                        {style.prefix}
+                      </span>
+
+                      {/* Agent name */}
+                      {event.agent && (
+                        <span className="text-blue-300 text-xs whitespace-nowrap flex-shrink-0">
+                          [{event.agent}]
+                        </span>
+                      )}
+
+                      {/* Task ID (if present) */}
+                      {event.task_id && (
+                        <span className="text-purple-300 text-xs whitespace-nowrap flex-shrink-0">
+                          (Task: {event.task_id})
+                        </span>
+                      )}
+
+                      {/* Message */}
+                      <span className={`${style.text} text-sm break-all flex-1`}>
+                        {event.message}
+                      </span>
+                    </div>
+
+                    {/* Expanded details */}
+                    {isExpanded && showDetails && (
+                      <div className="px-2 pb-2 ml-6">
+                        <div className="bg-gray-900/50 rounded p-2 mt-1 border border-gray-700">
+                          <div className="text-xs text-gray-400 font-semibold mb-1">Details:</div>
+                          <pre className="text-xs text-gray-300 overflow-x-auto whitespace-pre-wrap">
+                            {formatDetails(event.details)}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -295,15 +362,20 @@ export function ActivityMonitor() {
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-4 text-xs text-gray-400 bg-gray-800 rounded-lg p-3">
-          <span className="font-semibold">Legend:</span>
-          <span className="text-blue-400">[START] Task Started</span>
-          <span className="text-green-400">[DONE] Task Complete</span>
-          <span className="text-red-400">[FAIL] Task Failed</span>
-          <span className="text-purple-400">[THINK] Agent Reasoning</span>
-          <span className="text-yellow-400">[TOOL] Tool Call</span>
-          <span className="text-cyan-400">[RESULT] Tool Result</span>
-          <span className="text-orange-400">[MCP] MCP Service Call</span>
+        <div className="bg-gray-800 rounded-lg p-3 space-y-2">
+          <div className="flex flex-wrap gap-4 text-xs text-gray-400">
+            <span className="font-semibold">Legend:</span>
+            <span className="text-blue-400">[START] Task Started</span>
+            <span className="text-green-400">[DONE] Task Complete</span>
+            <span className="text-red-400">[FAIL] Task Failed</span>
+            <span className="text-purple-400">[THINK] Agent Reasoning</span>
+            <span className="text-yellow-400">[TOOL] Tool Call</span>
+            <span className="text-cyan-400">[RESULT] Tool Result</span>
+            <span className="text-orange-400">[MCP] MCP Service Call</span>
+          </div>
+          <div className="text-xs text-gray-500 italic">
+            💡 Tip: Click on events with arrows (▶/▼) to expand and see detailed information like tool arguments, results, and full reasoning.
+          </div>
         </div>
       </div>
     </div>

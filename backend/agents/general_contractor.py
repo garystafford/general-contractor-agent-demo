@@ -987,7 +987,7 @@ Complete this task using your specialized tools efficiently."""
 
                 # Log final reasoning if we captured any
                 if result_text:
-                    await activity_logger.log_thinking(agent_name, task_id, result_text[:500])
+                    await activity_logger.log_thinking(agent_name, task_id, result_text)
 
                 return result_text or "Task completed"
 
@@ -1017,7 +1017,7 @@ Complete this task using your specialized tools efficiently."""
             result_text = result
 
         if result_text:
-            await activity_logger.log_thinking(agent_name, task_id, result_text[:300])
+            await activity_logger.log_thinking(agent_name, task_id, result_text)
 
         return result
 
@@ -1037,7 +1037,7 @@ Complete this task using your specialized tools efficiently."""
 
         # Log final result
         if hasattr(result, "text"):
-            await activity_logger.log_thinking("Planner", None, result.text[:500])
+            await activity_logger.log_thinking("Planner", None, result.text)
 
         return result
 

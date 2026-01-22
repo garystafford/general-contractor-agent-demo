@@ -135,20 +135,32 @@ class ActivityLogger:
             agent=agent,
             task_id=task_id,
             message=f"Starting: {description}",
-            details={"description": description},
+            details={
+                "description": description,
+                "description_length": len(description),
+                "started_at": self._now(),
+            },
         )
         await self._emit(event)
         logger.info(f"[{agent}] Task {task_id} started: {description}")
 
     async def log_task_complete(self, agent: str, task_id: str, result: Any = None):
         """Log task completion."""
+        result_summary = str(result)[:200] if result else None
+        result_type = type(result).__name__ if result else None
+
         event = ActivityEvent(
             timestamp=self._now(),
             type=ActivityType.TASK_COMPLETE,
             agent=agent,
             task_id=task_id,
             message="Task completed successfully",
-            details={"result_summary": str(result)[:200] if result else None},
+            details={
+                "result_summary": result_summary,
+                "result_type": result_type,
+                "full_result": result,
+                "completed_at": self._now(),
+            },
         )
         await self._emit(event)
         logger.info(f"[{agent}] Task {task_id} completed")
@@ -161,7 +173,7 @@ class ActivityLogger:
             agent=agent,
             task_id=task_id,
             message=f"Task failed: {error}",
-            details={"error": error},
+            details={"error": error, "error_length": len(error), "failed_at": self._now()},
         )
         await self._emit(event)
         logger.error(f"[{agent}] Task {task_id} failed: {error}")
@@ -176,7 +188,11 @@ class ActivityLogger:
             agent=agent,
             task_id=task_id,
             message=display_thinking,
-            details={"full_thinking": thinking},
+            details={
+                "full_thinking": thinking,
+                "length": len(thinking),
+                "truncated": len(thinking) > 500,
+            },
         )
         await self._emit(event)
         logger.debug(f"[{agent}] Thinking: {display_thinking[:100]}...")
@@ -193,7 +209,12 @@ class ActivityLogger:
             agent=agent,
             task_id=task_id,
             message=f"Calling {tool_name}({args_str})",
-            details={"tool": tool_name, "arguments": arguments},
+            details={
+                "tool": tool_name,
+                "arguments": arguments,
+                "arg_count": len(arguments),
+                "arg_keys": list(arguments.keys()),
+            },
         )
         await self._emit(event)
         logger.info(f"[{agent}] Tool call: {tool_name}")
@@ -203,13 +224,25 @@ class ActivityLogger:
     ):
         """Log a tool result."""
         result_str = str(result)[:200] if result else "None"
+        result_type = type(result).__name__
+
+        # Try to extract useful metadata from result
+        result_metadata = {"type": result_type}
+        if isinstance(result, dict):
+            result_metadata["keys"] = list(result.keys())
+            result_metadata["size"] = len(result)
+        elif isinstance(result, (list, tuple)):
+            result_metadata["length"] = len(result)
+        elif isinstance(result, str):
+            result_metadata["length"] = len(result)
+
         event = ActivityEvent(
             timestamp=self._now(),
             type=ActivityType.TOOL_RESULT,
             agent=agent,
             task_id=task_id,
             message=f"{tool_name} returned: {result_str}",
-            details={"tool": tool_name, "result": result},
+            details={"tool": tool_name, "result": result, "metadata": result_metadata},
         )
         await self._emit(event)
         logger.debug(f"[{agent}] Tool result: {tool_name}")
@@ -249,7 +282,13 @@ class ActivityLogger:
             agent=None,
             task_id=None,
             message=f"MCP {service}.{tool}({args_str})",
-            details={"service": service, "tool": tool, "arguments": arguments},
+            details={
+                "service": service,
+                "tool": tool,
+                "arguments": arguments,
+                "arg_count": len(arguments),
+                "arg_keys": list(arguments.keys()),
+            },
         )
         await self._emit(event)
         logger.info(f"MCP call: {service}.{tool}")
@@ -257,13 +296,28 @@ class ActivityLogger:
     async def log_mcp_result(self, service: str, tool: str, result: Any):
         """Log MCP service result."""
         result_str = str(result)[:150] if result else "None"
+        result_type = type(result).__name__
+
+        # Extract metadata from result
+        result_metadata = {"type": result_type}
+        if isinstance(result, dict):
+            result_metadata["keys"] = list(result.keys())
+            result_metadata["size"] = len(result)
+        elif isinstance(result, (list, tuple)):
+            result_metadata["length"] = len(result)
+
         event = ActivityEvent(
             timestamp=self._now(),
             type=ActivityType.MCP_RESULT,
             agent=None,
             task_id=None,
             message=f"MCP {service}.{tool} returned: {result_str}",
-            details={"service": service, "tool": tool, "result": result},
+            details={
+                "service": service,
+                "tool": tool,
+                "result": result,
+                "metadata": result_metadata,
+            },
         )
         await self._emit(event)
 

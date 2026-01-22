@@ -166,13 +166,22 @@ Navigate to `http://localhost:5173` to see the UI!
 Try out pre-configured projects, such as the **Kitchen Remodel (Template)**:
 
 ```text
+Kitchen Renovation
 Complete kitchen renovation for a 12x18 feet space in modern style. Install new tile flooring throughout the kitchen. Install light-colored wood cabinets with marble countertops. Construct and install a kitchen island for food preparation. Install modern, stylish overhead lighting fixtures. Supply and install new kitchen appliances, including range, refrigerator, dishwasher, and microwave. All work to follow modern design aesthetic with coordinated finishes across flooring, cabinetry, and countertops. Include adequate electrical and plumbing rough-in for new appliances and island. You will need local permits. You must purchase materials from the materials supplier.
+
+Bathroom Renovation
+Complete bathroom renovation for an 8x10 feet space in contemporary style. Remove all existing fixtures, flooring, and wall finishes. Install large-format porcelain tile flooring with slip-resistant finish. Install new floating vanity with light-colored wood finish and solid-surface countertop with integrated sink. Install frameless glass shower enclosure with tiled shower walls and built-in niche. Install modern, water-efficient toilet and matching plumbing fixtures in brushed metal finish. Install recessed ceiling lights and modern vanity lighting for task illumination. All work to follow contemporary design aesthetic with coordinated finishes across flooring, vanity, and fixtures. Include adequate electrical and plumbing rough-in for relocated vanity and shower controls. You will need local permits. You must purchase materials from the materials supplier.
+
+Shed Construction
+Build a freestanding outdoor wood shed of approximately 8x12 feet for storing seasoned firewood and small yard equipment. Prepare and construct an appropriate foundation such as concrete piers or pressure-treated skids, sized and installed per local building requirements. Use treated lumber for floor framing and decking with gaps as appropriate to allow drainage and air movement under stacked wood. Frame walls with standard dimensional lumber and install weather-resistant siding and a sloped roof with shingles or metal panels to shed water away from the front. Provide a mostly open front with partial side walls, or a wide doorway, to allow easy stacking and removal of wood while maintaining protection from rain and snow. Include simple bracing and hardware to resist wind loads typical for the area. Ensure siting complies with setbacks, easements, and any fire separation requirements from structures. Exterior colors and materials to be simple and utilitarian while visually compatible with the yard. You will need local permits if required by local regulations. You must purchase materials from the materials supplier.
 ```
 
 Or, use the **Custom Project (Custom)**, such as:
 
 ```text
-Build an 8x10 garden shed with a single window, wood siding, an asphalt shingle roof, and a concrete slab foundation. Siding should be painted light green. Include electrical wiring for one outlet and one overhead light fixture.
+Convert an existing basement room approximately 14x20 feet into a dedicated home theater in modern cinema style. Frame and insulate walls and ceiling as needed to improve sound isolation from the rest of the house. Install acoustically friendly wall and ceiling finishes, including acoustic panels or fabric-wrapped surfaces in key reflection areas. Construct a recessed front wall to accommodate a large projection screen or wall-mounted TV and front speakers. Build a raised rear seating platform for a second row of recliners. Install dimmable, layered lighting including recessed ceiling cans, step lights on risers, and LED strip accent lighting. Rough-in and install all necessary electrical for AV equipment, including dedicated circuits, in-wall speaker wiring, conduit for HDMI/low-voltage runs, and equipment rack location. Provide HVAC adjustments or ducting as needed to maintain comfort without excessive noise. All finishes to follow a cohesive modern theater aesthetic with dark, low-reflectance colors. You will need local permits. You must purchase materials from the materials supplier.
+
+Convert an open basement area approximately 12x18 feet into a dedicated home gym with durable, easy-to-clean finishes. Prepare and level the existing slab as needed and install high-impact rubber gym flooring throughout the space. Frame and finish walls where necessary, including moisture-resistant materials in areas near exterior foundation walls. Install a full-height mirror wall along one long side of the room and a reinforced wall section or blocking for mounting a TV and wall-mounted fitness equipment. Provide blocking and structural support in ceiling and walls for future pull-up bars, suspension trainers, or heavy bag mounts as needed. Install bright, even LED overhead lighting suitable for workouts, along with sufficient general-purpose outlets around the room. Rough-in and install any required dedicated circuits for larger equipment such as a treadmill, rower, or stationary bike. Provide adequate ventilation or tie-in to existing HVAC to maintain comfortable conditions during exercise. All finishes to match a clean, modern gym aesthetic with coordinated colors and materials. You will need local permits. You must purchase materials from the materials supplier.
 ```
 
 ---
@@ -212,8 +221,8 @@ docker-compose up --build -d
 
 **3. Access the application:**
 
-| Service               | URL                          |
-| --------------------- | ---------------------------- |
+| Service               | URL                            |
+| --------------------- | ------------------------------ |
 | Frontend (React)      | <http://localhost:3000>        |
 | Backend API           | <http://localhost:8000>        |
 | API Docs              | <http://localhost:8000/docs>   |

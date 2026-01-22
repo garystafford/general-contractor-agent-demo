@@ -85,7 +85,7 @@ uv run test_shed_detailed.py execute
 
 ### Step 2: Update .env
 
-Edit `.env`:
+Either paste your credentials on the command line, use `aws sso login` or edit `.env`:
 
 ```bash
 # Uncomment and fill in your credentials
