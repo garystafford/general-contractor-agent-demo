@@ -17,7 +17,7 @@ Built with [Strands Agents](https://strandsagents.com/latest/) framework, Amazon
 
 **Frontend:**
 
-- React 18
+- React 19
 - TypeScript
 - Vite (build tool)
 - Tailwind CSS v3
