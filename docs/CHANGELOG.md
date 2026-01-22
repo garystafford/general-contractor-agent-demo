@@ -298,7 +298,6 @@ Pre-configured templates for common construction projects:
 - **TESTING.md**: Testing documentation
 - **EXECUTION_GUIDE.md**: Detailed execution instructions
 - **SUMMARY.md**: Project overview
-- **CURRENT_LIMITATIONS.md**: Known limitations
 
 **Files Created**: Multiple documentation files in `docs/`
 

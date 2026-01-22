@@ -1003,7 +1003,6 @@ See [🐳 Running with Docker](#-running-with-docker) and [☁️ AWS Deployment
 - **[EXECUTION_GUIDE.md](docs/EXECUTION_GUIDE.md)** - Detailed execution mode guide
 - **[LOOP_PROTECTION.md](docs/LOOP_PROTECTION.md)** - Loop detection and prevention ⚠️
 - **[DYNAMIC_PLANNING.md](docs/DYNAMIC_PLANNING.md)** - Dynamic task planning for custom projects
-- **[CURRENT_LIMITATIONS.md](docs/CURRENT_LIMITATIONS.md)** - Known limitations and workarounds
 - **API Documentation** - <http://localhost:8000/docs> (when server running)
 
 ---
