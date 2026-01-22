@@ -20,6 +20,7 @@ Events that contain additional details now show expand/collapse arrows (▶/▼)
 ### 2. Enhanced Event Display
 
 Each event now shows:
+
 - ⏰ **Timestamp** - Precise time of event (HH:MM:SS format)
 - 🏷️ **Event Type** - Color-coded prefix ([START], [TOOL], [THINK], etc.)
 - 👤 **Agent Name** - Which agent performed the action
@@ -30,6 +31,7 @@ Each event now shows:
 ### 3. Rich Metadata in Details
 
 #### Tool Calls
+
 ```json
 {
   "tool": "frame_walls",
@@ -44,6 +46,7 @@ Each event now shows:
 ```
 
 #### Tool Results
+
 ```json
 {
   "tool": "frame_walls",
@@ -61,6 +64,7 @@ Each event now shows:
 ```
 
 #### Agent Thinking (Full Text!)
+
 ```json
 {
   "full_thinking": "I need to frame the walls before installing the roof. First, I'll measure and cut the studs to 8 feet. Then I'll assemble the wall frames on the ground and raise them into position. I'll need to ensure all walls are plumb and square before securing them. The 2x4 lumber should be sufficient for the wall framing...",
@@ -70,6 +74,7 @@ Each event now shows:
 ```
 
 #### Task Start
+
 ```json
 {
   "description": "Frame walls for 10x12 shed with 8-foot height",
@@ -79,6 +84,7 @@ Each event now shows:
 ```
 
 #### Task Complete
+
 ```json
 {
   "result_summary": "Successfully framed 4 walls using 2x4 lumber. All walls are plumb and square.",
@@ -89,6 +95,7 @@ Each event now shows:
 ```
 
 #### Task Failed
+
 ```json
 {
   "error": "Tool 'frame_walls' failed: Insufficient lumber in inventory",
@@ -98,6 +105,7 @@ Each event now shows:
 ```
 
 #### MCP Calls
+
 ```json
 {
   "service": "materials_supplier",
@@ -113,6 +121,7 @@ Each event now shows:
 ```
 
 #### MCP Results
+
 ```json
 {
   "service": "materials_supplier",
@@ -154,6 +163,7 @@ Updated `backend/utils/activity_logger.py` to capture richer metadata:
 ### Full Text Logging
 
 Updated `backend/agents/general_contractor.py` to log complete reasoning:
+
 - Removed 500-character truncation limit
 - Removed 300-character truncation limit
 - Now logs full agent reasoning text (truncation only happens in display, not storage)
@@ -161,6 +171,7 @@ Updated `backend/agents/general_contractor.py` to log complete reasoning:
 ## User Experience
 
 ### Before Enhancement
+
 - Only saw truncated message text (500 chars max)
 - No way to see full tool arguments or results
 - Limited visibility into agent reasoning
@@ -168,6 +179,7 @@ Updated `backend/agents/general_contractor.py` to log complete reasoning:
 - Had to check backend logs for details
 
 ### After Enhancement
+
 - Click any event to expand full details
 - See complete tool arguments and return values
 - Read FULL agent reasoning (no truncation!)
@@ -190,6 +202,7 @@ Updated `backend/agents/general_contractor.py` to log complete reasoning:
 ## Technical Implementation
 
 ### Frontend Changes (`frontend/src/components/ActivityMonitor.tsx`)
+
 - Added `expandedEvents` state to track which events are expanded
 - Added `ChevronDown` and `ChevronRight` icons from lucide-react
 - Created `toggleExpand()` function to handle click events
@@ -201,6 +214,7 @@ Updated `backend/agents/general_contractor.py` to log complete reasoning:
 ### Backend Changes
 
 **`backend/utils/activity_logger.py`:**
+
 - Enhanced `log_thinking()` - Added length and truncation metadata
 - Enhanced `log_tool_call()` - Added arg_count and arg_keys
 - Enhanced `log_tool_result()` - Added result type and size metadata
@@ -211,6 +225,7 @@ Updated `backend/agents/general_contractor.py` to log complete reasoning:
 - Enhanced `log_mcp_result()` - Added result metadata
 
 **`backend/agents/general_contractor.py`:**
+
 - Removed truncation from thinking logs (was 500 chars, now unlimited)
 - Removed truncation from fallback thinking logs (was 300 chars, now unlimited)
 - Removed truncation from planning thinking logs (was 500 chars, now unlimited)
@@ -218,24 +233,28 @@ Updated `backend/agents/general_contractor.py` to log complete reasoning:
 ## Example Scenarios
 
 ### Debugging Tool Failures
+
 1. Filter to "Tool Calls"
 2. Find the failed tool call
 3. Expand to see exact arguments passed (with types and counts)
 4. Expand the result to see error message and metadata
 
 ### Understanding Agent Reasoning
+
 1. Filter to "Reasoning"
 2. Expand thinking events
 3. Read FULL reasoning chain (no truncation!)
 4. Understand complete decision-making process
 
 ### Tracking Task Lifecycle
+
 1. Look for Task IDs in purple
 2. Filter events by clicking task ID (future enhancement)
 3. See start time, completion time, and duration
 4. View full results with type information
 
 ### Tracking MCP Service Usage
+
 1. Filter to "MCP Calls"
 2. Expand to see which services were called
 3. View arguments with counts and keys
@@ -272,4 +291,5 @@ Updated `backend/agents/general_contractor.py` to log complete reasoning:
 8. **Export**: Export logs and verify format includes all metadata
 
 ## Date Completed
+
 January 21, 2026
