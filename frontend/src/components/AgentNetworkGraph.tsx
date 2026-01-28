@@ -45,12 +45,16 @@ const MCP_SERVERS = [
 
 // Custom node component with styling based on status
 const CustomNode = ({ data }: { data: NodeData }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  
+  const isActive = data.status === 'active';
+  
   const getNodeStyle = () => {
     const baseStyle = 'px-6 py-4 rounded-xl border-2 shadow-lg transition-all duration-300 min-w-[180px] relative';
 
     switch (data.status) {
       case 'active':
-        return `${baseStyle} bg-blue-500 border-blue-600 text-white animate-pulse shadow-blue-500/50`;
+        return `${baseStyle} bg-blue-500 border-blue-600 text-white`;
       case 'used':
         return `${baseStyle} bg-green-50 border-green-400 text-gray-900`;
       case 'completed':
@@ -71,7 +75,23 @@ const CustomNode = ({ data }: { data: NodeData }) => {
       {/* Target handle (top) */}
       <Handle type="target" position={Position.Top} />
 
-      <div className={getNodeStyle()}>
+      {/* Glow effect for active nodes */}
+      {isActive && (
+        <div 
+          className="absolute inset-0 rounded-xl animate-pulse"
+          style={{
+            background: 'radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, transparent 70%)',
+            transform: 'scale(1.3)',
+            zIndex: -1,
+          }}
+        />
+      )}
+
+      <div 
+        className={getNodeStyle()}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+      >
         <div className="flex items-center justify-center gap-2 mb-1">
           <span className="text-2xl">{getIcon()}</span>
           <span className="font-semibold text-sm">{data.label}</span>
@@ -86,6 +106,30 @@ const CustomNode = ({ data }: { data: NodeData }) => {
             {data.currentTask}
           </div>
         )}
+        
+        {/* Tooltip */}
+        {showTooltip && (data.currentTask || data.taskCount) && (
+          <div 
+            className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50 
+                       bg-gray-900 text-white text-xs rounded-lg px-3 py-2 
+                       shadow-xl min-w-[200px] max-w-[280px]"
+          >
+            <div className="font-semibold mb-1">{data.label}</div>
+            {data.taskCount !== undefined && (
+              <div className="text-gray-300">Tasks: {data.taskCount}</div>
+            )}
+            {data.currentTask && (
+              <div className="text-blue-300 mt-1">
+                <span className="text-gray-400">Working on: </span>
+                {data.currentTask}
+              </div>
+            )}
+            {/* Arrow */}
+            <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 
+                          border-l-8 border-r-8 border-t-8 
+                          border-l-transparent border-r-transparent border-t-gray-900" />
+          </div>
+        )}
       </div>
 
       {/* Source handle (bottom) */}
@@ -94,8 +138,229 @@ const CustomNode = ({ data }: { data: NodeData }) => {
   );
 };
 
+// MCP Server node with hexagon shape
+const McpNode = ({ data }: { data: NodeData }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  
+  const getColors = () => {
+    switch (data.status) {
+      case 'active':
+        return { bg: '#8b5cf6', border: '#7c3aed', text: 'white', shadow: 'rgba(139, 92, 246, 0.5)', glow: 'rgba(139, 92, 246, 0.4)' };
+      case 'used':
+        return { bg: '#ede9fe', border: '#a78bfa', text: '#1f2937', shadow: 'rgba(167, 139, 250, 0.3)', glow: 'transparent' };
+      case 'completed':
+        return { bg: '#8b5cf6', border: '#7c3aed', text: 'white', shadow: 'rgba(139, 92, 246, 0.5)', glow: 'transparent' };
+      default: // idle
+        return { bg: '#f3f4f6', border: '#9ca3af', text: '#6b7280', shadow: 'rgba(156, 163, 175, 0.3)', glow: 'transparent' };
+    }
+  };
+
+  const colors = getColors();
+  const isActive = data.status === 'active';
+  const hexagonPath = 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)';
+
+  return (
+    <>
+      <Handle type="target" position={Position.Top} />
+      
+      <div 
+        className="relative"
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        style={{ filter: `drop-shadow(0 4px 8px ${colors.shadow})` }}
+      >
+        {/* Glow effect for active nodes */}
+        {isActive && (
+          <div 
+            className="absolute inset-0 animate-pulse"
+            style={{
+              background: `radial-gradient(circle, ${colors.glow} 0%, transparent 70%)`,
+              transform: 'scale(1.4)',
+              zIndex: -1,
+            }}
+          />
+        )}
+        
+        {/* Hexagon shape */}
+        <div
+          style={{
+            width: '160px',
+            height: '140px',
+            backgroundColor: colors.border,
+            clipPath: hexagonPath,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {/* Inner hexagon */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: '4px',
+              backgroundColor: colors.bg,
+              clipPath: hexagonPath,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '12px',
+            }}
+          >
+            <span className="text-2xl mb-1">⚙️</span>
+            <span 
+              className="font-semibold text-sm text-center leading-tight"
+              style={{ color: colors.text }}
+            >
+              {data.label}
+            </span>
+            {data.taskCount !== undefined && data.taskCount > 0 && (
+              <div 
+                className="text-xs mt-1 opacity-75"
+                style={{ color: colors.text }}
+              >
+                {data.taskCount} call{data.taskCount !== 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Tooltip */}
+        {showTooltip && (
+          <div 
+            className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50 
+                       bg-gray-900 text-white text-xs rounded-lg px-3 py-2 
+                       shadow-xl min-w-[180px] max-w-[250px]"
+          >
+            <div className="font-semibold mb-1">{data.label}</div>
+            <div className="text-gray-300">Type: MCP Server</div>
+            {data.taskCount !== undefined && data.taskCount > 0 && (
+              <div className="text-purple-300 mt-1">
+                API Calls: {data.taskCount}
+              </div>
+            )}
+            {data.status !== 'idle' && (
+              <div className="text-gray-400 mt-1 capitalize">
+                Status: {data.status}
+              </div>
+            )}
+            {/* Arrow */}
+            <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 
+                          border-l-8 border-r-8 border-t-8 
+                          border-l-transparent border-r-transparent border-t-gray-900" />
+          </div>
+        )}
+      </div>
+
+      <Handle type="source" position={Position.Bottom} />
+    </>
+  );
+};
+
+// General Contractor node with circle shape (central orchestrator)
+const ContractorNode = ({ data }: { data: NodeData }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  
+  const getColors = () => {
+    switch (data.status) {
+      case 'active':
+        return { bg: '#f59e0b', border: '#d97706', text: 'white', shadow: 'rgba(245, 158, 11, 0.5)', glow: 'rgba(245, 158, 11, 0.4)' };
+      case 'used':
+        return { bg: '#fef3c7', border: '#fbbf24', text: '#1f2937', shadow: 'rgba(251, 191, 36, 0.3)', glow: 'transparent' };
+      case 'completed':
+        return { bg: '#f59e0b', border: '#d97706', text: 'white', shadow: 'rgba(245, 158, 11, 0.5)', glow: 'transparent' };
+      default: // idle
+        return { bg: '#fffbeb', border: '#fbbf24', text: '#92400e', shadow: 'rgba(251, 191, 36, 0.3)', glow: 'transparent' };
+    }
+  };
+
+  const colors = getColors();
+  const isActive = data.status === 'active';
+
+  return (
+    <>
+      <Handle type="target" position={Position.Top} />
+      
+      <div className="relative">
+        {/* Glow effect for active nodes */}
+        {isActive && (
+          <div 
+            className="absolute inset-0 rounded-full animate-pulse"
+            style={{
+              background: `radial-gradient(circle, ${colors.glow} 0%, transparent 70%)`,
+              transform: 'scale(1.5)',
+              zIndex: -1,
+            }}
+          />
+        )}
+        
+        <div 
+          className="relative"
+          onMouseEnter={() => setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+          style={{ 
+            width: '160px',
+            height: '160px',
+            borderRadius: '50%',
+            backgroundColor: colors.bg,
+            border: `5px solid ${colors.border}`,
+            boxShadow: `0 6px 16px ${colors.shadow}`,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+          }}
+        >
+          <span className="text-3xl mb-1">🏗️</span>
+          <span 
+            className="font-semibold text-sm text-center leading-tight"
+            style={{ color: colors.text }}
+          >
+            General
+          </span>
+          <span 
+            className="font-semibold text-sm text-center leading-tight"
+            style={{ color: colors.text }}
+          >
+            Contractor
+          </span>
+          
+          {/* Tooltip */}
+          {showTooltip && (
+            <div 
+              className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50 
+                         bg-gray-900 text-white text-xs rounded-lg px-3 py-2 
+                         shadow-xl min-w-[200px] max-w-[280px]"
+            >
+              <div className="font-semibold mb-1">General Contractor</div>
+              <div className="text-gray-300">Central Orchestrator</div>
+              <div className="text-amber-300 mt-1">
+                Coordinates all agents and MCP services
+              </div>
+              {data.status !== 'idle' && (
+                <div className="text-gray-400 mt-1 capitalize">
+                  Status: {data.status}
+                </div>
+              )}
+              {/* Arrow */}
+              <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 
+                            border-l-8 border-r-8 border-t-8 
+                            border-l-transparent border-r-transparent border-t-gray-900" />
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Handle type="source" position={Position.Bottom} />
+    </>
+  );
+};
+
 const nodeTypes = {
   custom: CustomNode,
+  mcp: McpNode,
+  contractor: ContractorNode,
 };
 
 export function AgentNetworkGraph() {
@@ -108,16 +373,16 @@ export function AgentNetworkGraph() {
   const createInitialGraph = useCallback(() => {
     const newNodes: Node<NodeData>[] = [];
 
-    console.log('[Graph] Creating initial nodes in circular layout...');
+    console.log('[Graph] Creating initial nodes in ellipse layout...');
 
     const centerX = 700;
-    const centerY = 450;
+    const centerY = 400;
 
-    // General Contractor (center)
+    // General Contractor (center) - octagon shape
     newNodes.push({
       id: 'general-contractor',
-      type: 'custom',
-      position: { x: centerX - 90, y: centerY - 30 },
+      type: 'contractor',
+      position: { x: centerX - 80, y: centerY - 80 },
       data: {
         label: 'General Contractor',
         type: 'contractor',
@@ -125,16 +390,17 @@ export function AgentNetworkGraph() {
       },
     });
 
-    // Calculate positions for agents in a circle
-    const agentRadius = 380;
+    // Calculate positions for agents in an ellipse (wider than tall)
+    const radiusX = 550;  // Horizontal radius (wider)
+    const radiusY = 320;  // Vertical radius (shorter)
     const totalNodes = AGENTS.length + MCP_SERVERS.length;
     const angleStep = (2 * Math.PI) / totalNodes;
 
-    // Agents (arranged in circle)
+    // Agents (arranged in ellipse)
     AGENTS.forEach((agent, index) => {
       const angle = angleStep * index - Math.PI / 2; // Start from top
-      const x = centerX + agentRadius * Math.cos(angle);
-      const y = centerY + agentRadius * Math.sin(angle);
+      const x = centerX + radiusX * Math.cos(angle);
+      const y = centerY + radiusY * Math.sin(angle);
 
       newNodes.push({
         id: agent.toLowerCase(),
@@ -149,16 +415,16 @@ export function AgentNetworkGraph() {
       });
     });
 
-    // MCP Servers (continue the circle after agents)
+    // MCP Servers (continue the ellipse after agents)
     MCP_SERVERS.forEach((server, index) => {
       const angle = angleStep * (AGENTS.length + index) - Math.PI / 2;
-      const x = centerX + agentRadius * Math.cos(angle);
-      const y = centerY + agentRadius * Math.sin(angle);
+      const x = centerX + radiusX * Math.cos(angle);
+      const y = centerY + radiusY * Math.sin(angle);
 
       newNodes.push({
         id: server.id,
-        type: 'custom',
-        position: { x: x - 90, y: y - 30 },
+        type: 'mcp',  // Use circle MCP node type
+        position: { x: x - 65, y: y - 65 },
         data: {
           label: server.label,
           type: 'mcp',
@@ -228,47 +494,107 @@ export function AgentNetworkGraph() {
         });
       });
 
-      // Check if any tasks use MCP services
+      // Fetch actual MCP activity from the activity logger
       const mcpStats = new Map<string, { total: number; active: number; completed: number }>();
       const mcpDependencies = new Map<string, Set<string>>(); // MCP -> agents that use it
-
-      tasks.forEach((task: Task) => {
-        const agentKey = task.agent.toLowerCase();
-        const desc = task.description.toLowerCase();
-
-        if (desc.includes('material') || desc.includes('order')) {
-          const stats = mcpStats.get('materials') || { total: 0, active: 0, completed: 0 };
-          stats.total++;
-          if (task.status === 'in_progress') stats.active++;
-          if (task.status === 'completed') stats.completed++;
-          mcpStats.set('materials', stats);
-
-          if (!mcpDependencies.has('materials')) {
-            mcpDependencies.set('materials', new Set());
-          }
-          mcpDependencies.get('materials')!.add(agentKey);
-
-          if (task.status === 'in_progress') {
-            activeHandoffs.add(`materials->${agentKey}`);
-          }
+      
+      try {
+        // Fetch recent activity events to track MCP calls
+        const activityResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/activity/recent?count=100`);
+        if (activityResponse.ok) {
+          const activityData = await activityResponse.json();
+          const events = activityData.data?.events || [];
+          
+          // Track MCP calls from activity events
+          const recentMcpCalls = new Map<string, { lastCallTime: number; agent?: string }>();
+          const now = Date.now();
+          const activeWindow = 10000; // Consider MCP active if called within last 10 seconds
+          
+          events.forEach((event: { type: string; details?: { service?: string }; timestamp?: string; agent?: string }) => {
+            if (event.type === 'mcp_call' || event.type === 'mcp_result') {
+              const service = event.details?.service;
+              if (service) {
+                const eventTime = event.timestamp ? new Date(event.timestamp).getTime() : now;
+                const existing = recentMcpCalls.get(service);
+                
+                if (!existing || eventTime > existing.lastCallTime) {
+                  recentMcpCalls.set(service, { lastCallTime: eventTime, agent: event.agent || undefined });
+                }
+                
+                // Update MCP stats
+                const stats = mcpStats.get(service) || { total: 0, active: 0, completed: 0 };
+                stats.total++;
+                
+                // Check if this is a recent/active call
+                if (now - eventTime < activeWindow) {
+                  stats.active++;
+                } else if (event.type === 'mcp_result') {
+                  stats.completed++;
+                }
+                mcpStats.set(service, stats);
+                
+                // Track which agents use this MCP service
+                if (!mcpDependencies.has(service)) {
+                  mcpDependencies.set(service, new Set());
+                }
+                // MCP calls are made by the general contractor on behalf of agents
+                // Add connection to general-contractor
+                mcpDependencies.get(service)!.add('general-contractor');
+              }
+            }
+          });
+          
+          // Mark active MCP connections
+          recentMcpCalls.forEach((info, service) => {
+            if (now - info.lastCallTime < activeWindow) {
+              activeHandoffs.add(`${service}->general-contractor`);
+            }
+          });
+          
+          console.log('[Graph] MCP stats from activity:', Object.fromEntries(mcpStats));
         }
-        if (desc.includes('permit') || desc.includes('inspection')) {
-          const stats = mcpStats.get('permitting') || { total: 0, active: 0, completed: 0 };
-          stats.total++;
-          if (task.status === 'in_progress') stats.active++;
-          if (task.status === 'completed') stats.completed++;
-          mcpStats.set('permitting', stats);
+      } catch (error) {
+        console.warn('[Graph] Could not fetch MCP activity, falling back to task-based detection:', error);
+        
+        // Fallback: detect MCP usage from task descriptions (original behavior)
+        tasks.forEach((task: Task) => {
+          const agentKey = task.agent.toLowerCase();
+          const desc = task.description.toLowerCase();
 
-          if (!mcpDependencies.has('permitting')) {
-            mcpDependencies.set('permitting', new Set());
-          }
-          mcpDependencies.get('permitting')!.add(agentKey);
+          if (desc.includes('material') || desc.includes('order')) {
+            const stats = mcpStats.get('materials') || { total: 0, active: 0, completed: 0 };
+            stats.total++;
+            if (task.status === 'in_progress') stats.active++;
+            if (task.status === 'completed') stats.completed++;
+            mcpStats.set('materials', stats);
 
-          if (task.status === 'in_progress') {
-            activeHandoffs.add(`permitting->${agentKey}`);
+            if (!mcpDependencies.has('materials')) {
+              mcpDependencies.set('materials', new Set());
+            }
+            mcpDependencies.get('materials')!.add(agentKey);
+
+            if (task.status === 'in_progress') {
+              activeHandoffs.add(`materials->${agentKey}`);
+            }
           }
-        }
-      });
+          if (desc.includes('permit') || desc.includes('inspection')) {
+            const stats = mcpStats.get('permitting') || { total: 0, active: 0, completed: 0 };
+            stats.total++;
+            if (task.status === 'in_progress') stats.active++;
+            if (task.status === 'completed') stats.completed++;
+            mcpStats.set('permitting', stats);
+
+            if (!mcpDependencies.has('permitting')) {
+              mcpDependencies.set('permitting', new Set());
+            }
+            mcpDependencies.get('permitting')!.add(agentKey);
+
+            if (task.status === 'in_progress') {
+              activeHandoffs.add(`permitting->${agentKey}`);
+            }
+          }
+        });
+      }
 
       // Update nodes with task information
       setNodes((nodes) =>
@@ -483,24 +809,42 @@ export function AgentNetworkGraph() {
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-3">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-start gap-8 text-sm">
-            {/* Node Status */}
+            {/* Node Types */}
             <div className="flex items-start gap-2">
               <span className="font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">Nodes:</span>
               <div className="flex flex-wrap gap-4">
                 <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-amber-50 border-2 border-amber-400 rounded-full"></div>
+                  <span className="text-gray-600 dark:text-gray-400">Orchestrator</span>
+                </div>
+                <div className="flex items-center gap-2">
                   <div className="w-4 h-4 bg-gray-50 border-2 border-gray-300 rounded"></div>
+                  <span className="text-gray-600 dark:text-gray-400">Agent</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-5 h-4 bg-purple-100 border-2 border-purple-400"
+                    style={{ clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)' }}
+                  ></div>
+                  <span className="text-gray-600 dark:text-gray-400">MCP Server</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Node Status */}
+            <div className="flex items-start gap-2">
+              <span className="font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap">Status:</span>
+              <div className="flex flex-wrap gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-gray-50 border-2 border-gray-300 rounded-full"></div>
                   <span className="text-gray-600 dark:text-gray-400">Idle</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-green-50 border-2 border-green-400 rounded"></div>
-                  <span className="text-gray-600 dark:text-gray-400">Used</span>
+                  <div className="w-3 h-3 bg-blue-500 border-2 border-blue-600 rounded-full animate-pulse"></div>
+                  <span className="text-gray-600 dark:text-gray-400">Active</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-blue-500 border-2 border-blue-600 rounded animate-pulse"></div>
-                  <span className="text-gray-600 dark:text-gray-400">Working</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-green-500 border-2 border-green-600 rounded"></div>
+                  <div className="w-3 h-3 bg-green-500 border-2 border-green-600 rounded-full"></div>
                   <span className="text-gray-600 dark:text-gray-400">Done</span>
                 </div>
               </div>
@@ -512,15 +856,15 @@ export function AgentNetworkGraph() {
               <div className="flex flex-wrap gap-4">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-0.5 bg-blue-500"></div>
-                  <span className="text-gray-600 dark:text-gray-400">Task Assignment</span>
+                  <span className="text-gray-600 dark:text-gray-400">Task</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-0.5 bg-green-500 border-t-2 border-dashed border-green-500"></div>
-                  <span className="text-gray-600 dark:text-gray-400">🔄 Task Handoff</span>
+                  <span className="text-gray-600 dark:text-gray-400">Handoff</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-0.5 bg-purple-500 border-t-2 border-dotted border-purple-500"></div>
-                  <span className="text-gray-600 dark:text-gray-400">⚙️ MCP Service</span>
+                  <span className="text-gray-600 dark:text-gray-400">MCP Call</span>
                 </div>
               </div>
             </div>
