@@ -182,13 +182,27 @@ Do NOT just describe the plan in text. You MUST pass the actual JSON data to the
 AGENTS: Architect, Carpenter, Electrician, Plumber, Mason, Painter, HVAC, Roofer
 PHASES: planning, permitting, foundation, framing, rough_in, inspection, finishing, final_inspection
 
+AVAILABLE MATERIALS (use these exact names in the materials array):
+- Lumber: "2x4 lumber", "plywood", "lumber"
+- Electrical: "electrical wire", "outlets", "light fixtures"
+- Plumbing: "pvc pipes", "copper pipes", "sink"
+- Masonry: "concrete", "bricks"
+- Paint: "interior paint", "primer"
+- HVAC: "hvac unit", "ductwork"
+- Roofing: "shingles", "underlayment"
+
 REQUIRED JSON FORMAT for finalize_project_plan input:
 {
   "tasks": [
-    {"task_id": "1", "agent": "Architect", "description": "Design shed layout", "dependencies": [], "phase": "planning", "requirements": "Include dimensions", "materials": ["paper"]}
+    {"task_id": "1", "agent": "Architect", "description": "Design layout", "dependencies": [], "phase": "planning", "requirements": "Include dimensions", "materials": []},
+    {"task_id": "2", "agent": "Carpenter", "description": "Frame walls", "dependencies": ["1"], "phase": "framing", "requirements": "4 walls", "materials": ["2x4 lumber", "plywood"]},
+    {"task_id": "3", "agent": "Electrician", "description": "Install wiring", "dependencies": ["2"], "phase": "rough_in", "requirements": "outlets and lights", "materials": ["electrical wire", "outlets", "light fixtures"]}
   ],
   "summary": {"total_tasks": 10, "phases": ["planning", "framing"], "agents_needed": ["Architect", "Carpenter"]}
 }
+
+IMPORTANT: Every task that involves physical work MUST include a "materials" array with the materials needed.
+Only planning, inspection, and permit tasks should have empty materials arrays.
 
 NEVER call the same tool twice. After tool returns, call the NEXT tool immediately."""
 

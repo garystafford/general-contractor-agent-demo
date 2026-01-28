@@ -297,6 +297,10 @@ class GeneralContractorAgent:
         if not client:
             raise ValueError(f"MCP service '{service}' not found")
 
+        # Log MCP call to activity logger
+        activity_logger = get_activity_logger()
+        await activity_logger.log_mcp_call(service, tool_name, arguments)
+
         try:
             # Generate a unique tool use ID
             import uuid
@@ -308,22 +312,28 @@ class GeneralContractorAgent:
 
             # Extract the actual result from MCP response
             # MCPToolResult can be dict or object with: status, toolUseId, content (list of TextContent)
+            result = None
             if isinstance(mcp_result, dict):
                 # Dict format
                 if "content" in mcp_result and mcp_result["content"]:
                     text_content = mcp_result["content"][0]["text"]
                     result = eval(text_content)
-                    return result
             elif hasattr(mcp_result, "content") and mcp_result.content:
                 # Object format
                 text_content = mcp_result.content[0].text
                 result = eval(text_content)
+
+            if result is not None:
+                # Log MCP result to activity logger
+                await activity_logger.log_mcp_result(service, tool_name, result)
                 return result
 
             logger.error(f"Unexpected MCP result format: {mcp_result}")
+            await activity_logger.log_mcp_result(service, tool_name, mcp_result)
             return mcp_result
         except Exception as e:
             logger.error(f"Error calling MCP tool {service}.{tool_name}: {e}")
+            await activity_logger.log_error(f"MCP {service}.{tool_name} failed: {str(e)}")
             raise
 
     async def check_materials_availability(self, material_ids: List[str]) -> Dict[str, Any]:
@@ -862,6 +872,23 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
         # Log task start
         await activity_logger.log_task_start(agent_name, task.task_id, task.description)
 
+        # Check if task requires materials - call Materials Supplier MCP
+        if task.materials:
+            try:
+                await self._handle_task_materials(task, activity_logger)
+            except Exception as e:
+                logger.warning(f"Materials handling failed for task {task.task_id}: {e}")
+                # Continue with task execution even if materials check fails
+
+        # Check if task involves permits - call Permitting Service MCP
+        task_desc_lower = task.description.lower()
+        if "permit" in task_desc_lower or task.phase == "permitting":
+            try:
+                await self._handle_task_permitting(task, activity_logger)
+            except Exception as e:
+                logger.warning(f"Permitting handling failed for task {task.task_id}: {e}")
+                # Continue with task execution even if permitting check fails
+
         # Get the agent
         agent = self.agents[agent_name]
 
@@ -937,6 +964,103 @@ Complete this task using your specialized tools efficiently."""
                 "task_id": task.task_id,
                 "error": error_msg,
             }
+
+    async def _handle_task_materials(self, task: Task, activity_logger) -> None:
+        """
+        Handle materials for a task by checking availability via MCP.
+        
+        Args:
+            task: The task requiring materials
+            activity_logger: Activity logger instance
+        """
+        # Map common material names to material IDs in the supplier catalog
+        material_id_map = {
+            "2x4": "2x4_studs",
+            "2x4 lumber": "2x4_studs",
+            "2x4 studs": "2x4_studs",
+            "lumber": "2x4_studs",
+            "plywood": "plywood_sheets",
+            "plywood sheets": "plywood_sheets",
+            "electrical wire": "electrical_wire",
+            "wire": "electrical_wire",
+            "outlets": "outlets",
+            "outlet": "outlets",
+            "light fixture": "light_fixtures",
+            "light fixtures": "light_fixtures",
+            "pvc": "pvc_pipes",
+            "pvc pipes": "pvc_pipes",
+            "copper pipes": "copper_pipes",
+            "sink": "sink",
+            "concrete": "concrete_bags",
+            "concrete mix": "concrete_bags",
+            "bricks": "bricks",
+            "brick": "bricks",
+            "paint": "interior_paint",
+            "interior paint": "interior_paint",
+            "primer": "primer",
+            "hvac": "hvac_unit",
+            "hvac unit": "hvac_unit",
+            "ductwork": "ductwork",
+            "shingles": "shingles",
+            "asphalt shingles": "shingles",
+            "underlayment": "underlayment",
+            "roofing felt": "underlayment",
+        }
+        
+        # Convert task materials to material IDs
+        material_ids = []
+        for material in task.materials:
+            material_lower = material.lower().strip()
+            if material_lower in material_id_map:
+                material_ids.append(material_id_map[material_lower])
+            else:
+                # Try partial matching
+                for key, value in material_id_map.items():
+                    if key in material_lower or material_lower in key:
+                        material_ids.append(value)
+                        break
+        
+        # Remove duplicates
+        material_ids = list(set(material_ids))
+        
+        if material_ids:
+            logger.info(f"Checking availability for materials: {material_ids}")
+            try:
+                availability = await self.check_materials_availability(material_ids)
+                logger.info(f"Materials availability: {availability}")
+            except Exception as e:
+                logger.warning(f"Failed to check materials availability: {e}")
+
+    async def _handle_task_permitting(self, task: Task, activity_logger) -> None:
+        """
+        Handle permitting for a task by interacting with Permitting Service MCP.
+        
+        Args:
+            task: The task involving permits
+            activity_logger: Activity logger instance
+        """
+        task_desc_lower = task.description.lower()
+        
+        # Determine permit type based on task description
+        permit_type = "building"  # default
+        if "electrical" in task_desc_lower:
+            permit_type = "electrical"
+        elif "plumbing" in task_desc_lower:
+            permit_type = "plumbing"
+        elif "hvac" in task_desc_lower or "mechanical" in task_desc_lower:
+            permit_type = "mechanical"
+        
+        # Get required permits for this type of work
+        work_items = [task.description]
+        if task.phase:
+            work_items.append(task.phase)
+        
+        try:
+            project_type = self.current_project.get("type", "construction") if self.current_project else "construction"
+            required_permits = await self.get_required_permits(project_type, work_items)
+            logger.info(f"Required permits for task {task.task_id}: {required_permits}")
+        except Exception as e:
+            logger.warning(f"Failed to get required permits: {e}")
 
     async def _execute_with_streaming(
         self, agent: Any, agent_name: str, task_id: str, prompt: str
