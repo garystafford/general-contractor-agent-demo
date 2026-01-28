@@ -375,9 +375,46 @@ graph LR
 
 ### Planning Strategies
 
-- **Template-based planning** for common project types (kitchen, bathroom, deck)
-- **Dynamic LLM-powered planning** for custom projects
-- **Validation layer** ensures all required information is provided
+The system uses two different planning approaches depending on the project type:
+
+#### Template-Based Planning (Default)
+
+For common project types, the system uses predefined task templates that don't require LLM planning:
+
+| Project Type | Planning Mode | Project Planner Used? |
+|--------------|---------------|----------------------|
+| Kitchen Remodel | Template | No |
+| Bathroom Remodel | Template | No |
+| Shed Construction | Template | No |
+| New Construction | Template | No |
+| Home Addition | Template | No |
+
+Template-based planning is faster and more cost-effective since it skips the LLM planning step.
+
+#### Dynamic LLM-Powered Planning
+
+For custom or unusual projects, the **Project Planner Agent** is invoked to dynamically generate a task breakdown:
+
+| Project Type | Planning Mode | Project Planner Used? |
+|--------------|---------------|----------------------|
+| Custom Project | Dynamic | Yes |
+| Dog House | Dynamic | Yes |
+| Treehouse | Dynamic | Yes |
+| Home Theater | Dynamic | Yes |
+| Any non-template type | Dynamic | Yes |
+
+The Project Planner Agent uses Claude to:
+1. Analyze project scope and requirements
+2. Generate a detailed task breakdown
+3. Validate task dependencies
+4. Assign construction phases
+5. Finalize the executable plan
+
+**Note:** If you don't see the Project Planner node active in the Agent Network Graph, it's likely because you're running a template-based project. To see the Project Planner in action, start a custom project or use a project type without a predefined template.
+
+#### Validation Layer
+
+Both planning modes include validation to ensure all required information is provided before execution begins.
 
 ### Real-time Monitoring
 

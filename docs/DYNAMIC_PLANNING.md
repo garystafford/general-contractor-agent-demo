@@ -9,6 +9,8 @@ The system uses a **hybrid approach**:
 - **Hardcoded templates** for common projects (fast, predictable, no extra cost)
 - **Dynamic LLM planning** for arbitrary projects (flexible, uses Claude's construction knowledge)
 
+> **Note:** If you're viewing the Agent Network Graph and don't see the "Project Planning" node being activated, it's because template-based projects skip the planning agent entirely. To see the Project Planner in action, start a custom project type (like "dog_house" or "treehouse") or use the `use_dynamic_planning: true` parameter.
+
 ## Supported Project Types
 
 ### Hardcoded Templates (Fast)
