@@ -8,6 +8,7 @@ Tracks input/output/total tokens at three levels:
 """
 
 import logging
+import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
@@ -50,6 +51,10 @@ class TokenTracker:
         self._project_totals = TokenUsage()
         self._by_task: Dict[str, TokenUsage] = {}
         self._by_agent: Dict[str, TokenUsage] = {}
+        self._api_call_count: int = 0
+        self._api_calls_by_agent: Dict[str, int] = {}
+        self._project_start_time: Optional[float] = None
+        self._project_end_time: Optional[float] = None
 
     @classmethod
     def get_instance(cls) -> "TokenTracker":
@@ -74,6 +79,12 @@ class TokenTracker:
         if total_tokens == 0 and input_tokens == 0 and output_tokens == 0:
             return
 
+        # Count this as a Bedrock API call
+        self._api_call_count += 1
+        self._api_calls_by_agent[agent_name] = (
+            self._api_calls_by_agent.get(agent_name, 0) + 1
+        )
+
         # Accumulate into project totals
         self._project_totals.add(input_tokens, output_tokens, total_tokens)
 
@@ -92,13 +103,41 @@ class TokenTracker:
             f"in={input_tokens:,}, out={output_tokens:,}, total={total_tokens:,}"
         )
 
-    def get_project_totals(self) -> Dict[str, int]:
-        """Get project-level token totals."""
-        return self._project_totals.to_dict()
+    def start_timer(self) -> None:
+        """Record project start time."""
+        self._project_start_time = time.time()
+        self._project_end_time = None
 
-    def get_by_agent(self) -> Dict[str, Dict[str, int]]:
+    def stop_timer(self) -> None:
+        """Record project end time."""
+        self._project_end_time = time.time()
+
+    def get_runtime_seconds(self) -> Optional[float]:
+        """Get project runtime in seconds, or None if not started."""
+        if self._project_start_time is None:
+            return None
+        end = self._project_end_time or time.time()
+        return round(end - self._project_start_time, 1)
+
+    def get_project_totals(self) -> Dict[str, Any]:
+        """Get project-level token totals."""
+        totals = self._project_totals.to_dict()
+        totals["bedrock_api_calls"] = self._api_call_count
+        runtime = self.get_runtime_seconds()
+        if runtime is not None:
+            totals["runtime_seconds"] = runtime
+            minutes, secs = divmod(int(runtime), 60)
+            totals["runtime_display"] = f"{minutes}m {secs}s"
+        return totals
+
+    def get_by_agent(self) -> Dict[str, Dict[str, Any]]:
         """Get token usage broken down by agent."""
-        return {name: usage.to_dict() for name, usage in self._by_agent.items()}
+        result = {}
+        for name, usage in self._by_agent.items():
+            agent_data = usage.to_dict()
+            agent_data["bedrock_api_calls"] = self._api_calls_by_agent.get(name, 0)
+            result[name] = agent_data
+        return result
 
     def get_by_task(self) -> Dict[str, Dict[str, int]]:
         """Get token usage broken down by task."""
@@ -117,6 +156,10 @@ class TokenTracker:
         self._project_totals = TokenUsage()
         self._by_task.clear()
         self._by_agent.clear()
+        self._api_call_count = 0
+        self._api_calls_by_agent.clear()
+        self._project_start_time = None
+        self._project_end_time = None
         logger.info("TokenTracker cleared")
 
 
