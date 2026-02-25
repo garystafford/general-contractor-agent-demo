@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     # This is the PRIMARY protection against infinite loops
     task_timeout_seconds: int = 60
 
+    # Task retry settings
+    # Number of times to retry a timed-out task before marking it as failed
+    max_task_retries: int = 1
+
     # Loop Detection Settings
     # Maximum consecutive identical tool calls before failing the task
     max_consecutive_tool_calls: int = 3

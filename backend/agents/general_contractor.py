@@ -954,25 +954,74 @@ Complete this task using your specialized tools efficiently."""
                     timeout=timeout_seconds,
                 )
             except asyncio.TimeoutError:
-                error_msg = (
-                    f"Task {task.task_id} timed out after {timeout_seconds} seconds. "
-                    f"Agent '{agent_name}' likely stuck in a loop. "
-                    f"Check if the agent is calling the same tool repeatedly."
-                )
-                logger.error(error_msg)
-                logger.error(f"Task description: {task.description}")
                 # Capture any tokens consumed before timeout
                 await self._record_token_usage(
                     agent, agent_name, task.task_id, activity_logger
                 )
-                await activity_logger.log_task_failed(agent_name, task.task_id, error_msg)
-                self.task_manager.mark_failed(task.task_id, error_msg)
-                return {
-                    "status": "failed",
-                    "task_id": task.task_id,
-                    "error": error_msg,
-                    "agent": agent_name,
-                }
+
+                max_retries = getattr(settings, "max_task_retries", 1)
+                if task.retry_count < max_retries:
+                    # Retry the task with guidance to be concise
+                    task.retry_count += 1
+                    retry_msg = (
+                        f"Task {task.task_id} timed out (attempt {task.retry_count}/{max_retries + 1}). "
+                        f"Retrying with conciseness guidance."
+                    )
+                    logger.warning(retry_msg)
+                    await activity_logger.log_warning(retry_msg, agent_name)
+
+                    retry_prompt = (
+                        task_prompt
+                        + "\n\nIMPORTANT: Your previous attempt timed out. "
+                        "Be more concise - summarize your findings briefly rather than "
+                        "generating exhaustive detail. Focus on key results only."
+                    )
+                    try:
+                        result = await asyncio.wait_for(
+                            self._execute_with_streaming(
+                                agent, agent_name, task.task_id, retry_prompt
+                            ),
+                            timeout=timeout_seconds,
+                        )
+                    except asyncio.TimeoutError:
+                        error_msg = (
+                            f"Task {task.task_id} timed out after {timeout_seconds} seconds "
+                            f"(attempt {task.retry_count + 1}/{max_retries + 1}). "
+                            f"Agent '{agent_name}' likely stuck in a loop."
+                        )
+                        logger.error(error_msg)
+                        logger.error(f"Task description: {task.description}")
+                        await self._record_token_usage(
+                            agent, agent_name, task.task_id, activity_logger
+                        )
+                        await activity_logger.log_task_failed(
+                            agent_name, task.task_id, error_msg
+                        )
+                        self.task_manager.mark_failed(task.task_id, error_msg)
+                        return {
+                            "status": "failed",
+                            "task_id": task.task_id,
+                            "error": error_msg,
+                            "agent": agent_name,
+                        }
+                else:
+                    error_msg = (
+                        f"Task {task.task_id} timed out after {timeout_seconds} seconds. "
+                        f"Agent '{agent_name}' likely stuck in a loop. "
+                        f"Check if the agent is calling the same tool repeatedly."
+                    )
+                    logger.error(error_msg)
+                    logger.error(f"Task description: {task.description}")
+                    await activity_logger.log_task_failed(
+                        agent_name, task.task_id, error_msg
+                    )
+                    self.task_manager.mark_failed(task.task_id, error_msg)
+                    return {
+                        "status": "failed",
+                        "task_id": task.task_id,
+                        "error": error_msg,
+                        "agent": agent_name,
+                    }
 
             # Include per-task token usage in result
             token_tracker = get_token_tracker()
@@ -1260,6 +1309,10 @@ Complete this task using your specialized tools efficiently."""
         self.project_phase = "in_progress"
         logger.info("Starting full project execution")
 
+        # Start the project timer
+        token_tracker = get_token_tracker()
+        token_tracker.start_timer()
+
         all_results = []
         max_iterations = 50  # Safety limit
         iteration = 0
@@ -1287,8 +1340,42 @@ Complete this task using your specialized tools efficiently."""
                 pending = project_status.get("pending", 0)
 
                 if in_progress == 0 and pending > 0:
-                    # No tasks running but some are pending - this is a dependency deadlock
-                    # Gather information about blocked tasks
+                    # No tasks running but some are pending - try to break the deadlock
+                    # Find a pending task whose unmet deps are only other pending tasks
+                    # (i.e., a cycle or stale dependency chain) and force-unblock it
+                    unblocked = False
+                    pending_ids = {
+                        t.task_id
+                        for t in self.task_manager.tasks.values()
+                        if t.status == TaskStatus.PENDING
+                    }
+                    for task in self.task_manager.tasks.values():
+                        if task.status != TaskStatus.PENDING:
+                            continue
+                        unmet = [
+                            d
+                            for d in task.dependencies
+                            if d not in self.task_manager.completed_tasks
+                        ]
+                        # If all unmet deps are other pending tasks, this is a cycle
+                        if unmet and all(d in pending_ids for d in unmet):
+                            logger.warning(
+                                f"Breaking deadlock: force-unblocking task {task.task_id} "
+                                f"({task.description}) by clearing deps {unmet}"
+                            )
+                            task.dependencies = [
+                                d
+                                for d in task.dependencies
+                                if d in self.task_manager.completed_tasks
+                            ]
+                            unblocked = True
+                            break
+
+                    if unblocked:
+                        # Retry the loop — get_ready_tasks should now find work
+                        continue
+
+                    # Could not break deadlock — give up
                     blocked_tasks = []
                     for task in self.task_manager.tasks.values():
                         if task.status == TaskStatus.PENDING:
@@ -1323,6 +1410,10 @@ Complete this task using your specialized tools efficiently."""
 
             # Small delay between phases
             await asyncio.sleep(0.1)
+
+        # Stop the project timer
+        token_tracker = get_token_tracker()
+        token_tracker.stop_timer()
 
         final_status = self.task_manager.get_project_status()
 

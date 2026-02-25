@@ -34,6 +34,7 @@ class Task:
     result: Optional[Any] = None
     requirements: Dict[str, Any] = field(default_factory=dict)
     materials: List[str] = field(default_factory=list)
+    retry_count: int = 0
 
 
 class TaskManager:
@@ -81,13 +82,48 @@ class TaskManager:
         ready_tasks = []
 
         for task in self.tasks.values():
-            if task.status == TaskStatus.PENDING:
-                if self._are_dependencies_met(task):
+            # Include tasks already marked READY from a previous call
+            # (they may have been filtered out by get_next_phase_tasks)
+            if task.status == TaskStatus.READY:
+                ready_tasks.append(task)
+            elif task.status == TaskStatus.PENDING:
+                # Check for unresolvable dependencies first
+                unresolvable = self._get_unresolvable_dependencies(task)
+                if unresolvable:
+                    error_msg = f"Unresolvable dependencies: {unresolvable}"
+                    task.status = TaskStatus.FAILED
+                    task.result = {"error": error_msg}
+                    self.failed_tasks.add(task.task_id)
+                    logger.warning(
+                        f"Task {task.task_id} auto-failed: {error_msg}"
+                    )
+                    # Cascade failure to tasks depending on this one
+                    for dep_task in self.get_dependent_tasks(task.task_id):
+                        if dep_task.status in (TaskStatus.PENDING, TaskStatus.READY):
+                            dep_task.status = TaskStatus.FAILED
+                            dep_task.result = {
+                                "error": f"Blocked: dependency task {task.task_id} failed"
+                            }
+                            self.failed_tasks.add(dep_task.task_id)
+                            logger.warning(
+                                f"Task {dep_task.task_id} cascade-failed due to dependency {task.task_id}"
+                            )
+                elif self._are_dependencies_met(task):
                     task.status = TaskStatus.READY
                     ready_tasks.append(task)
                     logger.info(f"Task {task.task_id} is now ready")
 
         return ready_tasks
+
+    def _get_unresolvable_dependencies(self, task: Task) -> List[str]:
+        """Return dependency IDs that can never be satisfied (non-existent or failed)."""
+        unresolvable = []
+        for dep_id in task.dependencies:
+            if dep_id not in self.tasks:
+                unresolvable.append(f"{dep_id} (does not exist)")
+            elif dep_id in self.failed_tasks:
+                unresolvable.append(f"{dep_id} (failed)")
+        return unresolvable
 
     def _are_dependencies_met(self, task: Task) -> bool:
         """Check if all dependencies for a task are completed."""
@@ -115,14 +151,42 @@ class TaskManager:
         return False
 
     def mark_failed(self, task_id: str, error: str) -> bool:
-        """Mark a task as failed."""
+        """Mark a task as failed and cascade failure to dependent tasks."""
         if task_id in self.tasks:
             self.tasks[task_id].status = TaskStatus.FAILED
             self.tasks[task_id].result = {"error": error}
             self.failed_tasks.add(task_id)
             logger.error(f"Task {task_id} failed: {error}")
+
+            # Cascade failure to all tasks that depend on this one
+            dependent_tasks = self.get_dependent_tasks(task_id)
+            for dep_task in dependent_tasks:
+                if dep_task.status in (TaskStatus.PENDING, TaskStatus.READY):
+                    cascade_error = f"Blocked: dependency task {task_id} failed"
+                    dep_task.status = TaskStatus.FAILED
+                    dep_task.result = {"error": cascade_error}
+                    self.failed_tasks.add(dep_task.task_id)
+                    logger.warning(
+                        f"Task {dep_task.task_id} cascade-failed due to dependency {task_id}"
+                    )
+
             return True
         return False
+
+    def get_dependent_tasks(self, task_id: str) -> List[Task]:
+        """Get all tasks that directly or transitively depend on the given task."""
+        dependents = []
+        visited = set()
+
+        def _collect(tid: str):
+            for task in self.tasks.values():
+                if tid in task.dependencies and task.task_id not in visited:
+                    visited.add(task.task_id)
+                    dependents.append(task)
+                    _collect(task.task_id)
+
+        _collect(task_id)
+        return dependents
 
     def mark_ready(self, task_id: str) -> bool:
         """Mark a task as ready (reset from failed state for retry)."""
@@ -551,8 +615,55 @@ class TaskManager:
             tasks.append(task)
             self.add_task(task)
 
+        # Validate dependency references
+        task_ids = {t.task_id for t in tasks}
+        for task in tasks:
+            invalid_deps = [d for d in task.dependencies if d not in task_ids]
+            if invalid_deps:
+                logger.warning(
+                    f"Task {task.task_id} references non-existent dependencies: {invalid_deps}. "
+                    f"Removing invalid references."
+                )
+                task.dependencies = [d for d in task.dependencies if d in task_ids]
+
+        # Detect and break circular dependencies
+        self._break_circular_dependencies(tasks)
+
         logger.info(f"Created {len(tasks)} tasks from dynamic plan")
         return tasks
+
+    def _break_circular_dependencies(self, tasks: List[Task]) -> None:
+        """Detect and break circular dependencies using topological sort."""
+        task_map = {t.task_id: t for t in tasks}
+        # Build adjacency: task -> tasks it depends on
+        visited: set = set()
+        in_stack: set = set()
+        edges_to_remove: List[tuple] = []
+
+        def _dfs(tid: str):
+            visited.add(tid)
+            in_stack.add(tid)
+            task = task_map.get(tid)
+            if task:
+                for dep_id in list(task.dependencies):
+                    if dep_id in in_stack:
+                        # Back edge = cycle. Remove this dependency to break the cycle.
+                        edges_to_remove.append((tid, dep_id))
+                    elif dep_id not in visited and dep_id in task_map:
+                        _dfs(dep_id)
+            in_stack.discard(tid)
+
+        for tid in task_map:
+            if tid not in visited:
+                _dfs(tid)
+
+        for task_id, dep_id in edges_to_remove:
+            task = task_map[task_id]
+            if dep_id in task.dependencies:
+                task.dependencies.remove(dep_id)
+                logger.warning(
+                    f"Broke circular dependency: removed task {task_id}'s dependency on {dep_id}"
+                )
 
     def get_project_status(self) -> Dict[str, Any]:
         """Get overall project status."""

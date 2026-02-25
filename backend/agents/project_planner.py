@@ -204,6 +204,12 @@ REQUIRED JSON FORMAT for finalize_project_plan input:
 IMPORTANT: Every task that involves physical work MUST include a "materials" array with the materials needed.
 Only planning, inspection, and permit tasks should have empty materials arrays.
 
+TASK SCOPE RULES:
+- Each task description must be a SINGLE focused action, NOT a combination of multiple activities.
+- Break inspection tasks into SEPARATE tasks per system (e.g., "Inspect structural framing" and "Inspect electrical rough-in" as separate tasks, NOT one combined inspection task).
+- Task descriptions must be under 200 characters.
+- Prefer more smaller tasks over fewer large tasks.
+
 NEVER call the same tool twice. After tool returns, call the NEXT tool immediately."""
 
     agent = Agent(
