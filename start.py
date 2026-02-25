@@ -18,17 +18,27 @@ Date: 2025-11-23
 import argparse
 import asyncio
 import logging
+import os
 import signal
 import subprocess
 import sys
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+# Configure logging (console + file)
+log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+logging.basicConfig(level=logging.INFO, format=log_format)
+
+log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+os.makedirs(log_dir, exist_ok=True)
+file_handler = RotatingFileHandler(
+    os.path.join(log_dir, "app.log"), maxBytes=10 * 1024 * 1024, backupCount=3
 )
+file_handler.setFormatter(logging.Formatter(log_format))
+file_handler.setLevel(logging.INFO)
+logging.getLogger().addHandler(file_handler)
+
 logger = logging.getLogger(__name__)
 
 

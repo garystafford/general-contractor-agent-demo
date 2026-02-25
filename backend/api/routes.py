@@ -5,7 +5,9 @@ FastAPI routes for the General Contractor Agent Demo.
 import asyncio
 import json
 import logging
+import os
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 from typing import Any, Dict, List, Optional, Set
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -17,11 +19,18 @@ from backend.agents.general_contractor import GeneralContractorAgent
 from backend.utils.activity_logger import get_activity_logger
 from backend.utils.token_tracker import get_token_tracker
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+# Configure logging (console + file)
+log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+logging.basicConfig(level=logging.INFO, format=log_format)
+
+log_dir = os.path.join(os.path.dirname(__file__), "..", "..", "logs")
+os.makedirs(log_dir, exist_ok=True)
+file_handler = RotatingFileHandler(
+    os.path.join(log_dir, "app.log"), maxBytes=10 * 1024 * 1024, backupCount=3
 )
+file_handler.setFormatter(logging.Formatter(log_format))
+file_handler.setLevel(logging.INFO)
+logging.getLogger().addHandler(file_handler)
 
 logger = logging.getLogger(__name__)
 
