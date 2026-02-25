@@ -59,6 +59,19 @@ export interface AgentActivity {
   busy_count: number;
 }
 
+// Token Usage Types
+export interface TokenUsage {
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+}
+
+export interface TokenUsageSummary {
+  project_totals: TokenUsage;
+  by_agent: Record<string, TokenUsage>;
+  by_task: Record<string, TokenUsage>;
+}
+
 // Project Status Types
 export interface TaskStatusSummary {
   total_tasks: number;
@@ -74,6 +87,7 @@ export interface ProjectStatus {
   phase: string;
   task_status: TaskStatusSummary;
   agents: string[];
+  token_usage?: TokenUsageSummary;
 }
 
 // Materials Types

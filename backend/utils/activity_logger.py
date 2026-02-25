@@ -32,6 +32,7 @@ class ActivityType(str, Enum):
     PLANNING_COMPLETE = "planning_complete"
     MCP_CALL = "mcp_call"
     MCP_RESULT = "mcp_result"
+    TOKEN_USAGE = "token_usage"
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
@@ -320,6 +321,24 @@ class ActivityLogger:
             },
         )
         await self._emit(event)
+
+    async def log_token_usage(
+        self, agent: str, task_id: Optional[str], usage: Dict[str, Any]
+    ):
+        """Log token usage from an agent invocation."""
+        total = usage.get("totalTokens", 0)
+        input_t = usage.get("inputTokens", 0)
+        output_t = usage.get("outputTokens", 0)
+        event = ActivityEvent(
+            timestamp=self._now(),
+            type=ActivityType.TOKEN_USAGE,
+            agent=agent,
+            task_id=task_id,
+            message=f"Tokens used: {total:,} (in: {input_t:,}, out: {output_t:,})",
+            details={"usage": usage},
+        )
+        await self._emit(event)
+        logger.info(f"[{agent}] Token usage: in={input_t:,}, out={output_t:,}, total={total:,}")
 
     async def log_info(self, message: str, agent: Optional[str] = None):
         """Log general info message."""

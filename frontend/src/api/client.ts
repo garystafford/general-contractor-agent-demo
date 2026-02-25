@@ -11,6 +11,7 @@ import type {
   Permit,
   Inspection,
   APIResponse,
+  TokenUsageSummary,
 } from '../types';
 import { config } from '../config';
 
@@ -241,6 +242,15 @@ class APIClient {
     });
     if (response.data.status === 'error') {
       throw new Error(response.data.detail || 'Failed to get required permits');
+    }
+    return response.data.data!;
+  }
+
+  // Token Usage
+  async getTokenUsage(): Promise<TokenUsageSummary> {
+    const response = await this.client.get<APIResponse<TokenUsageSummary>>('/api/token-usage');
+    if (response.data.status === 'error') {
+      throw new Error(response.data.detail || 'Failed to get token usage');
     }
     return response.data.data!;
   }

@@ -16,6 +16,9 @@ import {
   RefreshCcw,
   Network,
   Terminal,
+  Zap,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import ErrorModal from './ErrorModal';
 
@@ -47,6 +50,7 @@ export function DashboardSimple() {
   const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
   const [stuckStateChecked, setStuckStateChecked] = useState<string>('');
   const [dashboardLoadTime] = useState<number>(Date.now());
+  const [showTokenBreakdown, setShowTokenBreakdown] = useState(false);
 
   // Fetch project data
   const fetchProjectData = async () => {
@@ -439,7 +443,7 @@ export function DashboardSimple() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div>
@@ -487,7 +491,87 @@ export function DashboardSimple() {
               <AlertCircle className="w-8 h-8 text-red-500" />
             </div>
           </div>
+
+          <div
+            className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-amber-400 dark:hover:border-amber-500 transition"
+            onClick={() => setShowTokenBreakdown(!showTokenBreakdown)}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Tokens</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                  {(projectStatus.token_usage?.project_totals?.total_tokens ?? 0).toLocaleString()}
+                </p>
+              </div>
+              <div className="flex flex-col items-center">
+                <Zap className="w-8 h-8 text-amber-500" />
+                {showTokenBreakdown ? (
+                  <ChevronUp className="w-4 h-4 text-gray-400 mt-1" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-gray-400 mt-1" />
+                )}
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Token Usage Breakdown */}
+        {showTokenBreakdown && projectStatus.token_usage && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Token Usage Breakdown
+            </h2>
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="text-center">
+                <p className="text-xs text-gray-500 dark:text-gray-400">Input Tokens</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {(projectStatus.token_usage.project_totals.input_tokens).toLocaleString()}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-gray-500 dark:text-gray-400">Output Tokens</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {(projectStatus.token_usage.project_totals.output_tokens).toLocaleString()}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-gray-500 dark:text-gray-400">Total Tokens</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {(projectStatus.token_usage.project_totals.total_tokens).toLocaleString()}
+                </p>
+              </div>
+            </div>
+            {Object.keys(projectStatus.token_usage.by_agent).length > 0 && (
+              <>
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">By Agent</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                        <th className="pb-2 font-medium">Agent</th>
+                        <th className="pb-2 font-medium text-right">Input</th>
+                        <th className="pb-2 font-medium text-right">Output</th>
+                        <th className="pb-2 font-medium text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(projectStatus.token_usage.by_agent)
+                        .sort(([, a], [, b]) => b.total_tokens - a.total_tokens)
+                        .map(([agent, usage]) => (
+                          <tr key={agent} className="border-b border-gray-100 dark:border-gray-700/50">
+                            <td className="py-2 text-gray-900 dark:text-white">{agent}</td>
+                            <td className="py-2 text-right text-gray-600 dark:text-gray-400">{usage.input_tokens.toLocaleString()}</td>
+                            <td className="py-2 text-right text-gray-600 dark:text-gray-400">{usage.output_tokens.toLocaleString()}</td>
+                            <td className="py-2 text-right font-medium text-gray-900 dark:text-white">{usage.total_tokens.toLocaleString()}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Phase Progress */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">

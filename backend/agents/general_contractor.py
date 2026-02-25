@@ -42,6 +42,7 @@ from backend.agents import (
 from backend.config import settings
 from backend.orchestration.task_manager import Task, TaskManager, TaskStatus
 from backend.utils.activity_logger import get_activity_logger
+from backend.utils.token_tracker import get_token_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -456,11 +457,42 @@ Remember to output the final plan in exact JSON format with the 'tasks' and 'sum
             return tasks
 
         except asyncio.TimeoutError:
-            logger.error("Planning agent timed out")
+            logger.warning("Planning agent timed out - checking for stored plan")
+            # Capture any tokens consumed before timeout
+            await self._record_token_usage(
+                self.planning_agent, "Planner", "planning", activity_logger
+            )
+
+            # The planner may have already stored the plan via finalize_project_plan
+            # before the timeout - try to recover it
+            from backend.agents.project_planner import (
+                get_last_finalized_plan,
+                clear_last_finalized_plan,
+            )
+
+            stored_plan = get_last_finalized_plan()
+            if stored_plan and stored_plan.get("tasks"):
+                task_plan = stored_plan["tasks"]
+                clear_last_finalized_plan()
+                logger.info(
+                    f"Recovered {len(task_plan)} tasks from stored plan despite timeout"
+                )
+                await activity_logger.log_warning(
+                    f"Planning timed out but recovered {len(task_plan)} stored tasks",
+                    "Planner",
+                )
+                tasks = self.task_manager.create_tasks_from_plan(task_plan)
+                await activity_logger.log_planning_complete(len(tasks))
+                return tasks
+
             await activity_logger.log_error("Planning timed out after 120 seconds", "Planner")
             raise Exception("Dynamic planning timed out after 120 seconds")
         except Exception as e:
             logger.error(f"Error in dynamic planning: {e}")
+            # Capture any tokens consumed before failure
+            await self._record_token_usage(
+                self.planning_agent, "Planner", "planning", activity_logger
+            )
             await activity_logger.log_error(f"Planning failed: {str(e)}", "Planner")
             raise
 
@@ -929,6 +961,10 @@ Complete this task using your specialized tools efficiently."""
                 )
                 logger.error(error_msg)
                 logger.error(f"Task description: {task.description}")
+                # Capture any tokens consumed before timeout
+                await self._record_token_usage(
+                    agent, agent_name, task.task_id, activity_logger
+                )
                 await activity_logger.log_task_failed(agent_name, task.task_id, error_msg)
                 self.task_manager.mark_failed(task.task_id, error_msg)
                 return {
@@ -938,12 +974,17 @@ Complete this task using your specialized tools efficiently."""
                     "agent": agent_name,
                 }
 
+            # Include per-task token usage in result
+            token_tracker = get_token_tracker()
+            task_token_usage = token_tracker.get_by_task().get(task.task_id)
+
             # Format result for task manager
             task_result = {
                 "status": "completed",
                 "task_id": task.task_id,
                 "agent": agent_name,
                 "result": result,
+                "token_usage": task_token_usage,
             }
 
             # Log task completion
@@ -1113,6 +1154,9 @@ Complete this task using your specialized tools efficiently."""
                 if result_text:
                     await activity_logger.log_thinking(agent_name, task_id, result_text)
 
+                # Extract token usage from streaming result
+                await self._record_token_usage(agent, agent_name, task_id, activity_logger)
+
                 return result_text or "Task completed"
 
             except Exception as e:
@@ -1143,7 +1187,42 @@ Complete this task using your specialized tools efficiently."""
         if result_text:
             await activity_logger.log_thinking(agent_name, task_id, result_text)
 
+        # Extract token usage from invoke result
+        await self._record_token_usage_from_result(result, agent_name, task_id, activity_logger)
+
         return result
+
+    async def _record_token_usage(
+        self, agent: Any, agent_name: str, task_id: str, activity_logger: Any
+    ) -> None:
+        """Extract token usage from agent's event_loop_metrics after streaming."""
+        try:
+            if hasattr(agent, "event_loop_metrics"):
+                metrics = agent.event_loop_metrics
+                if hasattr(metrics, "accumulated_usage"):
+                    usage = dict(metrics.accumulated_usage)
+                    if usage.get("totalTokens", 0) > 0:
+                        token_tracker = get_token_tracker()
+                        token_tracker.record_usage(task_id, agent_name, usage)
+                        await activity_logger.log_token_usage(agent_name, task_id, usage)
+        except Exception as e:
+            logger.warning(f"Failed to extract token usage from agent metrics: {e}")
+
+    async def _record_token_usage_from_result(
+        self, result: Any, agent_name: str, task_id: str, activity_logger: Any
+    ) -> None:
+        """Extract token usage from an AgentResult's metrics."""
+        try:
+            if hasattr(result, "metrics"):
+                metrics = result.metrics
+                if hasattr(metrics, "accumulated_usage"):
+                    usage = dict(metrics.accumulated_usage)
+                    if usage.get("totalTokens", 0) > 0:
+                        token_tracker = get_token_tracker()
+                        token_tracker.record_usage(task_id, agent_name, usage)
+                        await activity_logger.log_token_usage(agent_name, task_id, usage)
+        except Exception as e:
+            logger.warning(f"Failed to extract token usage from result metrics: {e}")
 
     async def _execute_planning_with_streaming(self, prompt: str) -> Any:
         """
@@ -1162,6 +1241,9 @@ Complete this task using your specialized tools efficiently."""
         # Log final result
         if hasattr(result, "text"):
             await activity_logger.log_thinking("Planner", None, result.text)
+
+        # Extract token usage from planning result
+        await self._record_token_usage_from_result(result, "Planner", "planning", activity_logger)
 
         return result
 
@@ -1263,11 +1345,13 @@ Complete this task using your specialized tools efficiently."""
         if not self.current_project:
             return {"status": "no_active_project"}
 
+        token_tracker = get_token_tracker()
         return {
             "project": self.current_project,
             "phase": self.project_phase,
             "task_status": self.task_manager.get_project_status(),
             "agents": list(self.agents.keys()),
+            "token_usage": token_tracker.get_summary(),
         }
 
     def get_agent_status(self, agent_name: str) -> Dict[str, Any]:
@@ -1307,6 +1391,7 @@ Complete this task using your specialized tools efficiently."""
         await self.close_mcp_clients()
 
         self.task_manager.clear()
+        get_token_tracker().clear()
         self.current_project = None
         self.project_phase = "idle"
         logger.info("General Contractor reset")

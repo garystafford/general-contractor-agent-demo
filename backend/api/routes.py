@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from backend.agents.general_contractor import GeneralContractorAgent
 from backend.utils.activity_logger import get_activity_logger
+from backend.utils.token_tracker import get_token_tracker
 
 # Configure logging
 logging.basicConfig(
@@ -855,6 +856,19 @@ async def clear_activity():
     activity_logger = get_activity_logger()
     activity_logger.clear()
     return {"status": "success", "message": "Activity log cleared"}
+
+
+# Token Usage Endpoints
+@app.get("/api/token-usage")
+async def get_token_usage():
+    """
+    Get token usage summary for the current project.
+
+    Returns project totals, per-agent breakdown, and per-task breakdown
+    of input/output/total tokens consumed by LLM calls.
+    """
+    token_tracker = get_token_tracker()
+    return {"status": "success", "data": token_tracker.get_summary()}
 
 
 if __name__ == "__main__":
