@@ -416,6 +416,11 @@ This system models a construction project where a **General Contractor** agent o
 - **Permitting System**: Construction permit and inspection management MCP server
 - **Loop Detection**: Prevents infinite loops with configurable thresholds
 - **Task Recovery**: Skip or retry failed/stuck tasks to unblock projects
+- **Deadlock Prevention**: Cascade failure propagation, circular dependency detection, and runtime deadlock breaking
+- **Automatic Retry**: Timed-out tasks retry once with conciseness guidance before failing
+- **LLM Token Tracking**: Per-project, per-agent, and per-task token usage metrics
+- **Bedrock API Call Counting**: Tracks total and per-agent Bedrock API invocations
+- **Project Runtime Tracking**: Measures wall-clock execution time for each project run
 - **REST API**: Complete API for project management and monitoring
 - **Real-time Status Tracking**: Monitor agent status, task progress, and project completion
 
@@ -701,6 +706,12 @@ Tests:
 | GET    | `/api/agents/status`       | Get status of all agents                   |
 | GET    | `/api/agents/{agent_name}` | Get specific agent status and current task |
 
+#### Token Usage & Metrics
+
+| Method | Endpoint           | Description                                             |
+| ------ | ------------------ | ------------------------------------------------------- |
+| GET    | `/api/token-usage` | Get token usage, Bedrock API call counts, and runtime   |
+
 #### Materials Supplier
 
 | Method | Endpoint                            | Description                                      |
@@ -791,15 +802,7 @@ Enable dynamic planning for custom project descriptions.
 
 ### Problem
 
-AI agents can sometimes get stuck in infinite loops, repeatedly calling the same tool with the same parameters. For example:
-
-```text
-Tool #63: frame_walls
-Tool #64: frame_walls
-Tool #65: frame_walls
-...
-Tool #72: frame_walls  (Same tool 72 times!)
-```
+AI agents can sometimes get stuck in infinite loops, repeatedly calling the same tool with the same parameters. Custom (dynamically planned) projects can also deadlock when a failed task permanently blocks all dependent tasks.
 
 ### Solution: Multi-Layer Protection
 
@@ -819,14 +822,38 @@ MAX_IDENTICAL_CALLS=2
 ENABLE_LOOP_DETECTION=true
 ```
 
-#### 2. Task Timeout
+#### 2. Task Timeout with Automatic Retry
 
 ```bash
 # Timeout per task in seconds
-TASK_TIMEOUT_SECONDS=60  # Fast for testing, 300 for production
+TASK_TIMEOUT_SECONDS=120  # 60 for testing, 300 for production
+
+# Number of retries for timed-out tasks before marking as failed
+MAX_TASK_RETRIES=1
 ```
 
-#### 3. Agent Prompt Instructions
+When a task times out, the system retries it once with guidance to be more concise before marking it as permanently failed.
+
+#### 3. Deadlock Prevention (Custom Projects)
+
+Custom projects using dynamic planning have additional safeguards:
+
+- **Cascade Failure**: When a task fails, all directly and transitively dependent tasks are automatically marked as failed with context, preventing indefinite blocking
+- **Circular Dependency Detection**: DFS-based cycle detection runs at plan creation time and breaks any circular references
+- **Invalid Dependency Cleanup**: Dependencies referencing non-existent task IDs are stripped during plan validation
+- **Unresolvable Dependency Detection**: Tasks waiting on failed or missing dependencies are auto-failed at runtime
+- **Runtime Deadlock Breaker**: During execution, tasks stuck because their unmet dependencies are only other pending tasks are force-unblocked
+- **READY-State Recovery**: Tasks already transitioned to READY status are always included in scheduling, preventing phase-filtering from orphaning them
+
+#### 4. Planner Scope Constraints
+
+The dynamic planning agent is constrained to produce focused, single-purpose tasks:
+
+- Each task must describe a single focused action (not combined inspections or multi-step activities)
+- Task descriptions must be under 200 characters
+- Inspection tasks are broken into separate tasks per system
+
+#### 5. Agent Prompt Instructions
 
 Agents receive explicit loop prevention instructions:
 
@@ -848,7 +875,7 @@ general-contractor-agent-demo/
 │   ├── mcp_servers/         # MCP servers - stdio mode (local dev)
 │   ├── orchestration/       # Task manager and dependencies
 │   ├── api/                 # FastAPI routes
-│   ├── utils/               # Loop detection utilities
+│   ├── utils/               # Loop detection, token tracking utilities
 │   ├── config.py            # Configuration settings
 │   └── Dockerfile           # Backend container
 ├── frontend/

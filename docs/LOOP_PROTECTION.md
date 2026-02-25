@@ -45,7 +45,39 @@ result = await asyncio.wait_for(
 
 **Default:** 120 seconds (2 minutes) for faster testing, increase to 300-600 for production
 
-### 2. Enhanced System Prompts ⚠️ ADVISORY
+### 2. Automatic Retry on Timeout ✅ ACTIVE
+
+**Location:** [backend/agents/general_contractor.py](../backend/agents/general_contractor.py)
+
+When a task times out, the system retries it once (configurable via `MAX_TASK_RETRIES` in `.env`) with additional guidance:
+
+```text
+IMPORTANT: Your previous attempt timed out. Be more concise - summarize your
+findings briefly rather than generating exhaustive detail.
+```
+
+**Benefits:**
+
+- ✅ Recovers from transient LLM verbosity issues
+- Configurable retry count via `MAX_TASK_RETRIES` environment variable (default: 1)
+- Only retries on timeout, not on other failure types
+
+### 3. Cascade Failure & Deadlock Prevention ✅ ACTIVE
+
+**Location:** [backend/orchestration/task_manager.py](../backend/orchestration/task_manager.py)
+
+Multiple safeguards prevent deadlocks in dynamically planned projects:
+
+- **Cascade failure**: When a task fails, all transitively dependent tasks are auto-failed
+- **Circular dependency detection**: DFS cycle detection at plan creation time
+- **Invalid dependency cleanup**: References to non-existent task IDs are stripped
+- **Unresolvable dependency detection**: Tasks waiting on failed/missing deps are auto-failed at runtime
+- **Runtime deadlock breaker**: Force-unblocks tasks stuck in pending chains
+- **READY-state recovery**: Tasks already marked READY are always returned by the scheduler
+
+**Effectiveness:** 🟢 **HIGH** - Prevents all known deadlock patterns in custom projects
+
+### 4. Enhanced System Prompts ⚠️ ADVISORY
 
 **Effectiveness:** 🟡 **MEDIUM** - Helps but not guaranteed
 
@@ -67,7 +99,7 @@ IMPORTANT GUIDELINES:
 - Reduces likelihood of repeated tool calls
 - Makes completion criteria explicit
 
-### 3. Improved Task Prompts
+### 5. Improved Task Prompts
 
 **Location:** [backend/agents/general_contractor.py](../backend/agents/general_contractor.py)
 
@@ -91,8 +123,11 @@ with your tools, provide a summary and finish. Do not repeat tool calls unnecess
 Add to your `.env` file to customize:
 
 ```bash
-# Task timeout in seconds (default: 300 = 5 minutes)
-TASK_TIMEOUT_SECONDS=300
+# Task timeout in seconds (default: 120 = 2 minutes)
+TASK_TIMEOUT_SECONDS=120
+
+# Number of retries for timed-out tasks (default: 1)
+MAX_TASK_RETRIES=1
 ```
 
 ### Recommended Settings
@@ -107,8 +142,9 @@ TASK_TIMEOUT_SECONDS=300
 
 1. **Repeated Tool Calls:** Same tool called multiple times with identical parameters
 2. **Timeout Errors:** Tasks consistently hitting the timeout limit
-3. **High Token Usage:** Excessive API calls to AWS Bedrock
+3. **High Token Usage:** Excessive API calls to AWS Bedrock (check `GET /api/token-usage`)
 4. **No Task Completion:** Tasks showing "in_progress" for extended periods
+5. **Deadlocked Tasks:** Multiple tasks stuck in PENDING after a task failure (check project status for cascade failures)
 
 ### Debugging
 
@@ -217,9 +253,12 @@ Modify a task to explicitly request repeated actions and verify agent stops appr
 
 ## Related Files
 
-- [backend/agents/general_contractor.py](../backend/agents/general_contractor.py) - Timeout implementation
+- [backend/agents/general_contractor.py](../backend/agents/general_contractor.py) - Timeout, retry, and deadlock breaker implementation
+- [backend/orchestration/task_manager.py](../backend/orchestration/task_manager.py) - Cascade failure, circular dep detection, READY-state recovery
+- [backend/agents/project_planner.py](../backend/agents/project_planner.py) - Task scope constraints for dynamic planning
 - [backend/agents/roofer.py](../backend/agents/roofer.py) - Enhanced system prompt example
-- [backend/config.py](../backend/config.py) - Timeout configuration
+- [backend/utils/token_tracker.py](../backend/utils/token_tracker.py) - Token usage and API call tracking
+- [backend/config.py](../backend/config.py) - Timeout and retry configuration
 - [.env.example](../.env.example) - Configuration template
 
 ## Best Practices

@@ -203,7 +203,13 @@ The Planning Agent uses Claude's construction knowledge to:
 **Enhanced with**:
 
 - `SUPPORTED_PROJECT_TYPES` - List of hardcoded types
-- `create_tasks_from_plan()` - Convert LLM output to Task objects
+- `create_tasks_from_plan()` - Convert LLM output to Task objects with dependency validation
+- `get_dependent_tasks()` - Find all transitively dependent tasks
+- Cascade failure propagation in `mark_failed()` - auto-fails all dependents
+- Circular dependency detection via DFS at plan creation time
+- Invalid dependency reference cleanup during plan validation
+- READY-state recovery in `get_ready_tasks()` - prevents phase-filtering from orphaning tasks
+- Runtime deadlock breaking for stuck pending chains
 
 ### General Contractor
 
@@ -215,6 +221,9 @@ The Planning Agent uses Claude's construction knowledge to:
 - `_create_dynamic_project_plan()` - LLM-based planning
 - `_parse_planning_result()` - Parse JSON from LLM
 - `start_project()` - Auto-detects when to use dynamic planning
+- Automatic retry on task timeout (configurable via `MAX_TASK_RETRIES`)
+- Runtime deadlock breaker in the execution loop
+- Project runtime timer integration with token tracker
 
 ### API Routes
 
@@ -308,6 +317,46 @@ export AWS_SECRET_ACCESS_KEY=your_secret
 2. Cache planning results for repeated projects
 3. Planning agent is lazy-loaded (only created when needed)
 4. Only plan once - execution uses the plan
+
+## Resilience & Fault Tolerance
+
+Dynamic projects have multiple layers of protection against failures and deadlocks:
+
+### Task Retry on Timeout
+
+When a task times out, the system retries it once (configurable via `MAX_TASK_RETRIES`) with additional guidance to be concise. This recovers from transient issues like the LLM generating overly detailed output.
+
+### Cascade Failure Propagation
+
+When a task permanently fails, all directly and transitively dependent tasks are automatically marked as failed with a message like `"Blocked: dependency task {id} failed"`. This prevents the execution loop from waiting indefinitely on tasks that can never run.
+
+### Dependency Validation
+
+At plan creation time:
+
+- **Invalid references** (dependencies pointing to non-existent task IDs) are stripped
+- **Circular dependencies** are detected via DFS and broken by removing back-edges
+
+At runtime:
+
+- Tasks with **unresolvable dependencies** (pointing to failed or missing tasks) are auto-failed
+- Tasks stuck in **pending deadlocks** (where unmet deps are only other pending tasks) are force-unblocked
+
+### Planner Scope Constraints
+
+The planning agent's system prompt enforces focused task generation:
+
+- Single-purpose tasks only (no combined inspections or multi-step activities)
+- Task descriptions under 200 characters
+- Inspection tasks split per system (structural, electrical, plumbing, etc.)
+
+### Monitoring
+
+After project completion, use `GET /api/token-usage` to review:
+
+- Total input/output/total tokens consumed
+- Bedrock API call count (total and per-agent)
+- Project wall-clock runtime
 
 ## Troubleshooting
 
