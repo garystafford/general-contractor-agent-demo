@@ -94,6 +94,10 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # Install Python dependencies
 uv sync
 
+# Optional: Update packages
+uv lock --upgrade
+uv sync
+
 # Activate virtual environment
 source .venv/bin/activate
 ```
@@ -106,6 +110,9 @@ cd frontend
 
 # Install dependencies
 npm install
+
+# Optional: Update packages
+npm update
 
 # Return to project root
 cd ..
@@ -194,6 +201,10 @@ Convert an existing basement room approximately 14x20 feet into a dedicated home
 #### Home Gym (Custom)
 
 Convert an open basement area approximately 12x18 feet into a dedicated home gym with durable, easy-to-clean finishes. Prepare and level the existing slab as needed and install high-impact rubber gym flooring throughout the space. Frame and finish walls as needed, using moisture-resistant materials in areas near exterior foundation walls. Install a full-height mirror wall along one long side of the room and a reinforced wall section or blocking for mounting a TV and wall-mounted fitness equipment. Provide blocking and structural support in ceiling and walls for future pull-up bars, suspension trainers, or heavy bag mounts as needed. Install bright, even LED overhead lighting suitable for workouts, along with sufficient general-purpose outlets around the room. Rough-in and install any required dedicated circuits for larger equipment such as a treadmill, rower, or stationary bike. Provide adequate ventilation or tie in to the existing HVAC system to maintain comfortable conditions during exercise. All finishes to match a clean, modern gym aesthetic with coordinated colors and materials. You will need local permits. You must purchase materials from the materials supplier.
+
+#### Dog House
+
+Design a modern, weatherproof backyard dog house for a large breed (80–100 lb) with an insulated concrete slab and electric heated floor, a raised 4 ft x 3 ft interior sleeping area sized so the dog can stand, turn, and lie comfortably, and a covered front porch. Use a sturdy wood-framed structure with 2x4 studs, plywood sheathing, and rigid foam insulation in the walls, floor, and roof, plus a house wrap or vapor barrier. The roof should be a simple front-to-back sloped gable with a minimum 3/12 pitch, finished in dark asphalt shingles with proper overhangs and drip edges to prevent rain and snow. Include a single offset entrance with a heavy-duty vinyl flap to block wind, an interior temperature range of 45–60°F in winter, chew-resistant interior wall panels, and an exterior finish of stained horizontal wood siding that blends into a landscaped backyard setting in a cold-climate suburb. You have the authority to make any other decisions required to complete the project successfully.
 
 ---
 
