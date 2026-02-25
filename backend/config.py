@@ -19,7 +19,7 @@ class Settings(BaseSettings):
 
     # Model configuration (Bedrock model IDs)
     # Use regional inference profile format (e.g., us.anthropic.claude-sonnet-4-5-20250929-v1:0)
-    default_model: str = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    default_model: str = "us.anthropic.claude-opus-4-6-v1" # "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
 
     # API configuration
     api_host: str = "0.0.0.0"
