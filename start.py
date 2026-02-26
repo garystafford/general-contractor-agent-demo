@@ -22,24 +22,31 @@ import os
 import signal
 import subprocess
 import sys
-from logging.handlers import RotatingFileHandler
+import threading
 from pathlib import Path
-from typing import Optional
+from typing import IO, Optional
 
-# Configure logging (console + file)
+# Configure logging
 log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 logging.basicConfig(level=logging.INFO, format=log_format)
-
-log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
-os.makedirs(log_dir, exist_ok=True)
-file_handler = RotatingFileHandler(
-    os.path.join(log_dir, "app.log"), maxBytes=10 * 1024 * 1024, backupCount=3
-)
-file_handler.setFormatter(logging.Formatter(log_format))
-file_handler.setLevel(logging.INFO)
-logging.getLogger().addHandler(file_handler)
-
 logger = logging.getLogger(__name__)
+
+# Log file setup
+LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+LOG_FILE = os.path.join(LOG_DIR, "app.log")
+
+
+def _tee_stream(source: IO[str], console: IO[str], log_file: IO[str]) -> None:
+    """Read from source and write to both console and log file."""
+    try:
+        for line in source:
+            console.write(line)
+            console.flush()
+            log_file.write(line)
+            log_file.flush()
+    except ValueError:
+        pass  # stream closed
 
 
 # Note: MCP servers are now managed by the MCPClient in general_contractor.py
@@ -54,6 +61,8 @@ class ApplicationManager:
         self.port = port
         self.api_process: Optional[subprocess.Popen] = None
         self.shutdown_event = asyncio.Event()
+        self._log_file: Optional[IO[str]] = None
+        self._tee_threads: list[threading.Thread] = []
 
     def setup_signal_handlers(self) -> None:
         """Setup signal handlers for graceful shutdown."""
@@ -66,10 +75,13 @@ class ApplicationManager:
         signal.signal(signal.SIGTERM, signal_handler)
 
     def start_api_server(self, project_root: Path) -> None:
-        """Start the FastAPI server."""
+        """Start the FastAPI server with output teed to log file."""
         logger.info(f"Starting FastAPI server on {self.host}:{self.port}...")
 
         try:
+            # Open log file (append mode) for tee-ing all subprocess output
+            self._log_file = open(LOG_FILE, "a", encoding="utf-8")
+
             # Use 'uv run' to ensure we use the correct Python environment
             self.api_process = subprocess.Popen(
                 [
@@ -84,20 +96,35 @@ class ApplicationManager:
                     "--no-access-log",  # Disable HTTP access logs (cleaner console output)
                 ],
                 cwd=str(project_root),
-                stdout=sys.stdout,
-                stderr=sys.stderr,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
             )
+
+            # Tee stdout and stderr to both console and log file
+            for source, console in [
+                (self.api_process.stdout, sys.stdout),
+                (self.api_process.stderr, sys.stderr),
+            ]:
+                t = threading.Thread(
+                    target=_tee_stream,
+                    args=(source, console, self._log_file),
+                    daemon=True,
+                )
+                t.start()
+                self._tee_threads.append(t)
 
             logger.info(f"FastAPI server started (PID: {self.api_process.pid})")
             logger.info(f"API available at: http://{self.host}:{self.port}")
             logger.info(f"API docs available at: http://{self.host}:{self.port}/docs")
+            logger.info(f"Logs saved to: {LOG_FILE}")
 
         except Exception as e:
             logger.error(f"Error starting FastAPI server: {e}")
             raise
 
     def stop_api_server(self) -> None:
-        """Stop the FastAPI server."""
+        """Stop the FastAPI server and close log file."""
         if self.api_process and self.api_process.poll() is None:
             logger.info("Stopping FastAPI server...")
             self.api_process.terminate()
@@ -110,6 +137,14 @@ class ApplicationManager:
                 self.api_process.wait()
 
             logger.info("FastAPI server stopped")
+
+        # Wait for tee threads to finish flushing
+        for t in self._tee_threads:
+            t.join(timeout=2)
+
+        if self._log_file:
+            self._log_file.close()
+            self._log_file = None
 
     async def run(self) -> None:
         """Run the application."""
