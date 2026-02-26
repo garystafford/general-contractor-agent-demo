@@ -9,6 +9,7 @@ This document provides a comprehensive overview of the General Contractor Agent 
 3. [Data Flow: User Request Lifecycle](#data-flow-user-request-lifecycle)
 4. [Agent Network Architecture](#agent-network-architecture)
 5. [Technology Stack](#technology-stack)
+6. [Design Philosophy](#design-philosophy)
 
 ---
 
@@ -284,6 +285,129 @@ graph TB
     style Roof fill:#b2f2bb,stroke:#51cf66
     style Mat fill:#e599f7,stroke:#cc5de8
     style Perm fill:#e599f7,stroke:#cc5de8
+```
+
+---
+
+## Orchestration Model: Code vs. LLM
+
+A key architectural distinction: the **General Contractor is NOT an LLM agent**. It is a deterministic Python execution loop that makes zero Bedrock API calls. Only the Project Planner and the 8 trade agents are LLM-powered.
+
+This "plan-then-execute" pattern means the LLM generates the task graph, then deterministic code executes it.
+
+```mermaid
+graph TB
+    subgraph "API Layer"
+        API[FastAPI<br/>routes.py]
+    end
+
+    subgraph "Code-Based Orchestration  (No LLM Calls)"
+        direction TB
+        GC["General Contractor<br/><i>Python execution loop</i><br/>execute_entire_project()"]
+        TM["Task Manager<br/><i>Dependency resolution</i><br/>get_ready_tasks()"]
+        LP["Loop & Timeout Protection<br/><i>asyncio.wait_for()</i>"]
+    end
+
+    subgraph "LLM-Powered Agents  (Bedrock API Calls)"
+        PP["Project Planner<br/><i>Strands Agent</i><br/>Only for custom projects"]
+        Agents["Trade Agents × 8<br/><i>Strands Agents</i><br/>Architect, Carpenter,<br/>Electrician, Plumber,<br/>Mason, Painter, HVAC, Roofer"]
+    end
+
+    subgraph "External"
+        Bedrock[AWS Bedrock<br/>Claude LLM]
+        MCP1[Materials MCP]
+        MCP2[Permitting MCP]
+    end
+
+    API -->|"start_project()"| GC
+    GC -->|"Phase 0: Plan<br/>(custom projects only)"| PP
+    PP -->|"Returns task graph"| GC
+    GC <-->|"get_ready_tasks()<br/>mark_completed()"| TM
+    GC -->|"Phase 1-N: Execute<br/>delegate_task()"| Agents
+    GC --- LP
+
+    PP -->|"invoke_async()"| Bedrock
+    Agents -->|"invoke_async()"| Bedrock
+    GC -.->|"MCP Protocol"| MCP1 & MCP2
+
+    style GC fill:#4a90d9,stroke:#2a6cb8,color:#fff
+    style TM fill:#4a90d9,stroke:#2a6cb8,color:#fff
+    style LP fill:#4a90d9,stroke:#2a6cb8,color:#fff
+    style PP fill:#ff6b6b,stroke:#c92a2a,color:#fff
+    style Agents fill:#ff6b6b,stroke:#c92a2a,color:#fff
+    style Bedrock fill:#FF9800,stroke:#e65100,color:#fff
+    style MCP1 fill:#9C27B0,stroke:#6a1b9a,color:#fff
+    style MCP2 fill:#9C27B0,stroke:#6a1b9a,color:#fff
+```
+
+**Legend:** Blue = deterministic Python code (no LLM). Red = LLM-powered Strands agents (Bedrock API calls).
+
+### Why No LLM Orchestrator?
+
+| Aspect             | Code Orchestrator (Current)     | LLM Orchestrator (Alternative)   |
+| ------------------ | ------------------------------- | -------------------------------- |
+| **Cost**           | $0 for orchestration            | Extra Bedrock calls per decision |
+| **Speed**          | Instant task dispatch           | Seconds of LLM latency per step  |
+| **Reliability**    | Deterministic, no hallucination | May hallucinate or loop          |
+| **Token Usage**    | Zero orchestration tokens       | Significant token overhead       |
+| **Predictability** | Same input = same execution     | May vary between runs            |
+
+The General Contractor appears in no token usage reports because it makes zero LLM calls. All Bedrock API calls come from the Project Planner (for custom projects) and the 8 trade agents.
+
+### Example Task Graph: Shed Construction
+
+This is the actual dependency graph produced by the shed construction template. Each node is a task; arrows show "must complete before" dependencies. The General Contractor walks this graph using `get_ready_tasks()`, executing tasks whose dependencies are all satisfied.
+
+```mermaid
+graph TD
+    T1["1 · Architect<br/>Design shed plans"]
+    T2["2 · Mason<br/>Pour concrete foundation"]
+    T3["3 · Carpenter<br/>Frame walls & openings"]
+    T4["4 · Carpenter<br/>Build roof trusses"]
+    T5["5 · Roofer<br/>Install shingles & underlayment"]
+    T6["6 · Carpenter<br/>Install exterior siding"]
+    T7["7 · Carpenter<br/>Install door & window"]
+    T8["8 · Painter<br/>Paint exterior finish"]
+    T9["9 · Carpenter<br/>Final walkthrough & cleanup"]
+
+    T1 -->|"plan done"| T2
+    T2 -->|"foundation set"| T3
+    T3 -->|"walls up"| T4
+    T4 -->|"trusses up"| T5
+    T5 -->|"roof done"| T6
+    T6 -->|"siding on"| T7
+    T7 -->|"doors/windows in"| T8
+    T8 -->|"paint dry"| T9
+
+    style T1 fill:#4dabf7,stroke:#1971c2,color:#fff
+    style T2 fill:#ffd43b,stroke:#f59f00
+    style T3 fill:#ffd43b,stroke:#f59f00
+    style T4 fill:#ffd43b,stroke:#f59f00
+    style T5 fill:#74c0fc,stroke:#339af0
+    style T6 fill:#b2f2bb,stroke:#51cf66
+    style T7 fill:#b2f2bb,stroke:#51cf66
+    style T8 fill:#b2f2bb,stroke:#51cf66
+    style T9 fill:#e599f7,stroke:#cc5de8
+```
+
+**Phases:** Blue = planning, Yellow = foundation/framing, Light blue = rough-in, Green = finishing, Purple = final inspection.
+
+The TaskManager resolves this graph at runtime: task 3 won't start until task 2 is marked complete, task 5 won't start until task 4 is done, and so on. For projects with parallel branches (e.g., electrical and plumbing rough-in happening simultaneously), multiple tasks can be ready at the same time.
+
+### Execution Flow
+
+```text
+Template Project                    Custom Project
+──────────────                      ──────────────
+1. API receives request             1. API receives request
+2. GC loads hardcoded template      2. GC invokes Project Planner (LLM)
+   (no LLM call)                       → Planner returns task graph
+3. TaskManager builds task graph    3. TaskManager builds task graph
+4. GC execution loop:               4. GC execution loop:
+   ├─ get_ready_tasks()                ├─ get_ready_tasks()
+   ├─ delegate to trade agent (LLM)    ├─ delegate to trade agent (LLM)
+   ├─ mark_completed()                 ├─ mark_completed()
+   └─ repeat until done                └─ repeat until done
 ```
 
 ---
@@ -574,6 +698,52 @@ general-contractor-agent-demo/
 └── docs/
     └── architecture.md               # This file
 ```
+
+---
+
+## Design Philosophy
+
+### Plan-Then-Execute with Code-Based Orchestration
+
+This project follows a **plan-then-execute** architecture: an LLM generates the task graph (the "what"), then deterministic Python code orchestrates execution (the "how"). This is a deliberate separation of concerns - intelligence is used where it adds value (planning, domain reasoning) and avoided where it adds cost without benefit (sequencing, dependency resolution).
+
+The pattern has deep roots:
+
+- **Classical AI planning** (1970s+) established the principle of separating plan generation from plan execution. Systems like STRIPS and HTN (Hierarchical Task Networks) generated action sequences that were then executed by deterministic interpreters.
+- **Workflow engines** like Apache Airflow, Prefect, and Dagster popularized DAG-based task orchestration in software engineering - define a dependency graph, then a scheduler walks it.
+- **Modern LLM agent frameworks** have adopted similar patterns. LangGraph's "Plan-and-Execute" agent, ReWOO (Reasoning WithOut Observation), and Strands Agents' own workflow pattern all separate planning from execution to reduce LLM calls and improve reliability.
+
+### Why This Approach
+
+The alternative - using an LLM as the orchestrator (as CrewAI and AutoGen do) - would mean every scheduling decision requires a Bedrock API call. For a 10-task project, that's 10+ extra LLM round-trips just to decide "what runs next," a question the dependency graph already answers deterministically.
+
+The code-based orchestrator provides:
+
+- **Zero orchestration cost** - No Bedrock calls for task dispatch
+- **Deterministic behavior** - Same project = same execution order, every time
+- **No orchestration hallucination** - The scheduler can't "forget" a dependency or invent tasks
+- **Sub-millisecond dispatch** - No LLM latency between tasks
+
+Intelligence is concentrated where it matters:
+
+- **Project Planner agent** - Uses LLM to generate task breakdowns for novel project types (dynamic DAG creation)
+- **Trade agents** - Use LLM to reason about domain-specific work, call tools, and produce detailed results
+- **MCP servers** - Provide structured access to external services (materials, permits)
+
+### Domain Fit
+
+Construction maps naturally to DAG-based execution because real-world construction has strict physical dependency ordering: you cannot install roofing before framing, you cannot paint before drywall. These constraints are inherent to the domain, not arbitrary - making a dependency graph the right abstraction.
+
+The construction metaphor also maps well to multi-agent specialization. Real construction crews have distinct trades (electrician, plumber, carpenter) that work independently within their domain but coordinate through a general contractor. This project mirrors that structure directly.
+
+### Hybrid Planning
+
+The system uses a pragmatic hybrid:
+
+- **Template-based planning** for known project types (kitchen remodel, shed, etc.) - instant, free, predictable
+- **LLM-based dynamic planning** for arbitrary project types - flexible, uses Claude's construction knowledge to generate novel task graphs
+
+This avoids the false choice between "hard-coded only" and "LLM for everything." Templates handle the common case efficiently; the LLM handles the long tail of custom projects.
 
 ---
 
